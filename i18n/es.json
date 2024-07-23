@@ -1,0 +1,11 @@
+{
+  "widget": {
+    "name": "Calculadora de Presupuesto",
+    "short_description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
+    "description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
+    "tour_description": "Tour de la Calculadora de Presupuesto"
+  },
+  "settings": {
+    "api_key": "Clave API"
+  }
+}

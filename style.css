@@ -1,11 +1,69 @@
-.calendly-inline-widget {
-  width: 100%;
-  height: 100%;
+/* Estilos para el botón de agendar cita */
+.js-open-calendly-popup {
+  background-color: #2f2662;
+  color: #fff;
   border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 10px 0;
 }
 
-.calendly-container {
-  width: 245px; /* Ajusta el ancho según tus necesidades */
-  height: 500px; /* Ajusta la altura según tus necesidades */
-  margin: 0 auto; /* Centra el widget */
+.js-open-calendly-popup:hover {
+  background-color: #1e1b40;
+}
+
+/* Estilos para el overlay del popup de Calendly */
+.calendly-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Estilos para el contenido del popup de Calendly */
+.calendly-popup-content {
+  background-color: #ffffff;
+  padding: 20px; /* Padding alrededor del contenido */
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 600px;
+  height: 600px; /* Altura fija para el popup */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box; /* Incluye padding en el cálculo del tamaño */
+}
+
+.calendly-popup-content .calendly-inline-widget {
+  width: 100%;
+  height: calc(100% - 40px); /* Resta el padding (20px arriba y abajo) */
+  box-sizing: border-box;
+}
+
+.js-close-calendly-popup {
+  background-color: #f44336;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  position: absolute;
+  top: 20px; /* Ajustado para que no esté sobre el widget */
+  right: 20px; /* Ajustado para que no esté sobre el widget */
+}
+
+.js-close-calendly-popup:hover {
+  background-color: #d32f2f;
 }

@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Calculadora de Presupuesto",
-    "short_description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
-    "description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
-    "tour_description": "Tour de la Calculadora de Presupuesto"
+    "name": "Calendario de Calendly",
+    "short_description": "Muestra el Calendario de Calendly.",
+    "description": "widget que integra el calendario de Calendly",
+    "tour_description": "Tour del widget del calendario de Calendly"
   },
   "settings": {
     "api_key": "Clave API"

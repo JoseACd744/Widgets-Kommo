@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Budget Calculator",
-    "short_description": "Calculates budget based on Users, Months, and Plan.",
-    "description": "Calculates budget based on Users, Months, and Plan.",
-    "tour_description": "Tour of the Budget Calculator"
+    "name": "Calendly Calendar",
+    "short_description": "Displays the Calendly Calendar.",
+    "description": "Widget that integrates the Calendly calendar",
+    "tour_description": "Tour of the Calendly calendar widget"
   },
   "settings": {
     "api_key": "API Key"

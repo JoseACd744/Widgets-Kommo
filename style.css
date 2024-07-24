@@ -1,40 +1,5 @@
-.km-form {
-  padding: 15px;
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-}
-
-.km-form input[type="text"] {
+.calendly-inline-widget {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box;
-}
-
-.km-form button {
-  padding: 10px 20px;
-  background: #2F2662;
-  color: #fff;
+  height: 100%;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-top: 10px;
-}
-
-.km-form button:hover {
-  background: #2F2662;
-}
-
-#calculation-result {
-  margin-top: 15px;
-  font-size: 16px;
-  color: #333;
-}
-
-#calculation-result p {
-  margin: 0;
 }

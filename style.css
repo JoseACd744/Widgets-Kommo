@@ -3,3 +3,9 @@
   height: 100%;
   border: none;
 }
+
+.calendly-container {
+  width: 245px; /* Ajusta el ancho según tus necesidades */
+  height: 500px; /* Ajusta la altura según tus necesidades */
+  margin: 0 auto; /* Centra el widget */
+}

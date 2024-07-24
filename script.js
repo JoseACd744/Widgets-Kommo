@@ -19,7 +19,9 @@ define(['jquery'], function ($) {
             class_name: 'js-km-caption',
             html: 'Calendario de Holos'
           },
-          body: '<div class="calendly-inline-widget" data-url="https://calendly.com/holos-digital?background_color=f6f3f3&primary_color=2f2662" style="min-width:320px;height:700px;"></div>',
+          body: '<div class="calendly-container">\
+                   <div class="calendly-inline-widget" data-url="https://calendly.com/holos-digital?background_color=f6f3f3&primary_color=2f2662" style="min-width:100%;height:100%;"></div>\
+                 </div>',
           render: ''
         });
         self.loadCalendlyScript();

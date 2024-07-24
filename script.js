@@ -121,8 +121,8 @@ define(['jquery'], function ($) {
           script.async = true;
           document.head.appendChild(script);
 
-          // Evento para cerrar el popup
-          document.querySelector('.js-close-calendly-popup').addEventListener('click', () => {
+          // Asegurar que el evento de cierre esté correctamente registrado
+          document.querySelector('.js-close-calendly-popup').addEventListener('click', function() {
             document.querySelector('.calendly-popup-overlay').remove();
           });
         }

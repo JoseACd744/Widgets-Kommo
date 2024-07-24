@@ -11,20 +11,23 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
+        // Bind the click event to the button for fetching lead data
+        $('.js-fetch-lead-data').on('click', function () {
+          self.fetchLeadData();
+        });
         return true;
       },
       render: function () {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Calendario de Holos'
+            html: 'Lead Data Fetcher'
           },
-          body: '<div class="calendly-container">\
-                   <div class="calendly-inline-widget" data-url="https://calendly.com/holos-digital?background_color=f6f3f3&primary_color=2f2662" style="min-width:100%;height:100%;"></div>\
+          body: '<div class="lead-data-container">\
+                   <button class="js-fetch-lead-data">Fetch Lead Data</button>\
                  </div>',
           render: ''
         });
-        self.loadCalendlyScript();
         return true;
       },
       onSave: function () {
@@ -46,10 +49,21 @@ define(['jquery'], function ($) {
       }
     };
 
-    this.loadCalendlyScript = function() {
-      if (!$('script[src="https://assets.calendly.com/assets/external/widget.js"]').length) {
-        $('head').append('<script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>');
-      }
+    this.fetchLeadData = function() {
+      var leadId = APP.data.current_card.id; // Obtiene el ID del lead actual
+
+      $.ajax({
+        url: '/api/v4/leads/' + leadId, // Endpoint de la API de Kommo para obtener los datos de un lead específico
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          console.log('Lead data:', data);
+          // Procesar y mostrar los datos del lead como desees
+        },
+        error: function(error) {
+          console.error('Error fetching lead data:', error);
+        }
+      });
     };
 
     return this;

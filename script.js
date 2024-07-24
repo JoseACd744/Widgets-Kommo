@@ -12,7 +12,7 @@ define(['jquery'], function ($) {
       },
       bind_actions: function () {
         $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.calculateAndSend();
+          self.fetchLeadData();
         });
         return true;
       },
@@ -23,7 +23,7 @@ define(['jquery'], function ($) {
             html: 'Lead Data Calculator'
           },
           body: '<div class="km-form">\
-                   <button id="calculate-btn">Calculate</button>\
+                   <button id="calculate-btn">Calcular</button>\
                    <div id="calculation-result"></div>\
                  </div>\
                  <div id="snackbar"></div>',
@@ -87,48 +87,61 @@ define(['jquery'], function ($) {
       </style>');
     };
 
-    this.calculateAndSend = function () {
-      var leadData = APP.data.current_card;
-      var attributes = leadData.fields_hider.model.attributes;
+    this.fetchLeadData = function () {
+      var leadId = APP.data.current_card.id; // Obtiene el ID del lead actual
 
-      if (!leadData || !attributes) {
-        self.showError('Lead data or attributes are undefined');
-        return;
-      }
+      $.ajax({
+        url: '/api/v4/leads/' + leadId, // Endpoint de la API de Kommo para obtener los datos de un lead específico
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          console.log('Lead data:', data);
+          self.calculateAndDisplay(data);
+        },
+        error: function(error) {
+          console.error('Error fetching lead data:', error);
+          self.showSnackbar('Error fetching lead data: ' + error.statusText);
+        }
+      });
+    };
 
-      var meses = parseInt(attributes['CFV[2959884]'] || '0', 10);
-      var usuarios = parseInt(attributes['CFV[2959886]'] || '0', 10);
-      var planKommo = attributes['CFV[2959888]'] || '';
+    this.calculateAndDisplay = function(leadData) {
+      // Extraer los valores de los campos personalizados
+      var customFields = leadData.custom_fields_values;
+      var attributes = {};
+      customFields.forEach(function(field) {
+        attributes[field.field_id] = field.values[0].value;
+      });
+
+      var meses = parseInt(attributes['2959884'] || '0', 10);
+      var usuarios = parseInt(attributes['2959886'] || '0', 10);
+      var planKommo = attributes['2959888'] || '';
 
       if (meses === 0) {
         self.showSnackbar('Por favor, complete el campo de meses');
         return;
-    }
+      }
     
-    if (usuarios === 0) {
+      if (usuarios === 0) {
         self.showSnackbar('Por favor, complete el campo de usuarios');
         return;
-    }
+      }
     
-    if (planKommo === '') {
+      if (planKommo === '') {
         self.showSnackbar('Por favor, complete el campo de plan Kommo');
         return;
-    }
-    
-    // Continuar con el flujo normal si todos los campos están completos
-      console.log('Meses:', meses);
-      console.log('Usuarios:', usuarios);
-      console.log('Plan Kommo:', planKommo);  
+      }
 
+      // Determinar el valor del plan Kommo basado en value
       var planValue;
       switch (planKommo) {
-        case "9227454": // Básico
+        case "Básico":
           planValue = 10;
           break;
-        case "9227456": // Avanzado
+        case "Avanzado":
           planValue = 15;
           break;
-        case "9227458": // Empresarial
+        case "Empresarial":
           planValue = 30;
           break;
         default:
@@ -136,48 +149,43 @@ define(['jquery'], function ($) {
           planValue = 0;
       }
 
-      console.log('Plan Value:', planValue);
-
       var result = meses * usuarios * planValue;
 
       if (isNaN(result) || result <= 0) {
-        self.showError('Calculation result is invalid.');
+        self.showError('Calculo inválido');
         return;
       }
-
-      // Guardar el resultado en una variable para usarlo en el webhook
-      self.calculationResult = result;
 
       // Mostrar el resultado en la pantalla
       var displayDiv = $('#calculation-result');
       displayDiv.empty();
       displayDiv.append('<p>Calculation Result: ' + result + '</p>');
 
-      // Enviar los datos al webhook
-      self.sendWebhook(result);
+      self.showSnackbar('Calculo realizado con éxito');
+
+      // Actualizar el campo price del lead
+      self.updateLeadPrice(leadData.id, result);
     };
 
-    this.sendWebhook = function(result) {
-      var webhookUrl = 'https://script.google.com/macros/s/AKfycbzxaH99Y9u4FrBYJCBgTn2zgbgSCT_w7BHGZlMc0hHMkSW_MA8VGaMlKsclVCFY6IP7GA/exec';
-
-      var payload = {
-        id: APP.data.current_card.id,
-        price: parseInt(result, 10)  // Asegurarse de que price es un entero
+    this.updateLeadPrice = function(leadId, price) {
+      var leadData = {
+        price: price
       };
 
-      self.crm_post(
-        webhookUrl,
-        payload,
-        function(msg) {
-          console.log('Webhook sent successfully:', msg);
-          self.showSnackbar('Valor correctamente enviado');
+      $.ajax({
+        url: '/api/v4/leads/' + leadId,
+        method: 'PATCH',
+        contentType: 'application/json',
+        data: JSON.stringify(leadData),
+        success: function(response) {
+          console.log('Lead price updated:', response);
+          self.showSnackbar('presupuesto actualizado con éxito');
         },
-        'json',
-        function(error) {
-          console.error('Error sending webhook:', error);
-          self.showSnackbar('Error sending webhook: ' + error);
+        error: function(error) {
+          console.error('Error updating lead price:', error);
+          self.showSnackbar('Error updating lead price: ' + error.statusText);
         }
-      );
+      });
     };
 
     this.showError = function(message) {

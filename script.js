@@ -42,7 +42,7 @@ define(['jquery'], function ($) {
                        <option value="Empresarial">Empresarial</option>\
                      </select>\
                    </div>\
-                   <div>\
+                   <div class="button-container">\
                      <button id="calculate-btn">Calcular</button>\
                      <button id="save-btn">Guardar</button>\
                    </div>\
@@ -53,7 +53,7 @@ define(['jquery'], function ($) {
         });
         self.fetchLeadData();
         return true;
-      },
+      },      
       onSave: function () {
         return true;
       },

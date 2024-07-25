@@ -45,11 +45,11 @@ define(['jquery'], function ($) {
       leads: {
         selected: function () {
           // Condición para destruir y reconstruir el widget si no estamos en la página de la tarjeta
-          if (APP.data.card_page === false) {
-            self.callbacks.destroy();
-            self.callbacks.init();
-            self.callbacks.render();
-          }
+          // if (APP.data.card_page === false) {
+          //   self.callbacks.destroy();
+          //   self.callbacks.init();
+          //   self.callbacks.render();
+          // }
           return true;
         }
       },

@@ -28,15 +28,16 @@ define(['jquery'], function ($) {
           body: '<div class="km-form">\
                    <div>\
                      <label for="meses">Meses:</label>\
-                     <input type="text" id="meses" value="0">\
+                     <input type="number" id="meses" value="0" min="0">\
                    </div>\
                    <div>\
                      <label for="usuarios">Usuarios:</label>\
-                     <input type="text" id="usuarios" value="0">\
+                     <input type="number" id="usuarios" value="0" min="0">\
                    </div>\
                    <div>\
                      <label for="plan-kommo">Plan Kommo:</label>\
                      <select id="plan-kommo">\
+                       <option value="" selected disabled>Seleccionar plan</option>\
                        <option value="Básico">Básico</option>\
                        <option value="Avanzado">Avanzado</option>\
                        <option value="Empresarial">Empresarial</option>\
@@ -53,7 +54,7 @@ define(['jquery'], function ($) {
         });
         self.fetchLeadData();
         return true;
-      },      
+      },
       onSave: function () {
         return true;
       },
@@ -137,7 +138,7 @@ define(['jquery'], function ($) {
 
       $('#meses').val(attributes['2959884'] || '0');
       $('#usuarios').val(attributes['2959886'] || '0');
-      $('#plan-kommo').val(attributes['2959888'] || 'Básico');
+      $('#plan-kommo').val(attributes['2959888'] || '');
     };
 
     this.calculate = function() {
@@ -146,7 +147,7 @@ define(['jquery'], function ($) {
       var planKommo = $('#plan-kommo').val() || '';
 
       if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos.');
+        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
         return;
       }
 
@@ -169,7 +170,7 @@ define(['jquery'], function ($) {
       var result = meses * usuarios * planValue;
 
       if (isNaN(result) || result <= 0) {
-        self.showError('El resultado del cálculo no es válido.');
+        self.showSnackbar('El resultado del cálculo no es válido.');
         return;
       }
 
@@ -185,6 +186,11 @@ define(['jquery'], function ($) {
 
       if (!price || isNaN(price)) {
         self.showSnackbar('Primero realice el cálculo para guardar el precio.');
+        return;
+      }
+
+      if (!planKommo) {
+        self.showSnackbar('Por favor, seleccione un plan Kommo.');
         return;
       }
 

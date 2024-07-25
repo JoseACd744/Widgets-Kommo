@@ -8,8 +8,8 @@
   margin: 0 auto;
 }
 
-/* Estilos para los inputs de texto */
-.km-form input[type="text"], .km-form select {
+/* Estilos para los inputs de texto y el select */
+.km-form input[type="text"], .km-form input[type="number"], .km-form select {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
@@ -32,7 +32,7 @@
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 16px;  
+  font-size: 16px;
   margin-top: 10px;
   margin-right: 10px;
   box-sizing: border-box;

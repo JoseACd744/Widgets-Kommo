@@ -54,8 +54,11 @@ define(['jquery'], function ($) {
         }
       },
       destroy: function () {
-        // Limpiar eventos y elementos del DOM relacionados con el popup
-        // Restablecer la bandera de renderización
+        $(document).off('click', '.js-close-calendly-popup');
+        $(document).off('click', '.calendly-popup-overlay');
+        $(document).off('click', '.js-open-calendly-popup');
+        $('.calendly-popup-overlay').remove();
+        isRendered = false; 
       }
     };
 

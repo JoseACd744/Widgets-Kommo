@@ -12,7 +12,10 @@ define(['jquery'], function ($) {
       },
       bind_actions: function () {
         $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.fetchLeadData();
+          self.calculate();
+        });
+        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
+          self.saveData();
         });
         return true;
       },
@@ -23,12 +26,32 @@ define(['jquery'], function ($) {
             html: 'Lead Data Calculator'
           },
           body: '<div class="km-form">\
-                   <button id="calculate-btn">Calcular</button>\
+                   <div>\
+                     <label for="meses">Meses:</label>\
+                     <input type="text" id="meses" value="0">\
+                   </div>\
+                   <div>\
+                     <label for="usuarios">Usuarios:</label>\
+                     <input type="text" id="usuarios" value="0">\
+                   </div>\
+                   <div>\
+                     <label for="plan-kommo">Plan Kommo:</label>\
+                     <select id="plan-kommo">\
+                       <option value="Básico">Básico</option>\
+                       <option value="Avanzado">Avanzado</option>\
+                       <option value="Empresarial">Empresarial</option>\
+                     </select>\
+                   </div>\
+                   <div>\
+                     <button id="calculate-btn">Calcular</button>\
+                     <button id="save-btn">Guardar</button>\
+                   </div>\
                    <div id="calculation-result"></div>\
                  </div>\
                  <div id="snackbar"></div>',
           render: ''
         });
+        self.fetchLeadData();
         return true;
       },
       onSave: function () {
@@ -88,15 +111,15 @@ define(['jquery'], function ($) {
     };
 
     this.fetchLeadData = function () {
-      var leadId = APP.data.current_card.id; // Obtiene el ID del lead actual
+      var leadId = APP.data.current_card.id;
 
       $.ajax({
-        url: '/api/v4/leads/' + leadId, // Endpoint de la API de Kommo para obtener los datos de un lead específico
+        url: '/api/v4/leads/' + leadId,
         method: 'GET',
         dataType: 'json',
         success: function(data) {
           console.log('Lead data:', data);
-          self.calculateAndDisplay(data);
+          self.populateForm(data);
         },
         error: function(error) {
           console.error('Error fetching lead data:', error);
@@ -105,34 +128,28 @@ define(['jquery'], function ($) {
       });
     };
 
-    this.calculateAndDisplay = function(leadData) {
-      // Extraer los valores de los campos personalizados
+    this.populateForm = function(leadData) {
       var customFields = leadData.custom_fields_values;
       var attributes = {};
       customFields.forEach(function(field) {
         attributes[field.field_id] = field.values[0].value;
       });
 
-      var meses = parseInt(attributes['2959884'] || '0', 10);
-      var usuarios = parseInt(attributes['2959886'] || '0', 10);
-      var planKommo = attributes['2959888'] || '';
+      $('#meses').val(attributes['2959884'] || '0');
+      $('#usuarios').val(attributes['2959886'] || '0');
+      $('#plan-kommo').val(attributes['2959888'] || 'Básico');
+    };
 
-      if (meses === 0) {
-        self.showSnackbar('Por favor, complete el campo de meses');
-        return;
-      }
-    
-      if (usuarios === 0) {
-        self.showSnackbar('Por favor, complete el campo de usuarios');
-        return;
-      }
-    
-      if (planKommo === '') {
-        self.showSnackbar('Por favor, complete el campo de plan Kommo');
+    this.calculate = function() {
+      var meses = parseInt($('#meses').val() || '0', 10);
+      var usuarios = parseInt($('#usuarios').val() || '0', 10);
+      var planKommo = $('#plan-kommo').val() || '';
+
+      if (meses === 0 || usuarios === 0 || planKommo === '') {
+        self.showSnackbar('Por favor, complete todos los campos.');
         return;
       }
 
-      // Determinar el valor del plan Kommo basado en value
       var planValue;
       switch (planKommo) {
         case "Básico":
@@ -152,24 +169,35 @@ define(['jquery'], function ($) {
       var result = meses * usuarios * planValue;
 
       if (isNaN(result) || result <= 0) {
-        self.showError('Calculo inválido');
+        self.showError('El resultado del cálculo no es válido.');
         return;
       }
 
-      // Mostrar el resultado en la pantalla
-      var displayDiv = $('#calculation-result');
-      displayDiv.empty();
-      displayDiv.append('<p>Calculation Result: ' + result + '</p>');
-
-      self.showSnackbar('Calculo realizado con éxito');
-
-      // Actualizar el campo price del lead
-      self.updateLeadPrice(leadData.id, result);
+      $('#calculation-result').text('Resultado del cálculo: ' + result);
     };
 
-    this.updateLeadPrice = function(leadId, price) {
+    this.saveData = function() {
+      var leadId = APP.data.current_card.id;
+      var meses = $('#meses').val().toString();
+      var usuarios = $('#usuarios').val().toString();
+      var planKommo = $('#plan-kommo').val();
+      var price = parseFloat($('#calculation-result').text().split(': ')[1]);
+
+      if (!price || isNaN(price)) {
+        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
+        return;
+      }
+
+      // Construir los datos a enviar al lead
+      var customFields = [
+        { field_id: 2959884, values: [{ value: meses }] },
+        { field_id: 2959886, values: [{ value: usuarios }] },
+        { field_id: 2959888, values: [{ value: planKommo }] }
+      ];
+
       var leadData = {
-        price: price
+        price: price,
+        custom_fields_values: customFields
       };
 
       $.ajax({
@@ -178,12 +206,12 @@ define(['jquery'], function ($) {
         contentType: 'application/json',
         data: JSON.stringify(leadData),
         success: function(response) {
-          console.log('Lead price updated:', response);
-          self.showSnackbar('presupuesto actualizado con éxito');
+          console.log('Lead data updated:', response);
+          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
         },
         error: function(error) {
-          console.error('Error updating lead price:', error);
-          self.showSnackbar('Error updating lead price: ' + error.statusText);
+          console.error('Error updating lead data:', error);
+          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
         }
       });
     };

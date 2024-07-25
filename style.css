@@ -1,10 +1,14 @@
+/* Estilos para el contenedor del formulario */
 .km-form {
   padding: 15px;
-  background: #f9f9f9;
+  background: #2F2662;
   border: 1px solid #ddd;
   border-radius: 5px;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
+/* Estilos para los inputs de texto */
 .km-form input[type="text"] {
   width: 100%;
   padding: 10px;
@@ -14,27 +18,45 @@
   box-sizing: border-box;
 }
 
+/* Estilos para el select de Plan Kommo */
+.km-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+  background-color: white;
+  color: #333;
+}
+
+/* Estilos para los botones de calcular y guardar */
 .km-form button {
   padding: 10px 20px;
-  background: #2F2662;
-  color: #fff;
+  background: #fff;
+  color: #2F2662;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
   margin-top: 10px;
+  margin-right: 10px;
+  box-sizing: border-box;
 }
 
+/* Estilos para el hover de los botones */
 .km-form button:hover {
-  background: #2F2662;
+  background: #1f1a44;
 }
 
+/* Estilos para el resultado del cálculo */
 #calculation-result {
   margin-top: 15px;
   font-size: 16px;
-  color: #333;
+  color: #fff;
 }
 
+/* Estilos para los mensajes de resultado */
 #calculation-result p {
   margin: 0;
 }

@@ -12,7 +12,8 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $(document).on('click', '.js-open-calendly-popup', function () {
+        // Utilizar .one en lugar de .on para asegurarse de que se vincule una vez
+        $(document).one('click', '.js-open-calendly-popup', function () {
           self.openCalendlyPopup();
         });
         return true;
@@ -44,8 +45,8 @@ define(['jquery'], function ($) {
       },
       destroy: function () {
         // Limpiar eventos y elementos del DOM relacionados con el popup
-        $(document).off('click', '.js-close-calendly-popup');
         $(document).off('click', '.calendly-popup-overlay');
+        $(document).off('click', '.js-open-calendly-popup');
         $('.calendly-popup-overlay').remove();
         isRendered = false; // Restablecer la bandera de renderización
       }

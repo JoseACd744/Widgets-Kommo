@@ -12,13 +12,17 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        // Utilizar .one en lugar de .on para asegurarse de que se vincule una vez
-        $(document).one('click', '.js-open-calendly-popup', function () {
+        $(document).on('click', '.js-open-calendly-popup', function () {
           self.openCalendlyPopup();
         });
         return true;
       },
       render: function () {
+        // Condición para destruir el widget si no estamos en la página de la tarjeta
+        if (APP.data.card_page == false) {
+          self.callbacks.destroy();
+        }
+
         if (isRendered) return true; // Evitar múltiples renderizaciones
 
         self.render_template({
@@ -40,15 +44,18 @@ define(['jquery'], function ($) {
       },
       leads: {
         selected: function () {
+          // Condición para destruir y reconstruir el widget si no estamos en la página de la tarjeta
+          if (APP.data.card_page === false) {
+            self.callbacks.destroy();
+            self.callbacks.init();
+            self.callbacks.render();
+          }
           return true;
         }
       },
       destroy: function () {
         // Limpiar eventos y elementos del DOM relacionados con el popup
-        $(document).off('click', '.calendly-popup-overlay');
-        $(document).off('click', '.js-open-calendly-popup');
-        $('.calendly-popup-overlay').remove();
-        isRendered = false; // Restablecer la bandera de renderización
+        // Restablecer la bandera de renderización
       }
     };
 

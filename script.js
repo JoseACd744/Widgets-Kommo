@@ -1,6 +1,7 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
+    var isRendered = false; // Bandera para controlar la renderización
 
     this.callbacks = {
       settings: function () {
@@ -11,13 +12,14 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        // Bind the click event to open the Calendly popup
         $(document).on('click', '.js-open-calendly-popup', function () {
           self.openCalendlyPopup();
         });
         return true;
       },
       render: function () {
+        if (isRendered) return true; // Evitar múltiples renderizaciones
+
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
@@ -28,6 +30,8 @@ define(['jquery'], function ($) {
                  </div>',
           render: ''
         });
+
+        isRendered = true; // Marcar como renderizado
         return true;
       },
       onSave: function () {
@@ -38,7 +42,13 @@ define(['jquery'], function ($) {
           return true;
         }
       },
-      destroy: function () {}
+      destroy: function () {
+        // Limpiar eventos y elementos del DOM relacionados con el popup
+        $(document).off('click', '.js-close-calendly-popup');
+        $(document).off('click', '.calendly-popup-overlay');
+        $('.calendly-popup-overlay').remove();
+        isRendered = false; // Restablecer la bandera de renderización
+      }
     };
 
     this.loadCSS = function() {
@@ -64,11 +74,13 @@ define(['jquery'], function ($) {
         .then(contactData => {
           let email = '';
           
-          contactData.custom_fields_values.forEach(field => {
-            if (field.field_code === 'EMAIL') {
-              email = field.values[0].value;
-            }
-          });
+          if (contactData.custom_fields_values) {
+            contactData.custom_fields_values.forEach(field => {
+              if (field.field_code === 'EMAIL') {
+                email = field.values[0].value;
+              }
+            });
+          }
 
           return {
             name: contactData.name,
@@ -78,9 +90,10 @@ define(['jquery'], function ($) {
     };
 
     this.openCalendlyPopup = function() {
-      const idLead = APP.data.current_card.id; // Obtener el ID del lead actual
+      // Eliminar cualquier popup existente antes de crear uno nuevo
+      $('.calendly-popup-overlay').remove();
 
-      // Obtener detalles del lead y su contacto
+      const idLead = APP.data.current_card.id; // Obtener el ID del lead actual
       const leadUrl = `/api/v4/leads/${idLead}?with=contacts`;
 
       fetch(leadUrl, {
@@ -105,7 +118,6 @@ define(['jquery'], function ($) {
           const calendlyBaseURL = "https://calendly.com/holos-digital?background_color=f6f3f3&primary_color=2f2662";
           const customURL = calendlyBaseURL + `&name=${encodedName}&email=${encodedEmail}&a4=${idLead}`;
 
-          // Crear un popup con el widget de Calendly
           const popupHTML = `<div class="calendly-popup-overlay">
                               <div class="calendly-popup-content">
                                 <div class="calendly-inline-widget" data-url="${customURL}" style="min-width:100%;height:100%;"></div>
@@ -121,9 +133,15 @@ define(['jquery'], function ($) {
           script.async = true;
           document.head.appendChild(script);
 
-          // Asegurar que el evento de cierre esté correctamente registrado
-          document.querySelector('.js-close-calendly-popup').addEventListener('click', function() {
-            document.querySelector('.calendly-popup-overlay').remove();
+          // Vincular eventos de cierre
+          $(document).on('click', '.js-close-calendly-popup', function() {
+            $('.calendly-popup-overlay').remove();
+          });
+
+          $(document).on('click', '.calendly-popup-overlay', function(event) {
+            if (event.target === event.currentTarget) {
+              $(this).remove();
+            }
           });
         }
       });

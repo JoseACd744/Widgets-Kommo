@@ -199,11 +199,11 @@ define(['jquery'], function ($) {
       var customFields = [
         { field_id: 794456, values: [{ value: meses }] },
         { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] }
+        { field_id: 794639, values: [{ value: planKommo }] },
+        { field_id: 794643, values: [{ value: price }] }
       ];
     
       var leadData = {
-        price: price,
         custom_fields_values: customFields
       };
     

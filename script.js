@@ -182,30 +182,31 @@ define(['jquery'], function ($) {
       var meses = $('#meses').val().toString();
       var usuarios = $('#usuarios').val().toString();
       var planKommo = $('#plan-kommo').val();
-      var price = parseFloat($('#calculation-result').text().split(': ')[1]);
-
+      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
+      var price = parseFloat(priceText);
+    
       if (!price || isNaN(price)) {
         self.showSnackbar('Primero realice el cálculo para guardar el precio.');
         return;
       }
-
+    
       if (!planKommo) {
         self.showSnackbar('Por favor, seleccione un plan Kommo.');
         return;
       }
-
+    
       // Construir los datos a enviar al lead
       var customFields = [
         { field_id: 794456, values: [{ value: meses }] },
         { field_id: 794454, values: [{ value: usuarios }] },
         { field_id: 794639, values: [{ value: planKommo }] }
       ];
-
+    
       var leadData = {
         price: price,
         custom_fields_values: customFields
       };
-
+    
       $.ajax({
         url: '/api/v4/leads/' + leadId,
         method: 'PATCH',
@@ -221,6 +222,7 @@ define(['jquery'], function ($) {
         }
       });
     };
+    
 
     this.showError = function(message) {
       alert(message);

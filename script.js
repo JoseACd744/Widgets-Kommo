@@ -136,9 +136,9 @@ define(['jquery'], function ($) {
         attributes[field.field_id] = field.values[0].value;
       });
 
-      $('#meses').val(attributes['2959884'] || '0');
-      $('#usuarios').val(attributes['2959886'] || '0');
-      $('#plan-kommo').val(attributes['2959888'] || '');
+      $('#meses').val(attributes['794456'] || '0');
+      $('#usuarios').val(attributes['794454'] || '0');
+      $('#plan-kommo').val(attributes['794639'] || '');
     };
 
     this.calculate = function() {
@@ -154,13 +154,13 @@ define(['jquery'], function ($) {
       var planValue;
       switch (planKommo) {
         case "Básico":
-          planValue = 10;
-          break;
-        case "Avanzado":
           planValue = 15;
           break;
+        case "Avanzado":
+          planValue = 25;
+          break;
         case "Empresarial":
-          planValue = 30;
+          planValue = 45;
           break;
         default:
           console.log('Unexpected planKommo value:', planKommo);
@@ -174,7 +174,7 @@ define(['jquery'], function ($) {
         return;
       }
 
-      $('#calculation-result').text('Resultado del cálculo: ' + result);
+      $('#calculation-result').text('Resultado $' + result);
     };
 
     this.saveData = function() {
@@ -196,9 +196,9 @@ define(['jquery'], function ($) {
 
       // Construir los datos a enviar al lead
       var customFields = [
-        { field_id: 2959884, values: [{ value: meses }] },
-        { field_id: 2959886, values: [{ value: usuarios }] },
-        { field_id: 2959888, values: [{ value: planKommo }] }
+        { field_id: 794456, values: [{ value: meses }] },
+        { field_id: 794454, values: [{ value: usuarios }] },
+        { field_id: 794639, values: [{ value: planKommo }] }
       ];
 
       var leadData = {

@@ -46,6 +46,11 @@
 .km-form #calculate-btn:hover {
   background: #878686;
 }
+/* Estilos para las etiquetas dentro del contenedor del formulario */
+.km-form label {
+  color: #fff; /* Cambia el color del texto a blanco */
+}
+
 
 /* Estilo específico para el botón de guardar */
 .km-form #save-btn {

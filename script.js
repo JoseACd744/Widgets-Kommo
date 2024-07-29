@@ -15,6 +15,7 @@ define(['jquery'], function ($) {
           self.calculate();
         });
         $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
+          self.calculate();
           self.saveData();
         });
         return true;
@@ -222,7 +223,6 @@ define(['jquery'], function ($) {
         }
       });
     };
-    
 
     this.showError = function(message) {
       alert(message);

@@ -2,6 +2,8 @@ define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
     var pipelines = {};
+    var contactInfo = {};
+    var companyInfo = {};
 
     this.callbacks = {
       settings: function () {
@@ -29,55 +31,16 @@ define(['jquery'], function ($) {
                      <input type="text" id="lead-name">\
                    </div>\
                    <div>\
+                     <label for="lead-pipeline">Embudo:</label>\
+                     <select id="lead-pipeline">\
+                       <option value="" selected disabled>Seleccionar embudo</option>\
+                     </select>\
+                   </div>\
+                   <div>\
                      <label for="lead-stage">Etapa:</label>\
                      <select id="lead-stage">\
                        <option value="" selected disabled>Seleccionar etapa</option>\
                      </select>\
-                   </div>\
-                   <div>\
-                     <label for="meses">Meses:</label>\
-                     <input type="number" id="meses" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="usuarios">Usuarios:</label>\
-                     <input type="number" id="usuarios" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="plan-kommo">Plan Kommo:</label>\
-                     <select id="plan-kommo">\
-                       <option value="" selected disabled>Seleccionar plan</option>\
-                       <option value="Básico">Básico</option>\
-                       <option value="Avanzado">Avanzado</option>\
-                       <option value="Empresarial">Empresarial</option>\
-                     </select>\
-                   </div>\
-                   <div>\
-                     <label for="google-meet">Google Meet:</label>\
-                     <input type="url" id="google-meet">\
-                   </div>\
-                   <div>\
-                     <label for="fecha-calendly">Fecha Calendly:</label>\
-                     <input type="datetime-local" id="fecha-calendly">\
-                   </div>\
-                   <div>\
-                     <label for="compromiso-asistencia">Compromiso Asistencia:</label>\
-                     <textarea id="compromiso-asistencia"></textarea>\
-                   </div>\
-                   <div>\
-                     <label for="cantidad-agentes">Cantidad Agentes:</label>\
-                     <textarea id="cantidad-agentes"></textarea>\
-                   </div>\
-                   <div>\
-                     <label for="urgencia">Urgencia:</label>\
-                     <textarea id="urgencia"></textarea>\
-                   </div>\
-                   <div>\
-                     <label for="valor-onboarding">Valor Onboarding:</label>\
-                     <input type="number" id="valor-onboarding" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="valor-licencias">Valor Licencias Kommo:</label>\
-                     <input type="number" id="valor-licencias" value="0" min="0">\
                    </div>\
                    <div class="button-container">\
                      <button id="clone-btn">Clonar y Guardar</button>\
@@ -153,7 +116,7 @@ define(['jquery'], function ($) {
           console.log('Pipelines data:', data);
           data._embedded.pipelines.forEach(function(pipeline) {
             pipelines[pipeline.id] = pipeline.name;
-            $('#lead-stage').append(new Option(pipeline.name, pipeline.id));
+            $('#lead-pipeline').append(new Option(pipeline.name, pipeline.id));
           });
           self.fetchLeadData();
         },
@@ -164,16 +127,37 @@ define(['jquery'], function ($) {
       });
     };
 
+    this.fetchStages = function (pipelineId) {
+      $.ajax({
+        url: '/api/v4/leads/pipelines/' + pipelineId + '/statuses',
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          console.log('Stages data:', data);
+          $('#lead-stage').empty();
+          data._embedded.statuses.forEach(function(stage) {
+            $('#lead-stage').append(new Option(stage.name, stage.id));
+          });
+        },
+        error: function(error) {
+          console.error('Error fetching stages:', error);
+          self.showSnackbar('Error fetching stages: ' + error.statusText);
+        }
+      });
+    };
+
     this.fetchLeadData = function () {
       var leadId = APP.data.current_card.id;
 
       $.ajax({
-        url: '/api/v4/leads/' + leadId,
+        url: `/api/v4/leads/${leadId}`,
         method: 'GET',
         dataType: 'json',
         success: function(data) {
           console.log('Lead data:', data);
+          companyInfo = data._embedded.companies[0];
           self.populateForm(data);
+          self.fetchContactInfo(leadId);
         },
         error: function(error) {
           console.error('Error fetching lead data:', error);
@@ -182,78 +166,76 @@ define(['jquery'], function ($) {
       });
     };
 
-    this.populateForm = function(leadData) {
-      var customFields = leadData.custom_fields_values;
-      var attributes = {};
-      customFields.forEach(function(field) {
-        attributes[field.field_id] = field.values[0].value;
+    this.fetchContactInfo = function (leadId) {
+      $.ajax({
+        url: `/api/v4/leads?with=contacts&id=${leadId}`,
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          console.log('Contact data:', data);
+          contactInfo = data._embedded.leads[0]._embedded.contacts[0];
+        },
+        error: function(error) {
+          console.error('Error fetching contact info:', error);
+          self.showSnackbar('Error fetching contact info: ' + error.statusText);
+        }
       });
-
-      $('#lead-name').val(leadData.name || '');
-      $('#lead-stage').val(leadData.pipeline_id || '');
-      $('#meses').val(attributes['794456'] || '0');
-      $('#usuarios').val(attributes['794454'] || '0');
-      $('#plan-kommo').val(attributes['794639'] || '');
-      $('#google-meet').val(attributes['792794'] || '');
-      $('#fecha-calendly').val(new Date(attributes['792418'] * 1000).toISOString().slice(0, -1) || '');
-      $('#compromiso-asistencia').val(attributes['794683'] || '');
-      $('#cantidad-agentes').val(attributes['794685'] || '');
-      $('#urgencia').val(attributes['794687'] || '');
-      $('#valor-onboarding').val(attributes['794641'] || '0');
-      $('#valor-licencias').val(attributes['794643'] || '0');
-
-      self.highlightCurrentPipeline(leadData.pipeline_id);
     };
 
-    this.highlightCurrentPipeline = function(pipelineId) {
-      if (pipelines[pipelineId]) {
-        $('#lead-stage').val(pipelineId);
-      }
+    this.populateForm = function(leadData) {
+      $('#lead-name').val(leadData.name || '');
+      $('#lead-pipeline').val(leadData.pipeline_id || '');
+      self.fetchStages(leadData.pipeline_id);
+      setTimeout(function() {
+        $('#lead-stage').val(leadData.status_id || '');
+      }, 500);
     };
 
     this.cloneLead = function() {
       var leadName = $('#lead-name').val();
+      var leadPipeline = $('#lead-pipeline').val();
       var leadStage = $('#lead-stage').val();
-      var meses = $('#meses').val().toString();
-      var usuarios = $('#usuarios').val().toString();
-      var planKommo = $('#plan-kommo').val();
-      var googleMeet = $('#google-meet').val();
-      var fechaCalendly = new Date($('#fecha-calendly').val()).getTime() / 1000;
-      var compromisoAsistencia = $('#compromiso-asistencia').val();
-      var cantidadAgentes = $('#cantidad-agentes').val();
-      var urgencia = $('#urgencia').val();
-      var valorOnboarding = $('#valor-onboarding').val().toString();
-      var valorLicencias = $('#valor-licencias').val().toString();
 
-      if (!leadName || !leadStage || !meses || !usuarios || !planKommo) {
+      if (!leadName || !leadPipeline || !leadStage) {
         self.showSnackbar('Por favor, complete todos los campos.');
         return;
       }
 
-      var customFields = [
-        { field_id: 794456, values: [{ value: meses }] },
-        { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 792794, values: [{ value: googleMeet }] },
-        { field_id: 792418, values: [{ value: fechaCalendly }] },
-        { field_id: 794683, values: [{ value: compromisoAsistencia }] },
-        { field_id: 794685, values: [{ value: cantidadAgentes }] },
-        { field_id: 794687, values: [{ value: urgencia }] },
-        { field_id: 794641, values: [{ value: valorOnboarding }] },
-        { field_id: 794643, values: [{ value: valorLicencias }] }
-      ];
+      var startTimeUnix = Math.floor(new Date().getTime() / 1000); // Ejemplo de timestamp Unix actual
 
-      var newLeadData = {
+      var leadData = [{
         name: leadName,
         status_id: leadStage,
-        custom_fields_values: customFields
-      };
+        _embedded: {
+          contacts: [{
+            name: `${contactInfo.first_name} ${contactInfo.last_name}`,
+            first_name: contactInfo.first_name,
+            last_name: contactInfo.last_name,
+            custom_fields_values: [
+              {
+                field_id: 542592,
+                values: [{ value: contactInfo.custom_fields_values.find(field => field.field_id === 542592).values[0].value }]
+              },
+              {
+                field_id: 542590,
+                values: [{ value: contactInfo.custom_fields_values.find(field => field.field_id === 542590).values[0].value }]
+              }
+            ]
+          }],
+          companies: [{
+            id: companyInfo.id,
+            name: companyInfo.name
+          }],
+          tags: leadData._embedded.tags || [] // Incluyendo tags si están presentes
+        },
+        custom_fields_values: leadData.custom_fields_values // Incluyendo otros campos personalizados si están presentes
+      }];
 
       $.ajax({
-        url: '/api/v4/leads',
+        url: '/api/v4/leads/complex',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(newLeadData),
+        data: JSON.stringify(leadData),
         success: function(response) {
           console.log('Lead cloned successfully:', response);
           self.showSnackbar('El lead se ha clonado y guardado con éxito.');

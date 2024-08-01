@@ -8,36 +8,24 @@
   margin: 0 auto;
 }
 
-/* Estilos para los inputs de texto, número, select, url, y datetime-local */
-.km-form input[type="text"], .km-form input[type="number"], .km-form input[type="url"], .km-form input[type="datetime-local"], .km-form select {
+/* Estilos para los inputs de texto y los selects */
+.km-form input[type="text"], .km-form select {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
   box-sizing: border-box;
-}
-
-/* Estilos para los textareas */
-.km-form textarea {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box;
-  resize: vertical; /* Permite redimensionar verticalmente */
 }
 
 /* Contenedor para los botones */
 .km-form .button-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 /* Estilos para los botones */
 .km-form button {
-  flex: 1;
   padding: 10px 20px;
   color: #080808;
   border: none;
@@ -45,44 +33,16 @@
   cursor: pointer;
   font-size: 16px;
   margin-top: 10px;
-  margin-right: 10px;
-  box-sizing: border-box;
-}
-
-/* Estilo específico para el botón de calcular */
-.km-form #calculate-btn {
-  background: #ffff;
-}
-
-.km-form #calculate-btn:hover {
-  background: #878686;
-}
-
-/* Estilo específico para el botón de guardar */
-.km-form #save-btn {
   background: #4CAF50;
-  margin-right: 0; /* Para evitar margen extra en el último botón */
 }
 
-.km-form #save-btn:hover {
+.km-form button:hover {
   background: #45a049;
 }
 
 /* Estilos para las etiquetas dentro del contenedor del formulario */
 .km-form label {
   color: #fff; /* Cambia el color del texto a blanco */
-}
-
-/* Estilos para el resultado del cálculo */
-#calculation-result {
-  margin-top: 15px;
-  font-size: 16px;
-  color: #fff;
-}
-
-/* Estilos para los mensajes de resultado */
-#calculation-result p {
-  margin: 0;
 }
 
 /* Estilos para el snackbar */

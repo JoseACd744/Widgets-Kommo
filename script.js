@@ -4,6 +4,7 @@ define(['jquery'], function ($) {
     var pipelines = {};
     var contactInfo = {};
     var companyInfo = {};
+    var originalLeadData = {};
 
     this.callbacks = {
       settings: function () {
@@ -150,34 +151,19 @@ define(['jquery'], function ($) {
       var leadId = APP.data.current_card.id;
 
       $.ajax({
-        url: `/api/v4/leads/${leadId}`,
+        url: `/api/v4/leads/${leadId}?with=contacts`,
         method: 'GET',
         dataType: 'json',
         success: function(data) {
-          console.log('Lead data:', data);
-          companyInfo = data._embedded.companies[0];
+          console.log('Lead data with contacts:', data);
+          companyInfo = data._embedded.companies ? data._embedded.companies[0] : {};
+          contactInfo = data._embedded.contacts ? data._embedded.contacts[0] : {};
+          originalLeadData = data;
           self.populateForm(data);
-          self.fetchContactInfo(leadId);
         },
         error: function(error) {
           console.error('Error fetching lead data:', error);
           self.showSnackbar('Error fetching lead data: ' + error.statusText);
-        }
-      });
-    };
-
-    this.fetchContactInfo = function (leadId) {
-      $.ajax({
-        url: `/api/v4/leads?with=contacts&id=${leadId}`,
-        method: 'GET',
-        dataType: 'json',
-        success: function(data) {
-          console.log('Contact data:', data);
-          contactInfo = data._embedded.leads[0]._embedded.contacts[0];
-        },
-        error: function(error) {
-          console.error('Error fetching contact info:', error);
-          self.showSnackbar('Error fetching contact info: ' + error.statusText);
         }
       });
     };
@@ -201,41 +187,38 @@ define(['jquery'], function ($) {
         return;
       }
 
-      var startTimeUnix = Math.floor(new Date().getTime() / 1000); // Ejemplo de timestamp Unix actual
+      // Clonar el lead original y modificar los campos necesarios
+      var clonedLeadData = JSON.parse(JSON.stringify(originalLeadData));
+      clonedLeadData.name = leadName;
+      clonedLeadData.pipeline_id = parseInt(leadPipeline);
+      clonedLeadData.status_id = parseInt(leadStage);
 
-      var leadData = [{
-        name: leadName,
-        status_id: leadStage,
-        _embedded: {
-          contacts: [{
-            name: `${contactInfo.first_name} ${contactInfo.last_name}`,
-            first_name: contactInfo.first_name,
-            last_name: contactInfo.last_name,
-            custom_fields_values: [
-              {
-                field_id: 542592,
-                values: [{ value: contactInfo.custom_fields_values.find(field => field.field_id === 542592).values[0].value }]
-              },
-              {
-                field_id: 542590,
-                values: [{ value: contactInfo.custom_fields_values.find(field => field.field_id === 542590).values[0].value }]
-              }
-            ]
-          }],
-          companies: [{
-            id: companyInfo.id,
-            name: companyInfo.name
-          }],
-          tags: leadData._embedded.tags || [] // Incluyendo tags si están presentes
-        },
-        custom_fields_values: leadData.custom_fields_values // Incluyendo otros campos personalizados si están presentes
-      }];
+      // Eliminar el campo id del lead clonado para evitar conflictos
+      delete clonedLeadData.id;
+
+      // Limpiar los campos no esperados en custom_fields_values
+      if (clonedLeadData.custom_fields_values) {
+        clonedLeadData.custom_fields_values.forEach(field => {
+          delete field.is_computed;
+          if (field.values) {
+            field.values.forEach(value => {
+              delete value.is_deleted;
+              console.log('Cleaned value:', value);
+            });
+          }
+        });
+      }
+
+      // Asegurarse de que los datos están en el formato correcto
+      var leadsArray = [clonedLeadData];
+
+      console.log('Cloning lead with data:', leadsArray);
 
       $.ajax({
         url: '/api/v4/leads/complex',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(leadData),
+        data: JSON.stringify(leadsArray),
         success: function(response) {
           console.log('Lead cloned successfully:', response);
           self.showSnackbar('El lead se ha clonado y guardado con éxito.');

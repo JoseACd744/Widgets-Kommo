@@ -201,7 +201,8 @@ define(['jquery'], function ($) {
         { field_id: 794456, values: [{ value: meses }] },
         { field_id: 794454, values: [{ value: usuarios }] },
         { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] }
+        { field_id: 794643, values: [{ value: price }] },
+        { field_id: 793770, values: [{ value: true }] },
       ];
     
       var leadData = {

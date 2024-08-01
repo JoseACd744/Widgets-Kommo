@@ -8,8 +8,8 @@
   margin: 0 auto;
 }
 
-/* Estilos para los inputs de texto y el select */
-.km-form input[type="text"], .km-form input[type="number"], .km-form select {
+/* Estilos para los inputs de texto, número, select, url, y datetime-local */
+.km-form input[type="text"], .km-form input[type="number"], .km-form input[type="url"], .km-form input[type="datetime-local"], .km-form select {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
@@ -18,13 +18,24 @@
   box-sizing: border-box;
 }
 
+/* Estilos para los textareas */
+.km-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+  resize: vertical; /* Permite redimensionar verticalmente */
+}
+
 /* Contenedor para los botones */
 .km-form .button-container {
   display: flex;
   justify-content: space-between;
 }
 
-/* Estilos para los botones de calcular y guardar */
+/* Estilos para los botones */
 .km-form button {
   flex: 1;
   padding: 10px 20px;
@@ -46,11 +57,6 @@
 .km-form #calculate-btn:hover {
   background: #878686;
 }
-/* Estilos para las etiquetas dentro del contenedor del formulario */
-.km-form label {
-  color: #fff; /* Cambia el color del texto a blanco */
-}
-
 
 /* Estilo específico para el botón de guardar */
 .km-form #save-btn {
@@ -60,6 +66,11 @@
 
 .km-form #save-btn:hover {
   background: #45a049;
+}
+
+/* Estilos para las etiquetas dentro del contenedor del formulario */
+.km-form label {
+  color: #fff; /* Cambia el color del texto a blanco */
 }
 
 /* Estilos para el resultado del cálculo */
@@ -72,4 +83,47 @@
 /* Estilos para los mensajes de resultado */
 #calculation-result p {
   margin: 0;
+}
+
+/* Estilos para el snackbar */
+#snackbar {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  bottom: 30px;
+  font-size: 17px;
+}
+
+#snackbar.show {
+  visibility: visible;
+  -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+@-webkit-keyframes fadein {
+  from {bottom: 0; opacity: 0;}
+  to {bottom: 30px; opacity: 1;}
+}
+
+@keyframes fadein {
+  from {bottom: 0; opacity: 0;}
+  to {bottom: 30px; opacity: 1;}
+}
+
+@-webkit-keyframes fadeout {
+  from {bottom: 30px; opacity: 1;}
+  to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeout {
+  from {bottom: 30px; opacity: 1;}
+  to {bottom: 0; opacity: 0;}
 }

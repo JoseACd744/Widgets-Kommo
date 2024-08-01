@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Budget Calculator",
-    "short_description": "Calculates budget based on Users, Months, and Plan.",
-    "description": "Calculates budget based on Users, Months, and Plan.",
-    "tour_description": "Tour of the Budget Calculator"
+    "name": "Lead Cloner and Editor",
+    "short_description": "Allows you to clone a lead and edit its details before saving it in a different stage.",
+    "description": "This widget allows you to clone an existing lead and modify its details through a form before saving it in a new stage of the pipeline.",
+    "tour_description": "Tour of the Lead Cloner and Editor"
   },
   "settings": {
     "api_key": "API Key"

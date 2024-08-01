@@ -1,6 +1,7 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
+    var pipelines = {};
 
     this.callbacks = {
       settings: function () {
@@ -11,12 +12,8 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.calculate();
-        });
-        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
-          self.calculate();
-          self.saveData();
+        $(document).off('click', '#clone-btn').on('click', '#clone-btn', function () {
+          self.cloneLead();
         });
         return true;
       },
@@ -24,9 +21,19 @@ define(['jquery'], function ($) {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Lead Data Calculator'
+            html: 'Clonar y Editar Lead'
           },
           body: '<div class="km-form">\
+                   <div>\
+                     <label for="lead-name">Nombre:</label>\
+                     <input type="text" id="lead-name">\
+                   </div>\
+                   <div>\
+                     <label for="lead-stage">Etapa:</label>\
+                     <select id="lead-stage">\
+                       <option value="" selected disabled>Seleccionar etapa</option>\
+                     </select>\
+                   </div>\
                    <div>\
                      <label for="meses">Meses:</label>\
                      <input type="number" id="meses" value="0" min="0">\
@@ -44,16 +51,41 @@ define(['jquery'], function ($) {
                        <option value="Empresarial">Empresarial</option>\
                      </select>\
                    </div>\
-                   <div class="button-container">\
-                     <button id="calculate-btn">Calcular</button>\
-                     <button id="save-btn">Guardar</button>\
+                   <div>\
+                     <label for="google-meet">Google Meet:</label>\
+                     <input type="url" id="google-meet">\
                    </div>\
-                   <div id="calculation-result"></div>\
-                 </div>\
-                 <div id="snackbar"></div>',
+                   <div>\
+                     <label for="fecha-calendly">Fecha Calendly:</label>\
+                     <input type="datetime-local" id="fecha-calendly">\
+                   </div>\
+                   <div>\
+                     <label for="compromiso-asistencia">Compromiso Asistencia:</label>\
+                     <textarea id="compromiso-asistencia"></textarea>\
+                   </div>\
+                   <div>\
+                     <label for="cantidad-agentes">Cantidad Agentes:</label>\
+                     <textarea id="cantidad-agentes"></textarea>\
+                   </div>\
+                   <div>\
+                     <label for="urgencia">Urgencia:</label>\
+                     <textarea id="urgencia"></textarea>\
+                   </div>\
+                   <div>\
+                     <label for="valor-onboarding">Valor Onboarding:</label>\
+                     <input type="number" id="valor-onboarding" value="0" min="0">\
+                   </div>\
+                   <div>\
+                     <label for="valor-licencias">Valor Licencias Kommo:</label>\
+                     <input type="number" id="valor-licencias" value="0" min="0">\
+                   </div>\
+                   <div class="button-container">\
+                     <button id="clone-btn">Clonar y Guardar</button>\
+                   </div>\
+                   <div id="snackbar"></div>',
           render: ''
         });
-        self.fetchLeadData();
+        self.fetchPipelines();
         return true;
       },
       onSave: function () {
@@ -112,6 +144,26 @@ define(['jquery'], function ($) {
       </style>');
     };
 
+    this.fetchPipelines = function () {
+      $.ajax({
+        url: '/api/v4/leads/pipelines',
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          console.log('Pipelines data:', data);
+          data._embedded.pipelines.forEach(function(pipeline) {
+            pipelines[pipeline.id] = pipeline.name;
+            $('#lead-stage').append(new Option(pipeline.name, pipeline.id));
+          });
+          self.fetchLeadData();
+        },
+        error: function(error) {
+          console.error('Error fetching pipelines:', error);
+          self.showSnackbar('Error fetching pipelines: ' + error.statusText);
+        }
+      });
+    };
+
     this.fetchLeadData = function () {
       var leadId = APP.data.current_card.id;
 
@@ -137,95 +189,80 @@ define(['jquery'], function ($) {
         attributes[field.field_id] = field.values[0].value;
       });
 
+      $('#lead-name').val(leadData.name || '');
+      $('#lead-stage').val(leadData.pipeline_id || '');
       $('#meses').val(attributes['794456'] || '0');
       $('#usuarios').val(attributes['794454'] || '0');
       $('#plan-kommo').val(attributes['794639'] || '');
+      $('#google-meet').val(attributes['792794'] || '');
+      $('#fecha-calendly').val(new Date(attributes['792418'] * 1000).toISOString().slice(0, -1) || '');
+      $('#compromiso-asistencia').val(attributes['794683'] || '');
+      $('#cantidad-agentes').val(attributes['794685'] || '');
+      $('#urgencia').val(attributes['794687'] || '');
+      $('#valor-onboarding').val(attributes['794641'] || '0');
+      $('#valor-licencias').val(attributes['794643'] || '0');
+
+      self.highlightCurrentPipeline(leadData.pipeline_id);
     };
 
-    this.calculate = function() {
-      var meses = parseInt($('#meses').val() || '0', 10);
-      var usuarios = parseInt($('#usuarios').val() || '0', 10);
-      var planKommo = $('#plan-kommo').val() || '';
-
-      if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
-        return;
+    this.highlightCurrentPipeline = function(pipelineId) {
+      if (pipelines[pipelineId]) {
+        $('#lead-stage').val(pipelineId);
       }
-
-      var planValue;
-      switch (planKommo) {
-        case "Básico":
-          planValue = 15;
-          break;
-        case "Avanzado":
-          planValue = 25;
-          break;
-        case "Empresarial":
-          planValue = 45;
-          break;
-        default:
-          console.log('Unexpected planKommo value:', planKommo);
-          planValue = 0;
-      }
-
-      var result = meses * usuarios * planValue;
-
-      if (isNaN(result) || result <= 0) {
-        self.showSnackbar('El resultado del cálculo no es válido.');
-        return;
-      }
-
-      $('#calculation-result').text('Resultado $' + result);
     };
 
-    this.saveData = function() {
-      var leadId = APP.data.current_card.id;
+    this.cloneLead = function() {
+      var leadName = $('#lead-name').val();
+      var leadStage = $('#lead-stage').val();
       var meses = $('#meses').val().toString();
       var usuarios = $('#usuarios').val().toString();
       var planKommo = $('#plan-kommo').val();
-      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
-      var price = parseFloat(priceText);
-    
-      if (!price || isNaN(price)) {
-        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
+      var googleMeet = $('#google-meet').val();
+      var fechaCalendly = new Date($('#fecha-calendly').val()).getTime() / 1000;
+      var compromisoAsistencia = $('#compromiso-asistencia').val();
+      var cantidadAgentes = $('#cantidad-agentes').val();
+      var urgencia = $('#urgencia').val();
+      var valorOnboarding = $('#valor-onboarding').val().toString();
+      var valorLicencias = $('#valor-licencias').val().toString();
+
+      if (!leadName || !leadStage || !meses || !usuarios || !planKommo) {
+        self.showSnackbar('Por favor, complete todos los campos.');
         return;
       }
-    
-      if (!planKommo) {
-        self.showSnackbar('Por favor, seleccione un plan Kommo.');
-        return;
-      }
-    
-      // Construir los datos a enviar al lead
+
       var customFields = [
         { field_id: 794456, values: [{ value: meses }] },
         { field_id: 794454, values: [{ value: usuarios }] },
         { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] }
+        { field_id: 792794, values: [{ value: googleMeet }] },
+        { field_id: 792418, values: [{ value: fechaCalendly }] },
+        { field_id: 794683, values: [{ value: compromisoAsistencia }] },
+        { field_id: 794685, values: [{ value: cantidadAgentes }] },
+        { field_id: 794687, values: [{ value: urgencia }] },
+        { field_id: 794641, values: [{ value: valorOnboarding }] },
+        { field_id: 794643, values: [{ value: valorLicencias }] }
       ];
-    
-      var leadData = {
+
+      var newLeadData = {
+        name: leadName,
+        status_id: leadStage,
         custom_fields_values: customFields
       };
-    
+
       $.ajax({
-        url: '/api/v4/leads/' + leadId,
-        method: 'PATCH',
+        url: '/api/v4/leads',
+        method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(leadData),
+        data: JSON.stringify(newLeadData),
         success: function(response) {
-          console.log('Lead data updated:', response);
-          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
+          console.log('Lead cloned successfully:', response);
+          self.showSnackbar('El lead se ha clonado y guardado con éxito.');
         },
         error: function(error) {
-          console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
+          console.error('Error cloning lead:', error);
+          self.showSnackbar('Error al clonar el lead: ' + error.statusText);
         }
       });
-    };
-
-    this.showError = function(message) {
-      alert(message);
     };
 
     this.showSnackbar = function(message) {

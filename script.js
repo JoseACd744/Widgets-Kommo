@@ -63,7 +63,7 @@ define(['jquery'], function ($) {
       destroy: function () {}
     };
 
-    this.loadCSS = function() {
+    this.loadCSS = function () {
       var settings = self.get_settings();
       if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"').length < 1) {
         $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" type="text/css" rel="stylesheet">');
@@ -177,6 +177,21 @@ define(['jquery'], function ($) {
       }, 500);
     };
 
+    this.cleanCustomFields = function(customFields) {
+      return customFields.map(field => {
+        const cleanedField = {
+          field_id: field.field_id,
+          values: field.values.map(value => {
+            const cleanedValue = { ...value };
+            delete cleanedValue.is_deleted;
+            delete cleanedValue.is_computed;
+            return cleanedValue;
+          })
+        };
+        return cleanedField;
+      }).filter(field => field.values.length > 0);
+    };
+
     this.cloneLead = function() {
       var leadName = $('#lead-name').val();
       var leadPipeline = $('#lead-pipeline').val();
@@ -187,44 +202,44 @@ define(['jquery'], function ($) {
         return;
       }
 
-      // Clonar el lead original y modificar los campos necesarios
-      var clonedLeadData = JSON.parse(JSON.stringify(originalLeadData));
-      clonedLeadData.name = leadName;
-      clonedLeadData.pipeline_id = parseInt(leadPipeline);
-      clonedLeadData.status_id = parseInt(leadStage);
+      var clonedLeadData = {
+        name: leadName,
+        status_id: parseInt(leadStage),
+        _embedded: {
+          contacts: contactInfo ? [{
+            id: contactInfo.id,
+            name: `${contactInfo.first_name} ${contactInfo.last_name}`,
+            first_name: contactInfo.first_name,
+            last_name: contactInfo.last_name,
+            custom_fields_values: contactInfo.custom_fields_values && contactInfo.custom_fields_values.length > 0 ? self.cleanCustomFields(contactInfo.custom_fields_values) : []
+          }] : [],
+          companies: companyInfo ? [{
+            id: companyInfo.id,
+            name: companyInfo.name
+          }] : [],
+          tags: originalLeadData._embedded.tags || []
+        },
+        custom_fields_values: originalLeadData.custom_fields_values && originalLeadData.custom_fields_values.length > 0 ? self.cleanCustomFields(originalLeadData.custom_fields_values) : []
+      };
 
-      // Eliminar el campo id del lead clonado para evitar conflictos
-      delete clonedLeadData.id;
-
-      // Limpiar los campos no esperados en custom_fields_values
-      if (clonedLeadData.custom_fields_values) {
-        clonedLeadData.custom_fields_values.forEach(field => {
-          delete field.is_computed;
-          if (field.values) {
-            field.values.forEach(value => {
-              delete value.is_deleted;
-              console.log('Cleaned value:', value);
-            });
-          }
-        });
+      if (clonedLeadData._embedded.contacts.length > 0 && clonedLeadData._embedded.contacts[0].custom_fields_values.length === 0) {
+        delete clonedLeadData._embedded.contacts[0].custom_fields_values;
       }
 
-      // Asegurarse de que los datos están en el formato correcto
-      var leadsArray = [clonedLeadData];
-
-      console.log('Cloning lead with data:', leadsArray);
+      console.log('Cloning lead with data:', JSON.stringify(clonedLeadData, null, 2));
 
       $.ajax({
         url: '/api/v4/leads/complex',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify(leadsArray),
+        data: JSON.stringify([clonedLeadData]),
         success: function(response) {
           console.log('Lead cloned successfully:', response);
           self.showSnackbar('El lead se ha clonado y guardado con éxito.');
         },
         error: function(error) {
           console.error('Error cloning lead:', error);
+          console.log('Error response:', error.responseText);
           self.showSnackbar('Error al clonar el lead: ' + error.statusText);
         }
       });

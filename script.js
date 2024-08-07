@@ -1,6 +1,7 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
+    var incrementInterval;
 
     this.callbacks = {
       settings: function () {
@@ -11,12 +12,8 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.calculate();
-        });
-        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
-          self.calculate();
-          self.saveData();
+        $(document).off('click', '#increment-btn').on('click', '#increment-btn', function () {
+          self.startIncrementingCounter(30);
         });
         return true;
       },
@@ -24,31 +21,16 @@ define(['jquery'], function ($) {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Lead Data Calculator'
+            html: 'Lead Counter Incrementer'
           },
           body: '<div class="km-form">\
                    <div>\
-                     <label for="meses">Meses:</label>\
-                     <input type="number" id="meses" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="usuarios">Usuarios:</label>\
-                     <input type="number" id="usuarios" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="plan-kommo">Plan Kommo:</label>\
-                     <select id="plan-kommo">\
-                       <option value="" selected disabled>Seleccionar plan</option>\
-                       <option value="Básico">Básico</option>\
-                       <option value="Avanzado">Avanzado</option>\
-                       <option value="Empresarial">Empresarial</option>\
-                     </select>\
+                     <label for="counter">Contador:</label>\
+                     <input type="number" id="counter" value="0" readonly>\
                    </div>\
                    <div class="button-container">\
-                     <button id="calculate-btn">Calcular</button>\
-                     <button id="save-btn">Guardar</button>\
+                     <button id="increment-btn">Incrementar</button>\
                    </div>\
-                   <div id="calculation-result"></div>\
                  </div>\
                  <div id="snackbar"></div>',
           render: ''
@@ -64,7 +46,11 @@ define(['jquery'], function ($) {
           return true;
         }
       },
-      destroy: function () {}
+      destroy: function () {
+        if (incrementInterval) {
+          clearInterval(incrementInterval);
+        }
+      }
     };
 
     this.loadCSS = function() {
@@ -121,7 +107,7 @@ define(['jquery'], function ($) {
         dataType: 'json',
         success: function(data) {
           console.log('Lead data:', data);
-          self.populateForm(data);
+          self.populateCounter(data);
         },
         error: function(error) {
           console.error('Error fetching lead data:', error);
@@ -130,85 +116,45 @@ define(['jquery'], function ($) {
       });
     };
 
-    this.populateForm = function(leadData) {
+    this.populateCounter = function(leadData) {
       var customFields = leadData.custom_fields_values;
-      var attributes = {};
+      var counterValue = 0;
       customFields.forEach(function(field) {
-        attributes[field.field_id] = field.values[0].value;
+        if (field.field_id == 2960328) {
+          counterValue = parseInt(field.values[0].value, 10) || 0;
+        }
       });
-
-      $('#meses').val(attributes['794456'] || '0');
-      $('#usuarios').val(attributes['794454'] || '0');
-      $('#plan-kommo').val(attributes['794639'] || '');
+      $('#counter').val(counterValue);
     };
 
-    this.calculate = function() {
-      var meses = parseInt($('#meses').val() || '0', 10);
-      var usuarios = parseInt($('#usuarios').val() || '0', 10);
-      var planKommo = $('#plan-kommo').val() || '';
-
-      if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
-        return;
-      }
-
-      var planValue;
-      switch (planKommo) {
-        case "Básico":
-          planValue = 15;
-          break;
-        case "Avanzado":
-          planValue = 25;
-          break;
-        case "Empresarial":
-          planValue = 45;
-          break;
-        default:
-          console.log('Unexpected planKommo value:', planKommo);
-          planValue = 0;
-      }
-
-      var result = meses * usuarios * planValue;
-
-      if (isNaN(result) || result <= 0) {
-        self.showSnackbar('El resultado del cálculo no es válido.');
-        return;
-      }
-
-      $('#calculation-result').text('Resultado $' + result);
-    };
-
-    this.saveData = function() {
+    this.startIncrementingCounter = function(times) {
       var leadId = APP.data.current_card.id;
-      var meses = $('#meses').val().toString();
-      var usuarios = $('#usuarios').val().toString();
-      var planKommo = $('#plan-kommo').val();
-      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
-      var price = parseFloat(priceText);
-    
-      if (!price || isNaN(price)) {
-        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
-        return;
-      }
-    
-      if (!planKommo) {
-        self.showSnackbar('Por favor, seleccione un plan Kommo.');
-        return;
-      }
-    
-      // Construir los datos a enviar al lead
+
+      incrementInterval = setInterval(function() {
+        self.incrementCounter(leadId, function(success) {
+          if (!success || --times <= 0) {
+            clearInterval(incrementInterval);
+          }
+        });
+      }, 1000);
+      
+      // Guardar el estado en localStorage para continuar después
+      localStorage.setItem('incrementingLeadId', leadId);
+      localStorage.setItem('remainingIncrements', times);
+    };
+
+    this.incrementCounter = function(leadId, callback) {
+      var currentCounter = parseInt($('#counter').val(), 10);
+      var newCounter = currentCounter + 1;
+
       var customFields = [
-        { field_id: 794456, values: [{ value: meses }] },
-        { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] },
-        { field_id: 793770, values: [{ value: true }] },
+        { field_id: 2960328, values: [{ value: newCounter }] }
       ];
-    
+
       var leadData = {
         custom_fields_values: customFields
       };
-    
+
       $.ajax({
         url: '/api/v4/leads/' + leadId,
         method: 'PATCH',
@@ -216,17 +162,16 @@ define(['jquery'], function ($) {
         data: JSON.stringify(leadData),
         success: function(response) {
           console.log('Lead data updated:', response);
-          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
+          $('#counter').val(newCounter);
+          self.showSnackbar('El contador se ha incrementado con éxito.');
+          callback(true);
         },
         error: function(error) {
           console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
+          self.showSnackbar('Error al actualizar el contador: ' + error.statusText);
+          callback(false);
         }
       });
-    };
-
-    this.showError = function(message) {
-      alert(message);
     };
 
     this.showSnackbar = function(message) {
@@ -237,6 +182,16 @@ define(['jquery'], function ($) {
         snackbar.removeClass('show');
       }, 3000);
     };
+
+    // Al iniciar el widget, verificar si hay un incremento en curso
+    $(document).ready(function() {
+      var leadId = localStorage.getItem('incrementingLeadId');
+      var remainingIncrements = parseInt(localStorage.getItem('remainingIncrements'), 10);
+
+      if (leadId && remainingIncrements > 0) {
+        self.startIncrementingCounter(remainingIncrements);
+      }
+    });
 
     return this;
   };

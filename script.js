@@ -1,6 +1,7 @@
-define(['jquery'], function ($) {
+define(['jquery', 'underscore'], function ($, _) {
   var CustomWidget = function () {
     var self = this;
+    var isUpdating = false; // Variable para evitar bucles infinitos
 
     this.callbacks = {
       settings: function () {
@@ -11,13 +12,11 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.calculate();
-        });
-        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
-          self.calculate();
-          self.saveData();
-        });
+        // Debounce para evitar múltiples llamadas rápidas
+        $(document).on('input', '#valor1, #valor2', _.debounce(function () {
+          self.calculateAndUpdate();
+        }, 500));
+
         return true;
       },
       render: function () {
@@ -28,29 +27,14 @@ define(['jquery'], function ($) {
           },
           body: '<div class="km-form">\
                    <div>\
-                     <label for="meses">Meses:</label>\
-                     <input type="number" id="meses" value="0" min="0">\
+                     <label for="valor1">Valor 1:</label>\
+                     <input type="number" id="valor1" value="0" min="0">\
                    </div>\
                    <div>\
-                     <label for="usuarios">Usuarios:</label>\
-                     <input type="number" id="usuarios" value="0" min="0">\
+                     <label for="valor2">Valor 2:</label>\
+                     <input type="number" id="valor2" value="0" min="0">\
                    </div>\
-                   <div>\
-                     <label for="plan-kommo">Plan Kommo:</label>\
-                     <select id="plan-kommo">\
-                       <option value="" selected disabled>Seleccionar plan</option>\
-                       <option value="Básico">Básico</option>\
-                       <option value="Avanzado">Avanzado</option>\
-                       <option value="Empresarial">Empresarial</option>\
-                     </select>\
-                   </div>\
-                   <div class="button-container">\
-                     <button id="calculate-btn">Calcular</button>\
-                     <button id="save-btn">Guardar</button>\
-                   </div>\
-                   <div id="calculation-result"></div>\
-                 </div>\
-                 <div id="snackbar"></div>',
+                   <div id="calculation-result">Resultado: 0</div>',
           render: ''
         });
         self.fetchLeadData();
@@ -61,55 +45,18 @@ define(['jquery'], function ($) {
       },
       leads: {
         selected: function () {
+          self.fetchLeadData();
           return true;
         }
       },
       destroy: function () {}
     };
 
-    this.loadCSS = function() {
+    this.loadCSS = function () {
       var settings = self.get_settings();
       if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"').length < 1) {
         $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" type="text/css" rel="stylesheet">');
       }
-      $('head').append('<style>\
-        #snackbar {\
-          visibility: hidden;\
-          min-width: 250px;\
-          margin-left: -125px;\
-          background-color: #333;\
-          color: #fff;\
-          text-align: center;\
-          border-radius: 2px;\
-          padding: 16px;\
-          position: fixed;\
-          z-index: 1;\
-          left: 50%;\
-          bottom: 30px;\
-          font-size: 17px;\
-        }\
-        #snackbar.show {\
-          visibility: visible;\
-          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;\
-          animation: fadein 0.5s, fadeout 0.5s 2.5s;\
-        }\
-        @-webkit-keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @-webkit-keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
-        }\
-        @keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
-        }\
-      </style>');
     };
 
     this.fetchLeadData = function () {
@@ -119,123 +66,70 @@ define(['jquery'], function ($) {
         url: '/api/v4/leads/' + leadId,
         method: 'GET',
         dataType: 'json',
-        success: function(data) {
-          console.log('Lead data:', data);
+        success: function (data) {
           self.populateForm(data);
         },
-        error: function(error) {
+        error: function (error) {
           console.error('Error fetching lead data:', error);
-          self.showSnackbar('Error fetching lead data: ' + error.statusText);
         }
       });
     };
 
-    this.populateForm = function(leadData) {
+    this.populateForm = function (leadData) {
       var customFields = leadData.custom_fields_values;
       var attributes = {};
-      customFields.forEach(function(field) {
+      customFields.forEach(function (field) {
         attributes[field.field_id] = field.values[0].value;
       });
 
-      $('#meses').val(attributes['794456'] || '0');
-      $('#usuarios').val(attributes['794454'] || '0');
-      $('#plan-kommo').val(attributes['794639'] || '');
+      var valor1 = attributes['2960406'] || '0';
+      var valor2 = attributes['2960408'] || '0';
+
+      $('#valor1').val(valor1);
+      $('#valor2').val(valor2);
+
+      self.calculateAndUpdate(); // Asegurar el cálculo inicial
     };
 
-    this.calculate = function() {
-      var meses = parseInt($('#meses').val() || '0', 10);
-      var usuarios = parseInt($('#usuarios').val() || '0', 10);
-      var planKommo = $('#plan-kommo').val() || '';
+    this.calculateAndUpdate = function () {
+      var valor1 = parseInt($('#valor1').val() || '0', 10);
+      var valor2 = parseInt($('#valor2').val() || '0', 10);
+      var result = valor1 + valor2;
 
-      if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
-        return;
-      }
-
-      var planValue;
-      switch (planKommo) {
-        case "Básico":
-          planValue = 15;
-          break;
-        case "Avanzado":
-          planValue = 25;
-          break;
-        case "Empresarial":
-          planValue = 45;
-          break;
-        default:
-          console.log('Unexpected planKommo value:', planKommo);
-          planValue = 0;
-      }
-
-      var result = meses * usuarios * planValue;
-
-      if (isNaN(result) || result <= 0) {
-        self.showSnackbar('El resultado del cálculo no es válido.');
-        return;
-      }
-
-      $('#calculation-result').text('Resultado $' + result);
+      $('#calculation-result').text('Resultado: ' + result);
+      self.updateFields(valor1, valor2, result);
     };
 
-    this.saveData = function() {
+    this.updateFields = function (valor1, valor2, result) {
       var leadId = APP.data.current_card.id;
-      var meses = $('#meses').val().toString();
-      var usuarios = $('#usuarios').val().toString();
-      var planKommo = $('#plan-kommo').val();
-      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
-      var price = parseFloat(priceText);
-    
-      if (!price || isNaN(price)) {
-        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
-        return;
-      }
-    
-      if (!planKommo) {
-        self.showSnackbar('Por favor, seleccione un plan Kommo.');
-        return;
-      }
-    
-      // Construir los datos a enviar al lead
       var customFields = [
-        { field_id: 794456, values: [{ value: meses }] },
-        { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] },
-        { field_id: 793770, values: [{ value: true }] },
+        { field_id: 2960406, values: [{ value: valor1 }] },
+        { field_id: 2960408, values: [{ value: valor2 }] },
+        { field_id: 2960410, values: [{ value: result }] }
       ];
-    
+
       var leadData = {
         custom_fields_values: customFields
       };
-    
-      $.ajax({
-        url: '/api/v4/leads/' + leadId,
-        method: 'PATCH',
-        contentType: 'application/json',
-        data: JSON.stringify(leadData),
-        success: function(response) {
-          console.log('Lead data updated:', response);
-          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
-        },
-        error: function(error) {
-          console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
-        }
-      });
-    };
 
-    this.showError = function(message) {
-      alert(message);
-    };
+      if (!isUpdating) {
+        isUpdating = true; // Marcar como actualización en progreso para evitar bucles infinitos
 
-    this.showSnackbar = function(message) {
-      var snackbar = $('#snackbar');
-      snackbar.text(message);
-      snackbar.addClass('show');
-      setTimeout(function() {
-        snackbar.removeClass('show');
-      }, 3000);
+        $.ajax({
+          url: '/api/v4/leads/' + leadId,
+          method: 'PATCH',
+          contentType: 'application/json',
+          data: JSON.stringify(leadData),
+          success: function (response) {
+            console.log('Lead data updated:', response);
+            isUpdating = false; // Desmarcar después de la actualización
+          },
+          error: function (error) {
+            console.error('Error updating lead data:', error);
+            isUpdating = false; // Desmarcar en caso de error
+          }
+        });
+      }
     };
 
     return this;

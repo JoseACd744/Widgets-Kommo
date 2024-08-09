@@ -13,7 +13,7 @@
     "installation": true
   },
   "locations": [
-    "lcard-1"
+    "lcard-0" 
   ],
   "settings": {
     "api_key": {

@@ -12,10 +12,10 @@ define(['jquery', 'underscore'], function ($, _) {
         return true;
       },
       bind_actions: function () {
-        // Debounce para evitar múltiples llamadas rápidas
-        $(document).on('input', '#valor1, #valor2', _.debounce(function () {
+        // Añadir evento click para el botón de cálculo
+        $(document).on('click', '#calculate-button', function () {
           self.calculateAndUpdate();
-        }, 500));
+        });
 
         return true;
       },
@@ -34,11 +34,24 @@ define(['jquery', 'underscore'], function ($, _) {
                      <label for="valor2">Valor 2:</label>\
                      <input type="number" id="valor2" value="0" min="0">\
                    </div>\
-                   <div id="calculation-result">Resultado: 0</div>',
+                   <div id="calculation-result">Resultado: 0</div>\
+                   <button id="calculate-button">Calcular</button>',
           render: ''
         });
         self.fetchLeadData();
         return true;
+      },
+      loadPreloadedData: function () {
+        // Este método se llama cuando se inicializa la pestaña del widget
+        return Promise.resolve({
+          data: 'Datos precargados si es necesario'
+        });
+      },
+      loadElements: function (type, id) {
+        // Este método se llama para cargar elementos vinculados a la tarjeta
+        return Promise.resolve({
+          elements: []  // Aquí podrías devolver una lista de elementos si fuera necesario
+        });
       },
       onSave: function () {
         return true;
@@ -87,8 +100,6 @@ define(['jquery', 'underscore'], function ($, _) {
 
       $('#valor1').val(valor1);
       $('#valor2').val(valor2);
-
-      self.calculateAndUpdate(); // Asegurar el cálculo inicial
     };
 
     this.calculateAndUpdate = function () {

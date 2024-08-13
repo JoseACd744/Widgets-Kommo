@@ -4,6 +4,26 @@ define(['jquery'], function ($) {
 
     this.callbacks = {
       settings: function () {
+        var $modal_body = $('.modal.' + self.get_settings().widget_code + ' .modal-body'),
+            $widget_settings = $modal_body.find('.widget_settings_block');
+
+        // Crear el formulario directamente en la sección de configuración
+        var settings_form = `
+          <form id="${self.get_settings().widget_code}-settings__form" class="km-settings-form">
+            <div class="widget-settings__item">
+              <label for="custom_value_1">Valor para Matrimonios</label>
+              <input type="number" id="custom_value_1" name="custom_value_1" value="${self.get_settings().custom_value_1 || 180}">
+            </div>
+            <div class="widget-settings__item">
+              <label for="custom_value_2">Valor para otros tipos</label>
+              <input type="number" id="custom_value_2" name="custom_value_2" value="${self.get_settings().custom_value_2 || 90}">
+            </div>
+          </form>
+        `;
+
+        // Inyectar el formulario en la ventana de configuración
+        $widget_settings.html(settings_form);
+        self.injectStyles(); // Aplicar los estilos
         return true;
       },
       init: function () {
@@ -32,9 +52,19 @@ define(['jquery'], function ($) {
                  <div id="snackbar"></div>',
           render: ''
         });
+        self.injectStyles(); // Aplicar los estilos
         return true;
       },
       onSave: function () {
+        // Guardar la configuración
+        var settings_data = {
+          custom_value_1: $('#custom_value_1').val(),
+          custom_value_2: $('#custom_value_2').val(),
+        };
+
+        self.get_settings().custom_value_1 = settings_data.custom_value_1;
+        self.get_settings().custom_value_2 = settings_data.custom_value_2;
+
         return true;
       },
       leads: {
@@ -45,49 +75,103 @@ define(['jquery'], function ($) {
       destroy: function () {}
     };
 
-    this.loadCSS = function() {
-      var settings = self.get_settings();
-      if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"').length < 1) {
-        $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" type="text/css" rel="stylesheet">');
-      }
-      $('head').append('<style>\
-        #snackbar {\
-          visibility: hidden;\
-          min-width: 250px;\
-          margin-left: -125px;\
-          background-color: #333;\
-          color: #fff;\
-          text-align: center;\
-          border-radius: 2px;\
-          padding: 16px;\
-          position: fixed;\
-          z-index: 1;\
-          left: 50%;\
-          bottom: 30px;\
-          font-size: 17px;\
-        }\
-        #snackbar.show {\
-          visibility: visible;\
-          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;\
-          animation: fadein 0.5s, fadeout 0.5s 2.5s;\
-        }\
-        @-webkit-keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @-webkit-keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
-        }\
-        @keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
-        }\
-      </style>');
+    this.injectStyles = function() {
+      var styles = `
+        /* Estilos para el contenedor del formulario */
+        .km-form, .km-settings-form {
+          padding: 15px;
+          background: #2F2662;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+          max-width: 400px;
+          margin: 0 auto;
+        }
+        /* Estilos para los inputs de texto y el select */
+        .km-form input[type="text"], .km-form input[type="number"], .km-form select,
+        .km-settings-form input[type="text"], .km-settings-form input[type="number"], .km-settings-form select {
+          width: 100%;
+          padding: 10px;
+          margin-bottom: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          box-sizing: border-box;
+          background: #fff; /* Asegura un fondo blanco para mejor contraste */
+          color: #000; /* Color del texto en los inputs */
+        }
+        /* Contenedor para los botones */
+        .km-form .button-container, .km-settings-form .button-container {
+          display: flex;
+          justify-content: space-between;
+        }
+        /* Estilos para los botones de calcular y guardar */
+        .km-form button, .km-settings-form button {
+          flex: 1;
+          padding: 10px 20px;
+          color: #080808;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 16px;
+          margin-top: 10px;
+          margin-right: 10px;
+          box-sizing: border-box;
+        }
+        /* Estilo específico para el botón de calcular */
+        .km-form #calculate-btn {
+          background: #ffff;
+        }
+        .km-form #calculate-btn:hover {
+          background: #878686;
+        }
+        /* Estilo específico para el botón de guardar */
+        .km-form #save-btn, .km-settings-form #save-btn {
+          background: #4CAF50;
+          margin-right: 0; /* Para evitar margen extra en el último botón */
+        }
+        .km-form #save-btn:hover, .km-settings-form #save-btn:hover {
+          background: #45a049;
+        }
+        /* Estilos para las etiquetas dentro del contenedor del formulario */
+        .km-form label, .km-settings-form label {
+          color: #fff; /* Cambia el color del texto a blanco */
+          font-weight: bold; /* Resalta las etiquetas */
+          margin-bottom: 5px;
+          display: block;
+        }
+        /* Estilos para el resultado del cálculo */
+        #calculation-result {
+          margin-top: 15px;
+          font-size: 16px;
+          color: #fff;
+        }
+        /* Estilos para los mensajes de resultado */
+        #calculation-result p {
+          margin: 0;
+        }
+        /* Estilos adicionales para mejorar la accesibilidad y la experiencia del usuario */
+        .km-form input:focus, .km-form select:focus, .km-form button:focus,
+        .km-settings-form input:focus, .km-settings-form select:focus, .km-settings-form button:focus {
+          outline: 2px solid #4CAF50; /* Añade un borde verde al enfocarse */
+        }
+        .km-form button:disabled, .km-settings-form button:disabled {
+          background: #ccc; /* Botón desactivado en gris */
+          cursor: not-allowed;
+        }
+        /* Ajustes responsivos para dispositivos móviles */
+        @media (max-width: 480px) {
+          .km-form, .km-settings-form {
+            padding: 10px;
+          }
+          .km-form button, .km-settings-form button {
+            margin-right: 0;
+            margin-top: 10px;
+          }
+          .km-form .button-container, .km-settings-form .button-container {
+            flex-direction: column;
+          }
+        }
+      `;
+      $('head').append('<style>' + styles + '</style>');
     };
 
     this.calculate = function() {
@@ -113,7 +197,9 @@ define(['jquery'], function ($) {
 
           var customField1143754 = data.custom_fields_values.find(f => f.field_id === 1143754);
           var customFieldValue = customField1143754 && customField1143754.values.length > 0 ? customField1143754.values[0].value : '';
-          var baseValue = customFieldValue === "Matrimonios" ? 180 : 90;
+
+          // Usar los valores personalizados del settings
+          var baseValue = customFieldValue === "Matrimonios" ? self.get_settings().custom_value_1 : self.get_settings().custom_value_2;
 
           var remaining = baseValue - sum;
 

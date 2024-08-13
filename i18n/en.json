@@ -6,6 +6,6 @@
     "tour_description": "Tour of the Budget Calculator"
   },
   "settings": {
-    "api_key": "API Key"
+    "custom": "settings"
   }
 }

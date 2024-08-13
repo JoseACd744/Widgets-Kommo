@@ -1,5 +1,6 @@
 /* Estilos para el contenedor del formulario */
-.km-form {
+.km-form,
+.km-settings-form {
   padding: 15px;
   background: #2F2662;
   border: 1px solid #ddd;
@@ -9,7 +10,12 @@
 }
 
 /* Estilos para los inputs de texto y el select */
-.km-form input[type="text"], .km-form input[type="number"], .km-form select {
+.km-form input[type="text"],
+.km-form input[type="number"],
+.km-form select,
+.km-settings-form input[type="text"],
+.km-settings-form input[type="number"],
+.km-settings-form select {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
@@ -21,13 +27,15 @@
 }
 
 /* Contenedor para los botones */
-.km-form .button-container {
+.km-form .button-container,
+.km-settings-form .button-container {
   display: flex;
   justify-content: space-between;
 }
 
 /* Estilos para los botones de calcular y guardar */
-.km-form button {
+.km-form button,
+.km-settings-form button {
   flex: 1;
   padding: 10px 20px;
   color: #080808;
@@ -50,17 +58,20 @@
 }
 
 /* Estilo específico para el botón de guardar */
-.km-form #save-btn {
+.km-form #save-btn,
+.km-settings-form #save-btn {
   background: #4CAF50;
   margin-right: 0; /* Para evitar margen extra en el último botón */
 }
 
-.km-form #save-btn:hover {
+.km-form #save-btn:hover,
+.km-settings-form #save-btn:hover {
   background: #45a049;
 }
 
 /* Estilos para las etiquetas dentro del contenedor del formulario */
-.km-form label {
+.km-form label,
+.km-settings-form label {
   color: #fff; /* Cambia el color del texto a blanco */
   font-weight: bold; /* Resalta las etiquetas */
   margin-bottom: 5px;
@@ -80,27 +91,36 @@
 }
 
 /* Estilos adicionales para mejorar la accesibilidad y la experiencia del usuario */
-.km-form input:focus, .km-form select:focus, .km-form button:focus {
+.km-form input:focus,
+.km-form select:focus,
+.km-form button:focus,
+.km-settings-form input:focus,
+.km-settings-form select:focus,
+.km-settings-form button:focus {
   outline: 2px solid #4CAF50; /* Añade un borde verde al enfocarse */
 }
 
-.km-form button:disabled {
+.km-form button:disabled,
+.km-settings-form button:disabled {
   background: #ccc; /* Botón desactivado en gris */
   cursor: not-allowed;
 }
 
 /* Ajustes responsivos para dispositivos móviles */
 @media (max-width: 480px) {
-  .km-form {
+  .km-form,
+  .km-settings-form {
     padding: 10px;
   }
   
-  .km-form button {
+  .km-form button,
+  .km-settings-form button {
     margin-right: 0;
     margin-top: 10px;
   }
 
-  .km-form .button-container {
+  .km-form .button-container,
+  .km-settings-form .button-container {
     flex-direction: column;
   }
 }

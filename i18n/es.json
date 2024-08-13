@@ -6,6 +6,6 @@
     "tour_description": "Tour de la Calculadora de Pagos de Encuentros"
   },
   "settings": {
-    "api_key": "Clave API"
+    "custom": "Ajustes"
   }
 }

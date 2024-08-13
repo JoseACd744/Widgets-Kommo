@@ -12,14 +12,13 @@
     ],
     "installation": true
   },
-  "locations": [
-    "lcard-1"
-  ],
+  "locations": ["settings", "lcard-1", "ccard-0"],
+
   "settings": {
-    "api_key": {
-      "name": "settings.api_key",
-      "type": "text",
-      "required": false
+    "custom": {
+      "name": "settings.custom",
+      "type": "custom",
+      "required": true
     }
   }
 }

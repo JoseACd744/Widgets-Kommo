@@ -129,7 +129,8 @@ define(['jquery'], function ($) {
       var remaining = 90 - sum;
 
       if (remaining < 0) {
-        self.showSnackbar('Verifique los valores de los pagos. La resta resultó en un valor negativo.');
+        $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
+        self.showSnackbar('Verifique los campos de pago. La resta resultó en un valor negativo.');
         return;
       }
 

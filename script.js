@@ -20,9 +20,10 @@ define(['jquery'], function ($) {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Calculadora: Valor Encuentro'
+            html: ''
           },
           body: '<div class="km-form">\
+                   <h3>Calculadora: Valor Encuentro</h3>\
                    <div class="button-container">\
                      <button id="calculate-btn">Calcular Total</button>\
                    </div>\

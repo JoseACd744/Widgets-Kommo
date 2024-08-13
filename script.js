@@ -14,39 +14,17 @@ define(['jquery'], function ($) {
         $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
           self.calculate();
         });
-        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
-          self.calculate();
-          self.saveData();
-        });
         return true;
       },
       render: function () {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Lead Data Calculator'
+            html: 'Calculadora: Valor Encuentro'
           },
           body: '<div class="km-form">\
-                   <div>\
-                     <label for="meses">Meses:</label>\
-                     <input type="number" id="meses" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="usuarios">Usuarios:</label>\
-                     <input type="number" id="usuarios" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="plan-kommo">Plan Kommo:</label>\
-                     <select id="plan-kommo">\
-                       <option value="" selected disabled>Seleccionar plan</option>\
-                       <option value="Básico">Básico</option>\
-                       <option value="Avanzado">Avanzado</option>\
-                       <option value="Empresarial">Empresarial</option>\
-                     </select>\
-                   </div>\
                    <div class="button-container">\
-                     <button id="calculate-btn">Calcular</button>\
-                     <button id="save-btn">Guardar</button>\
+                     <button id="calculate-btn">Calcular Total</button>\
                    </div>\
                    <div id="calculation-result"></div>\
                  </div>\
@@ -131,102 +109,54 @@ define(['jquery'], function ($) {
     };
 
     this.populateForm = function(leadData) {
-      var customFields = leadData.custom_fields_values;
-      var attributes = {};
-      customFields.forEach(function(field) {
-        attributes[field.field_id] = field.values[0].value;
-      });
-
-      $('#meses').val(attributes['794456'] || '0');
-      $('#usuarios').val(attributes['794454'] || '0');
-      $('#plan-kommo').val(attributes['794639'] || '');
+      // Este método se puede omitir o modificar si es necesario en función de la forma en que se manejen los datos.
     };
 
     this.calculate = function() {
-      var meses = parseInt($('#meses').val() || '0', 10);
-      var usuarios = parseInt($('#usuarios').val() || '0', 10);
-      var planKommo = $('#plan-kommo').val() || '';
+      var leadId = APP.data.current_card.id;
+      var fields = [1144348, 1144354, 1144356, 1147161, 1147163, 1147165];
+      var sum = 0;
 
-      if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
-        return;
-      }
+      fields.forEach(function(field_id) {
+        var value = parseInt($(`[name="CFV[${field_id}]"]`).val(), 10) || 0;
+        sum += value;
+      });
 
-      var planValue;
-      switch (planKommo) {
-        case "Básico":
-          planValue = 15;
-          break;
-        case "Avanzado":
-          planValue = 25;
-          break;
-        case "Empresarial":
-          planValue = 45;
-          break;
-        default:
-          console.log('Unexpected planKommo value:', planKommo);
-          planValue = 0;
-      }
+      var resultField = 1146883;
+      var remainingField = 1146885;
 
-      var result = meses * usuarios * planValue;
+      var remaining = 90 - sum;
 
-      if (isNaN(result) || result <= 0) {
-        self.showSnackbar('El resultado del cálculo no es válido.');
-        return;
-      }
+      self.updateField(resultField, sum);
+      self.updateField(remainingField, remaining);
 
-      $('#calculation-result').text('Resultado $' + result);
+      $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
     };
 
-    this.saveData = function() {
+    this.updateField = function(fieldId, value) {
       var leadId = APP.data.current_card.id;
-      var meses = $('#meses').val().toString();
-      var usuarios = $('#usuarios').val().toString();
-      var planKommo = $('#plan-kommo').val();
-      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
-      var price = parseFloat(priceText);
-    
-      if (!price || isNaN(price)) {
-        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
-        return;
-      }
-    
-      if (!planKommo) {
-        self.showSnackbar('Por favor, seleccione un plan Kommo.');
-        return;
-      }
-    
-      // Construir los datos a enviar al lead
-      var customFields = [
-        { field_id: 794456, values: [{ value: meses }] },
-        { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] },
-        { field_id: 793770, values: [{ value: true }] },
-      ];
-    
+
       var leadData = {
-        custom_fields_values: customFields
+        custom_fields_values: [{
+          field_id: fieldId,
+          values: [{ value: value }]
+        }]
       };
-    
+
       $.ajax({
         url: '/api/v4/leads/' + leadId,
         method: 'PATCH',
         contentType: 'application/json',
         data: JSON.stringify(leadData),
         success: function(response) {
-          console.log('Lead data updated:', response);
-          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
+          console.log('Campo actualizado:', response);
+          self.showSnackbar('El cálculo se ha guardado correctamente.');
         },
         error: function(error) {
-          console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
+          console.error('Error al actualizar el campo:', error);
+          self.showSnackbar('Error al guardar los datos: ' + error.statusText);
         }
       });
-    };
-
-    this.showError = function(message) {
-      alert(message);
     };
 
     this.showSnackbar = function(message) {

@@ -128,6 +128,11 @@ define(['jquery'], function ($) {
 
       var remaining = 90 - sum;
 
+      if (remaining < 0) {
+        self.showSnackbar('Verifique los valores de los pagos. La resta resultó en un valor negativo.');
+        return;
+      }
+
       self.updateField(resultField, sum);
       self.updateField(remainingField, remaining);
 

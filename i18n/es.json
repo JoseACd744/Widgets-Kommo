@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Calculadora de Presupuesto",
-    "short_description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
-    "description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
-    "tour_description": "Tour de la Calculadora de Presupuesto"
+    "name": "Calculadora de Pagos de Encuentros - Galilea",
+    "short_description": "Calcula el presupuesto basado en seis pagos",
+    "description": "Calcula el presupuesto basado en seis pagos",
+    "tour_description": "Tour de la Calculadora de Pagos de Encuentros"
   },
   "settings": {
     "api_key": "Clave API"

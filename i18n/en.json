@@ -1,8 +1,8 @@
 {
   "widget": {
     "name": "Budget Calculator",
-    "short_description": "Calculates budget based on Users, Months, and Plan.",
-    "description": "Calculates budget based on Users, Months, and Plan.",
+    "short_description": "Calculates budget based on Pay 1, Pay 2, Pay 3, Pay 4, Pay 5 and Pay 6.",
+    "description": "Calculates budget based on Pay 1, Pay 2, Pay 3, Pay 4, Pay 5 and Pay 6.",
     "tour_description": "Tour of the Budget Calculator"
   },
   "settings": {

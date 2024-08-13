@@ -32,7 +32,6 @@ define(['jquery'], function ($) {
                  <div id="snackbar"></div>',
           render: ''
         });
-        self.fetchLeadData();
         return true;
       },
       onSave: function () {
@@ -91,7 +90,7 @@ define(['jquery'], function ($) {
       </style>');
     };
 
-    this.fetchLeadData = function () {
+    this.calculate = function() {
       var leadId = APP.data.current_card.id;
 
       $.ajax({
@@ -100,44 +99,40 @@ define(['jquery'], function ($) {
         dataType: 'json',
         success: function(data) {
           console.log('Lead data:', data);
-          self.populateForm(data);
+          var fields = [1144348, 1144354, 1144356, 1147161, 1147163, 1147165];
+          var sum = 0;
+
+          fields.forEach(function(field_id) {
+            var field = data.custom_fields_values.find(f => f.field_id === field_id);
+            var value = field && field.values.length > 0 ? parseInt(field.values[0].value, 10) : 0;
+            sum += value;
+          });
+
+          var resultField = 1146883;
+          var remainingField = 1146885;
+
+          var customField1143754 = data.custom_fields_values.find(f => f.field_id === 1143754);
+          var customFieldValue = customField1143754 && customField1143754.values.length > 0 ? customField1143754.values[0].value : '';
+          var baseValue = customFieldValue === "Matrimonios" ? 180 : 90;
+
+          var remaining = baseValue - sum;
+
+          if (remaining < 0) {
+            $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
+            self.showSnackbar('Verifique los campos de pago. La resta resultó en un valor negativo.');
+            return;
+          }
+
+          self.updateField(resultField, sum);
+          self.updateField(remainingField, remaining);
+
+          $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
         },
         error: function(error) {
           console.error('Error fetching lead data:', error);
           self.showSnackbar('Error fetching lead data: ' + error.statusText);
         }
       });
-    };
-
-    this.populateForm = function(leadData) {
-      // Este método se puede omitir o modificar si es necesario en función de la forma en que se manejen los datos.
-    };
-
-    this.calculate = function() {
-      var leadId = APP.data.current_card.id;
-      var fields = [1144348, 1144354, 1144356, 1147161, 1147163, 1147165];
-      var sum = 0;
-
-      fields.forEach(function(field_id) {
-        var value = parseInt($(`[name="CFV[${field_id}]"]`).val(), 10) || 0;
-        sum += value;
-      });
-
-      var resultField = 1146883;
-      var remainingField = 1146885;
-
-      var remaining = 90 - sum;
-
-      if (remaining < 0) {
-        $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
-        self.showSnackbar('Verifique los campos de pago. La resta resultó en un valor negativo.');
-        return;
-      }
-
-      self.updateField(resultField, sum);
-      self.updateField(remainingField, remaining);
-
-      $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
     };
 
     this.updateField = function(fieldId, value) {

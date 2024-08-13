@@ -16,6 +16,8 @@
   border: 1px solid #ccc;
   border-radius: 5px;
   box-sizing: border-box;
+  background: #fff; /* Asegura un fondo blanco para mejor contraste */
+  color: #000; /* Color del texto en los inputs */
 }
 
 /* Contenedor para los botones */
@@ -46,11 +48,6 @@
 .km-form #calculate-btn:hover {
   background: #878686;
 }
-/* Estilos para las etiquetas dentro del contenedor del formulario */
-.km-form label {
-  color: #fff; /* Cambia el color del texto a blanco */
-}
-
 
 /* Estilo específico para el botón de guardar */
 .km-form #save-btn {
@@ -60,6 +57,14 @@
 
 .km-form #save-btn:hover {
   background: #45a049;
+}
+
+/* Estilos para las etiquetas dentro del contenedor del formulario */
+.km-form label {
+  color: #fff; /* Cambia el color del texto a blanco */
+  font-weight: bold; /* Resalta las etiquetas */
+  margin-bottom: 5px;
+  display: block;
 }
 
 /* Estilos para el resultado del cálculo */
@@ -72,4 +77,30 @@
 /* Estilos para los mensajes de resultado */
 #calculation-result p {
   margin: 0;
+}
+
+/* Estilos adicionales para mejorar la accesibilidad y la experiencia del usuario */
+.km-form input:focus, .km-form select:focus, .km-form button:focus {
+  outline: 2px solid #4CAF50; /* Añade un borde verde al enfocarse */
+}
+
+.km-form button:disabled {
+  background: #ccc; /* Botón desactivado en gris */
+  cursor: not-allowed;
+}
+
+/* Ajustes responsivos para dispositivos móviles */
+@media (max-width: 480px) {
+  .km-form {
+    padding: 10px;
+  }
+  
+  .km-form button {
+    margin-right: 0;
+    margin-top: 10px;
+  }
+
+  .km-form .button-container {
+    flex-direction: column;
+  }
 }

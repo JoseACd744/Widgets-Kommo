@@ -11,6 +11,7 @@ define(['jquery'], function ($) {
               var customValue1 = self.get_settings().custom_value_1 || 180;
               var customValue2 = self.get_settings().custom_value_2 || 90;
 
+              // Renderizar los campos de configuración
               $widget_settings.html(`
                   <div class="km-form">
                       <label for="custom_value_1">Valor para Matrimonios:</label>
@@ -33,11 +34,13 @@ define(['jquery'], function ($) {
                   if (isNaN(customValue1)) customValue1 = 180;
                   if (isNaN(customValue2)) customValue2 = 90;
 
+                  // Guardar configuraciones
                   var updatedSettings = {
                       custom_value_1: customValue1,
                       custom_value_2: customValue2,
                   };
 
+                  // Guardar las configuraciones usando la función de guardar del widget
                   self.save_settings(updatedSettings).then(function () {
                       console.log('Configuraciones guardadas:', updatedSettings);
                       alert('Configuraciones guardadas correctamente.');
@@ -252,6 +255,20 @@ define(['jquery'], function ($) {
           setTimeout(function () {
               snackbar.removeClass('show');
           }, 3000);
+      };
+
+      // Función para guardar configuraciones
+      this.save_settings = function (settings) {
+          return new Promise((resolve, reject) => {
+              try {
+                  // Guardar configuraciones en el sistema
+                  AMOCRM.widgets.settings_save({
+                      settings: settings
+                  }, resolve);
+              } catch (error) {
+                  reject(error);
+              }
+          });
       };
 
       return this;

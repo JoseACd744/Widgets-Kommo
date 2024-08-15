@@ -54,7 +54,6 @@ define(['jquery'], function ($) {
                         <div class="button-container">
                             <button id="calculate-btn" class="km-button">Calcular Total</button>
                         </div>
-                        <div id="calculation-result"></div>
                     </div>
                     <div id="snackbar"></div>
                     `,
@@ -200,6 +199,9 @@ define(['jquery'], function ($) {
                         sum += value;
                     });
   
+                    // Actualizar la suma en el campo 1146883
+                    self.updateField(1146883, sum);
+  
                     var customField1143754 = data.custom_fields_values.find(f => f.field_id === 1143754);
                     var customFieldValue = customField1143754 && customField1143754.values.length > 0 ? customField1143754.values[0].value : '';
                     var baseValue = customFieldValue === "Matrimonios" ? baseValueForMatrimonios : baseValueForOthers;
@@ -209,7 +211,10 @@ define(['jquery'], function ($) {
   
                     var remaining = baseValue - sum;
   
-                    // Validación adicional
+                    // Actualizar el campo 1146885 con la resta
+                    self.updateField(1146885, remaining);
+  
+                    // Validación adicional para "Traspaso"
                     var field1152796 = data.custom_fields_values.find(f => f.field_id === 1152796);
                     var value1152796 = field1152796 && field1152796.values.length > 0 ? parseInt(field1152796.values[0].value, 10) : null;
   
@@ -217,20 +222,12 @@ define(['jquery'], function ($) {
                     var customFieldValue1144366 = customField1144366 && customField1144366.values.length > 0 ? customField1144366.values[0].value : '';
   
                     if (customFieldValue1144366 === 'Traspaso' && value1152796 !== null) {
+                        // Si es "Traspaso", actualiza el campo 1152798 con la resta
                         remaining = sum - value1152796;
                         self.updateField(1152798, remaining);
-                    } else {
-                        if (remaining < 0) {
-                            $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
-                            self.showSnackbar('Verifique los campos de pago. La resta resultó en un valor negativo.');
-                            return;
-                        }
-  
-                        self.updateField(1146883, sum);
-                        self.updateField(1146885, remaining);
-  
-                        $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
                     }
+  
+                    $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
                 },
                 error: function (error) {
                     console.error('Error fetching lead data:', error);

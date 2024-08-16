@@ -1,47 +1,47 @@
 define(['jquery'], function ($) {
     var CustomWidget = function () {
         var self = this;
-  
+
         this.callbacks = {
             settings: function () {
                 var $modal_body = $('.modal-body');
                 var $widget_settings = $modal_body.find('.widget_settings_block');
-  
+
                 var settingsHTML = `
                     <div class="km-form">
                         <label for="matrimonios-value">Valor para Matrimonios:</label>
                         <input type="number" id="matrimonios-value" value="180">
-  
+
                         <label for="otros-value">Valor para Otros Encuentros:</label>
                         <input type="number" id="otros-value" value="90">
-  
+
                         <div class="button-container">
                             <button id="save-btn" class="km-button">Guardar</button>
                         </div>
                     </div>
                 `;
-  
+
                 $widget_settings.html(settingsHTML);
-  
+
                 $('#save-btn').on('click', function () {
                     alert('Los valores no se guardan realmente, pero se puede cambiar visualmente.');
                 });
-  
+
                 return true;
             },
-  
+
             init: function () {
                 self.loadCSS();
                 return true;
             },
-  
+
             bind_actions: function () {
                 $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
                     self.calculate();
                 });
                 return true;
             },
-  
+
             render: function () {
                 self.render_template({
                     caption: {
@@ -61,20 +61,20 @@ define(['jquery'], function ($) {
                 });
                 return true;
             },
-  
+
             onSave: function () {
                 return true;
             },
-  
+
             leads: {
                 selected: function () {
                     return true;
                 }
             },
-  
+
             destroy: function () {}
         };
-  
+
         this.loadCSS = function () {
             var styles = `
                 .km-form {
@@ -177,13 +177,13 @@ define(['jquery'], function ($) {
             `;
             $('head').append('<style>' + styles + '</style>');
         };
-  
+
         this.calculate = function () {
             var baseValueForMatrimonios = 180;
             var baseValueForOthers = 90;
-  
+
             var leadId = APP.data.current_card.id;
-  
+
             $.ajax({
                 url: '/api/v4/leads/' + leadId,
                 method: 'GET',
@@ -192,42 +192,35 @@ define(['jquery'], function ($) {
                     console.log('Lead data:', data);
                     var fields = [1144348, 1144354, 1144356, 1147161, 1147163, 1147165];
                     var sum = 0;
-  
+
                     fields.forEach(function (field_id) {
                         var field = data.custom_fields_values.find(f => f.field_id === field_id);
                         var value = field && field.values.length > 0 ? parseInt(field.values[0].value, 10) : 0;
                         sum += value;
                     });
-  
-                    // Actualizar la suma en el campo 1146883
-                    self.updateField(1146883, sum);
-  
+
+                    // Restar el valor de traspaso (field 1152796) a la suma
+                    var traspasoField = data.custom_fields_values.find(f => f.field_id === 1152796);
+                    var traspasoValue = traspasoField && traspasoField.values.length > 0 ? parseInt(traspasoField.values[0].value, 10) : 0;
+                    var totalValue = sum - traspasoValue;
+
+                    // Actualizar la suma en el campo 1146883 y en el campo 1152798
+                    self.updateField(1146883, totalValue);
+                    self.updateField(1152798, totalValue);
+
                     var customField1143754 = data.custom_fields_values.find(f => f.field_id === 1143754);
                     var customFieldValue = customField1143754 && customField1143754.values.length > 0 ? customField1143754.values[0].value : '';
                     var baseValue = customFieldValue === "Matrimonios" ? baseValueForMatrimonios : baseValueForOthers;
-  
+
                     console.log('Tipo de Encuentro:', customFieldValue);
                     console.log('Base Value:', baseValue);
-  
-                    var remaining = baseValue - sum;
-  
+
+                    var remaining = baseValue - totalValue;
+
                     // Actualizar el campo 1146885 con la resta
                     self.updateField(1146885, remaining);
-  
-                    // Validación adicional para "Traspaso"
-                    var field1152796 = data.custom_fields_values.find(f => f.field_id === 1152796);
-                    var value1152796 = field1152796 && field1152796.values.length > 0 ? parseInt(field1152796.values[0].value, 10) : null;
-  
-                    var customField1144366 = data.custom_fields_values.find(f => f.field_id === 1144366);
-                    var customFieldValue1144366 = customField1144366 && customField1144366.values.length > 0 ? customField1144366.values[0].value : '';
-  
-                    if (customFieldValue1144366 === 'Traspaso' && value1152796 !== null) {
-                        // Si es "Traspaso", actualiza el campo 1152798 con la resta
-                        remaining = sum - value1152796;
-                        self.updateField(1152798, remaining);
-                    }
-  
-                    $('#calculation-result').text('Resultado: ' + sum + ', Restante: ' + remaining);
+
+                    $('#calculation-result').text('Resultado: ' + totalValue + ', Restante: ' + remaining);
                 },
                 error: function (error) {
                     console.error('Error fetching lead data:', error);
@@ -235,17 +228,17 @@ define(['jquery'], function ($) {
                 }
             });
         };
-  
+
         this.updateField = function (fieldId, value) {
             var leadId = APP.data.current_card.id;
-  
+
             var leadData = {
                 custom_fields_values: [{
                     field_id: fieldId,
                     values: [{ value: value }]
                 }]
             };
-  
+
             $.ajax({
                 url: '/api/v4/leads/' + leadId,
                 method: 'PATCH',
@@ -261,7 +254,7 @@ define(['jquery'], function ($) {
                 }
             });
         };
-  
+
         this.showSnackbar = function (message) {
             var snackbar = $('#snackbar');
             snackbar.text(message);
@@ -270,10 +263,9 @@ define(['jquery'], function ($) {
                 snackbar.removeClass('show');
             }, 3000);
         };
-  
+
         return this;
     };
-  
+
     return CustomWidget;
-  });
-  
+});

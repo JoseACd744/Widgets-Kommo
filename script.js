@@ -11,12 +11,8 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.calculate();
-        });
-        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
-          self.calculate();
-          self.saveData();
+        $(document).off('click', '#post-address-btn').on('click', '#post-address-btn', function () {
+          self.postAddress();
         });
         return true;
       },
@@ -24,36 +20,17 @@ define(['jquery'], function ($) {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Lead Data Calculator'
+            html: 'Postear Dirección'
           },
           body: '<div class="km-form">\
-                   <div>\
-                     <label for="meses">Meses:</label>\
-                     <input type="number" id="meses" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="usuarios">Usuarios:</label>\
-                     <input type="number" id="usuarios" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="plan-kommo">Plan Kommo:</label>\
-                     <select id="plan-kommo">\
-                       <option value="" selected disabled>Seleccionar plan</option>\
-                       <option value="Básico">Básico</option>\
-                       <option value="Avanzado">Avanzado</option>\
-                       <option value="Empresarial">Empresarial</option>\
-                     </select>\
-                   </div>\
                    <div class="button-container">\
-                     <button id="calculate-btn">Calcular</button>\
-                     <button id="save-btn">Guardar</button>\
+                     <button id="post-address-btn">Postear Dirección</button>\
                    </div>\
-                   <div id="calculation-result"></div>\
+                   <div id="address-result"></div>\
                  </div>\
                  <div id="snackbar"></div>',
           render: ''
         });
-        self.fetchLeadData();
         return true;
       },
       onSave: function () {
@@ -112,103 +89,33 @@ define(['jquery'], function ($) {
       </style>');
     };
 
-    this.fetchLeadData = function () {
+    this.postAddress = function() {
+      var widgetHTML = APP.data.card_page.$widgets_block[0].innerHTML;
+      var addressRegex = /<span class="ui-text ui-text--m ui-text--gray tj5uZWn8gy_AUYr71B77J">([^<]+)<\/span>/g;
+      var matches = widgetHTML.match(addressRegex);
+      if (matches) {
+        var address = matches.map(function(match) {
+          return match.replace(/<[^>]+>/g, '').trim();
+        }).join(', ');
+        $('#address-result').text('Dirección: ' + address);
+        self.showSnackbar('Dirección extraída con éxito.');
+        self.saveAddressToKommo(address);
+      } else {
+        self.showSnackbar('No se pudo extraer la dirección.');
+      }
+    };
+
+    this.saveAddressToKommo = function(address) {
       var leadId = APP.data.current_card.id;
 
-      $.ajax({
-        url: '/api/v4/leads/' + leadId,
-        method: 'GET',
-        dataType: 'json',
-        success: function(data) {
-          console.log('Lead data:', data);
-          self.populateForm(data);
-        },
-        error: function(error) {
-          console.error('Error fetching lead data:', error);
-          self.showSnackbar('Error fetching lead data: ' + error.statusText);
-        }
-      });
-    };
-
-    this.populateForm = function(leadData) {
-      var customFields = leadData.custom_fields_values;
-      var attributes = {};
-      customFields.forEach(function(field) {
-        attributes[field.field_id] = field.values[0].value;
-      });
-
-      $('#meses').val(attributes['794456'] || '0');
-      $('#usuarios').val(attributes['794454'] || '0');
-      $('#plan-kommo').val(attributes['794639'] || '');
-    };
-
-    this.calculate = function() {
-      var meses = parseInt($('#meses').val() || '0', 10);
-      var usuarios = parseInt($('#usuarios').val() || '0', 10);
-      var planKommo = $('#plan-kommo').val() || '';
-
-      if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
-        return;
-      }
-
-      var planValue;
-      switch (planKommo) {
-        case "Básico":
-          planValue = 15;
-          break;
-        case "Avanzado":
-          planValue = 25;
-          break;
-        case "Empresarial":
-          planValue = 45;
-          break;
-        default:
-          console.log('Unexpected planKommo value:', planKommo);
-          planValue = 0;
-      }
-
-      var result = meses * usuarios * planValue;
-
-      if (isNaN(result) || result <= 0) {
-        self.showSnackbar('El resultado del cálculo no es válido.');
-        return;
-      }
-
-      $('#calculation-result').text('Resultado $' + result);
-    };
-
-    this.saveData = function() {
-      var leadId = APP.data.current_card.id;
-      var meses = $('#meses').val().toString();
-      var usuarios = $('#usuarios').val().toString();
-      var planKommo = $('#plan-kommo').val();
-      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
-      var price = parseFloat(priceText);
-    
-      if (!price || isNaN(price)) {
-        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
-        return;
-      }
-    
-      if (!planKommo) {
-        self.showSnackbar('Por favor, seleccione un plan Kommo.');
-        return;
-      }
-    
-      // Construir los datos a enviar al lead
       var customFields = [
-        { field_id: 794456, values: [{ value: meses }] },
-        { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] },
-        { field_id: 793770, values: [{ value: true }] },
+        { field_id: 321852, values: [{ value: address }] } 
       ];
-    
+
       var leadData = {
         custom_fields_values: customFields
       };
-    
+
       $.ajax({
         url: '/api/v4/leads/' + leadId,
         method: 'PATCH',
@@ -216,17 +123,28 @@ define(['jquery'], function ($) {
         data: JSON.stringify(leadData),
         success: function(response) {
           console.log('Lead data updated:', response);
-          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
+          self.showSnackbar('La dirección se ha actualizado con éxito en Kommo.');
+          // Ejecutar el bot con ID 11474
+          $.ajax({
+            url: '/api/v2/salesbot/run',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ bot_id: 11474 }),
+            success: function(botResponse) {
+              console.log('Bot ejecutado con éxito:', botResponse);
+              self.showSnackbar('El bot se ha ejecutado con éxito.');
+            },
+            error: function(botError) {
+              console.error('Error al ejecutar el bot:', botError);
+              self.showSnackbar('Error al ejecutar el bot: ' + botError.statusText);
+            }
+          });
         },
         error: function(error) {
           console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
+          self.showSnackbar('Error al actualizar la dirección en Kommo: ' + error.statusText);
         }
       });
-    };
-
-    this.showError = function(message) {
-      alert(message);
     };
 
     this.showSnackbar = function(message) {

@@ -129,7 +129,7 @@ define(['jquery'], function ($) {
             url: '/api/v2/salesbot/run',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify([{ bot_id: 11474, entity_id: leadId, entity_type: '1' }]),
+            data: JSON.stringify([{ bot_id: 11474, entity_id: leadId, entity_type: '2' }]),
             success: function(botResponse) {
               console.log('Bot ejecutado con éxito:', botResponse);
               self.showSnackbar('El bot se ha ejecutado con éxito.');

@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Calculadora de Presupuesto",
-    "short_description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
-    "description": "Calcula el presupuesto basado en Usuarios, Meses y Plan.",
-    "tour_description": "Tour de la Calculadora de Presupuesto"
+    "name": "Leads de Contacto",
+    "short_description": "Muestra los leads asociados con un contacto.",
+    "description": "Muestra los leads asociados con un contacto.",
+    "tour_description": "Tour del Widget de Leads de Contacto"
   },
   "settings": {
     "api_key": "Clave API"

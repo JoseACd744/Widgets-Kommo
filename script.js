@@ -1,6 +1,9 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
+    var contactLeadsPage = 1;
+    var isLoadingLeads = false;
+    var allLeadsLoaded = false;
 
     this.callbacks = {
       settings: function () {
@@ -11,12 +14,10 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $(document).off('click', '#calculate-btn').on('click', '#calculate-btn', function () {
-          self.calculate();
-        });
-        $(document).off('click', '#save-btn').on('click', '#save-btn', function () {
-          self.calculate();
-          self.saveData();
+        $('#leads-container').on('scroll', function() {
+          if ($(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight - 100 && !isLoadingLeads && !allLeadsLoaded) {
+            self.fetchContactLeads();
+          }
         });
         return true;
       },
@@ -24,36 +25,14 @@ define(['jquery'], function ($) {
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Lead Data Calculator'
+            html: 'Contact Leads'
           },
-          body: '<div class="km-form">\
-                   <div>\
-                     <label for="meses">Meses:</label>\
-                     <input type="number" id="meses" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="usuarios">Usuarios:</label>\
-                     <input type="number" id="usuarios" value="0" min="0">\
-                   </div>\
-                   <div>\
-                     <label for="plan-kommo">Plan Kommo:</label>\
-                     <select id="plan-kommo">\
-                       <option value="" selected disabled>Seleccionar plan</option>\
-                       <option value="Básico">Básico</option>\
-                       <option value="Avanzado">Avanzado</option>\
-                       <option value="Empresarial">Empresarial</option>\
-                     </select>\
-                   </div>\
-                   <div class="button-container">\
-                     <button id="calculate-btn">Calcular</button>\
-                     <button id="save-btn">Guardar</button>\
-                   </div>\
-                   <div id="calculation-result"></div>\
-                 </div>\
+          body: '<div id="leads-container" class="leads-container"></div>\
+                 <div id="loading-indicator" class="loading-indicator" style="display: none;"></div>\
                  <div id="snackbar"></div>',
           render: ''
         });
-        self.fetchLeadData();
+        self.fetchContactLeads();
         return true;
       },
       onSave: function () {
@@ -109,124 +88,111 @@ define(['jquery'], function ($) {
           from {bottom: 30px; opacity: 1;}\
           to {bottom: 0; opacity: 0;}\
         }\
+        .leads-container {\
+          display: flex;\
+          flex-direction: column;\
+          gap: 10px;\
+          height: 400px;\
+          overflow-y: auto;\
+        }\
+        .lead-card {\
+          background-color: #fff;\
+          border: 1px solid #ddd;\
+          border-radius: 4px;\
+          padding: 10px;\
+          width: 100%;\
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\
+          cursor: pointer;\
+        }\
+        .lead-card h3 {\
+          margin: 0 0 10px;\
+          font-size: 18px;\
+        }\
+        .lead-card p {\
+          margin: 0;\
+          font-size: 14px;\
+          color: #666;\
+        }\
+        .loading-indicator {\
+          border: 16px solid #f3f3f3;\
+          border-radius: 50%;\
+          border-top: 16px solid #3498db;\
+          width: 120px;\
+          height: 120px;\
+          -webkit-animation: spin 2s linear infinite;\
+          animation: spin 2s linear infinite;\
+          margin: 20px auto;\
+        }\
+        @-webkit-keyframes spin {\
+          0% { -webkit-transform: rotate(0deg); }\
+          100% { -webkit-transform: rotate(360deg); }\
+        }\
+        @keyframes spin {\
+          0% { transform: rotate(0deg); }\
+          100% { transform: rotate(360deg); }\
+        }\
       </style>');
     };
 
-    this.fetchLeadData = function () {
+    this.fetchContactLeads = function() {
       var leadId = APP.data.current_card.id;
+      console.log('Fetching lead data for lead ID:', leadId);
 
       $.ajax({
-        url: '/api/v4/leads/' + leadId,
+        url: '/api/v4/leads/' + leadId + '?with=contacts',
         method: 'GET',
         dataType: 'json',
         success: function(data) {
-          console.log('Lead data:', data);
-          self.populateForm(data);
+          console.log('Lead data fetched:', data);
+          var contactId = data._embedded.contacts[0].id;
+          console.log('Contact ID:', contactId);
+          isLoadingLeads = true;
+          $('#loading-indicator').show();
+          $.ajax({
+            url: `/api/v4/contacts/${contactId}?with=leads&page=${contactLeadsPage}&limit=20`,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+              console.log('Contact leads response:', response);
+              if (response && response._embedded && response._embedded.leads) {
+                var leads = response._embedded.leads;
+                if (leads.length === 0) {
+                  allLeadsLoaded = true;
+                  self.showSnackbar('No more leads to load.');
+                } else {
+                  leads.forEach(function(lead) {
+                    $('#leads-container').append(
+                      '<div class="lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
+                        '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
+                        '<p>ID: ' + lead.id + '</p>' +
+                        '<p>Precio: ' + (lead.price || 'No disponible') + '</p>' +
+                        '<p>Responsable: ' + (lead.responsible_user_id || 'No asignado') + '</p>' +
+                      '</div>'
+                    );
+                  });
+                  contactLeadsPage++;
+                }
+              } else {
+                console.log('No leads found or response format is incorrect:', response);
+                allLeadsLoaded = true;
+                self.showSnackbar('No more leads to load.');
+              }
+              isLoadingLeads = false;
+              $('#loading-indicator').hide();
+            },
+            error: function(error) {
+              console.error('Error fetching contact leads:', error);
+              self.showSnackbar('Error fetching contact leads: ' + error.statusText);
+              isLoadingLeads = false;
+              $('#loading-indicator').hide();
+            }
+          });
         },
         error: function(error) {
           console.error('Error fetching lead data:', error);
           self.showSnackbar('Error fetching lead data: ' + error.statusText);
         }
       });
-    };
-
-    this.populateForm = function(leadData) {
-      var customFields = leadData.custom_fields_values;
-      var attributes = {};
-      customFields.forEach(function(field) {
-        attributes[field.field_id] = field.values[0].value;
-      });
-
-      $('#meses').val(attributes['794456'] || '0');
-      $('#usuarios').val(attributes['794454'] || '0');
-      $('#plan-kommo').val(attributes['794639'] || '');
-    };
-
-    this.calculate = function() {
-      var meses = parseInt($('#meses').val() || '0', 10);
-      var usuarios = parseInt($('#usuarios').val() || '0', 10);
-      var planKommo = $('#plan-kommo').val() || '';
-
-      if (meses === 0 || usuarios === 0 || planKommo === '') {
-        self.showSnackbar('Por favor, complete todos los campos y seleccione un plan.');
-        return;
-      }
-
-      var planValue;
-      switch (planKommo) {
-        case "Básico":
-          planValue = 15;
-          break;
-        case "Avanzado":
-          planValue = 25;
-          break;
-        case "Empresarial":
-          planValue = 45;
-          break;
-        default:
-          console.log('Unexpected planKommo value:', planKommo);
-          planValue = 0;
-      }
-
-      var result = meses * usuarios * planValue;
-
-      if (isNaN(result) || result <= 0) {
-        self.showSnackbar('El resultado del cálculo no es válido.');
-        return;
-      }
-
-      $('#calculation-result').text('Resultado $' + result);
-    };
-
-    this.saveData = function() {
-      var leadId = APP.data.current_card.id;
-      var meses = $('#meses').val().toString();
-      var usuarios = $('#usuarios').val().toString();
-      var planKommo = $('#plan-kommo').val();
-      var priceText = $('#calculation-result').text().split('$')[1]; // Corrige la extracción del valor
-      var price = parseFloat(priceText);
-    
-      if (!price || isNaN(price)) {
-        self.showSnackbar('Primero realice el cálculo para guardar el precio.');
-        return;
-      }
-    
-      if (!planKommo) {
-        self.showSnackbar('Por favor, seleccione un plan Kommo.');
-        return;
-      }
-    
-      // Construir los datos a enviar al lead
-      var customFields = [
-        { field_id: 794456, values: [{ value: meses }] },
-        { field_id: 794454, values: [{ value: usuarios }] },
-        { field_id: 794639, values: [{ value: planKommo }] },
-        { field_id: 794643, values: [{ value: price }] },
-        { field_id: 793770, values: [{ value: true }] },
-      ];
-    
-      var leadData = {
-        custom_fields_values: customFields
-      };
-    
-      $.ajax({
-        url: '/api/v4/leads/' + leadId,
-        method: 'PATCH',
-        contentType: 'application/json',
-        data: JSON.stringify(leadData),
-        success: function(response) {
-          console.log('Lead data updated:', response);
-          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
-        },
-        error: function(error) {
-          console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
-        }
-      });
-    };
-
-    this.showError = function(message) {
-      alert(message);
     };
 
     this.showSnackbar = function(message) {

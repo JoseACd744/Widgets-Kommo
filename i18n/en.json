@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Budget Calculator",
-    "short_description": "Calculates budget based on Users, Months, and Plan.",
-    "description": "Calculates budget based on Users, Months, and Plan.",
-    "tour_description": "Tour of the Budget Calculator"
+    "name": "Contact Leads",
+    "short_description": "Displays leads associated with a contact.",
+    "description": "Displays leads associated with a contact.",
+    "tour_description": "Tour of the Contact Leads Widget"
   },
   "settings": {
     "api_key": "API Key"

@@ -5,6 +5,7 @@ define(['jquery'], function ($) {
     var isLoadingLeads = false;
     var allLeadsLoaded = false;
     var snackbarShown = false;
+    var leadsDetails = [];
 
     this.callbacks = {
       settings: function () {
@@ -127,7 +128,7 @@ define(['jquery'], function ($) {
           console.log('Contact ID:', contactId);
           isLoadingLeads = true;
           $.ajax({
-            url: `/api/v4/contacts/${contactId}?with=leads&page=${contactLeadsPage}&limit=20&order[created_at]=desc`,
+            url: `/api/v4/contacts/${contactId}?with=leads&page=${contactLeadsPage}&limit=20`,
             method: 'GET',
             dataType: 'json',
             success: function(response) {
@@ -142,7 +143,12 @@ define(['jquery'], function ($) {
                   }
                 } else {
                   leads.forEach(function(lead) {
-                    self.fetchLeadDetails(lead.id);
+                    self.fetchLeadDetails(lead.id, function(leadDetails) {
+                      leadsDetails.push(leadDetails);
+                      if (leadsDetails.length === leads.length) {
+                        self.displayLeads();
+                      }
+                    });
                   });
                   contactLeadsPage++;
                 }
@@ -170,7 +176,7 @@ define(['jquery'], function ($) {
       });
     };
 
-    this.fetchLeadDetails = function(leadId) {
+    this.fetchLeadDetails = function(leadId, callback) {
       $.ajax({
         url: `/api/v4/leads/${leadId}`,
         method: 'GET',
@@ -180,26 +186,12 @@ define(['jquery'], function ($) {
           var responsibleUserId = lead.responsible_user_id;
           if (responsibleUserId) {
             self.fetchUserName(responsibleUserId, function(userName) {
-              $('#km-leads-container').append(
-                '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
-                  '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
-                  '<p>ID: ' + lead.id + '</p>' +
-                  '<p>Precio: $' + (lead.price !== undefined ? lead.price : 'No disponible') + '</p>' +
-                  '<p>Responsable: ' + (userName || 'No asignado') + '</p>' +
-                '</div>'
-              );
-              self.adjustContainerHeight();
+              lead.userName = userName;
+              callback(lead);
             });
           } else {
-            $('#km-leads-container').append(
-              '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
-                '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
-                '<p>ID: ' + lead.id + '</p>' +
-                '<p>Precio: $' + (lead.price !== undefined ? lead.price : 'No disponible') + '</p>' +
-                '<p>Responsable: No asignado</p>' +
-              '</div>'
-            );
-            self.adjustContainerHeight();
+            lead.userName = 'No asignado';
+            callback(lead);
           }
         },
         error: function(error) {
@@ -223,6 +215,25 @@ define(['jquery'], function ($) {
           callback('No asignado');
         }
       });
+    };
+
+    this.displayLeads = function() {
+      leadsDetails.sort(function(a, b) {
+        return b.created_at - a.created_at;
+      });
+
+      leadsDetails.forEach(function(lead) {
+        $('#km-leads-container').append(
+          '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
+            '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
+            '<p>ID: ' + lead.id + '</p>' +
+            '<p>Precio: $' + (lead.price !== undefined ? lead.price : 'No disponible') + '</p>' +
+            '<p>Responsable: ' + (lead.userName || 'No asignado') + '</p>' +
+          '</div>'
+        );
+      });
+
+      self.adjustContainerHeight();
     };
 
     this.adjustContainerHeight = function() {

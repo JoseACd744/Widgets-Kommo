@@ -109,7 +109,6 @@ define(['jquery'], function ($) {
         .km-lead-card p {\
           margin: 0;\
           font-size: 14px;\
-          color: #666;\
         }\
       </style>');
     };
@@ -178,19 +177,50 @@ define(['jquery'], function ($) {
         dataType: 'json',
         success: function(lead) {
           console.log('Lead details fetched:', lead);
-          $('#km-leads-container').append(
-            '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
-              '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
-              '<p>ID: ' + lead.id + '</p>' +
-              '<p>Precio: ' + (lead.price || 'No disponible') + '</p>' +
-              '<p>Responsable: ' + (lead.responsible_user_id || 'No asignado') + '</p>' +
-            '</div>'
-          );
-          self.adjustContainerHeight();
+          var responsibleUserId = lead.responsible_user_id;
+          if (responsibleUserId) {
+            self.fetchUserName(responsibleUserId, function(userName) {
+              $('#km-leads-container').append(
+                '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
+                  '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
+                  '<p>ID: ' + lead.id + '</p>' +
+                  '<p>Precio: $' + (lead.price !== undefined ? lead.price : 'No disponible') + '</p>' +
+                  '<p>Responsable: ' + (userName || 'No asignado') + '</p>' +
+                '</div>'
+              );
+              self.adjustContainerHeight();
+            });
+          } else {
+            $('#km-leads-container').append(
+              '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
+                '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
+                '<p>ID: ' + lead.id + '</p>' +
+                '<p>Precio: $' + (lead.price !== undefined ? lead.price : 'No disponible') + '</p>' +
+                '<p>Responsable: No asignado</p>' +
+              '</div>'
+            );
+            self.adjustContainerHeight();
+          }
         },
         error: function(error) {
           console.error('Error fetching lead details:', error);
           self.showSnackbar('Error fetching lead details: ' + error.statusText);
+        }
+      });
+    };
+
+    this.fetchUserName = function(userId, callback) {
+      $.ajax({
+        url: `/api/v4/users/${userId}`,
+        method: 'GET',
+        dataType: 'json',
+        success: function(user) {
+          console.log('User details fetched:', user);
+          callback(user.name);
+        },
+        error: function(error) {
+          console.error('Error fetching user details:', error);
+          callback('No asignado');
         }
       });
     };

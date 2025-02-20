@@ -127,7 +127,7 @@ define(['jquery'], function ($) {
           console.log('Contact ID:', contactId);
           isLoadingLeads = true;
           $.ajax({
-            url: `/api/v4/contacts/${contactId}?with=leads&page=${contactLeadsPage}&limit=20`,
+            url: `/api/v4/contacts/${contactId}?with=leads&page=${contactLeadsPage}&limit=20&order[created_at]=desc`,
             method: 'GET',
             dataType: 'json',
             success: function(response) {

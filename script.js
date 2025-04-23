@@ -102,14 +102,14 @@ define(['jquery'], function ($) {
     // Mostrar el resumen y la tabla de historial
     this.renderHistory = function() {
       var json = self.data;
-
-      // Mostrar resumen de paquete y restante
+    
+      // Mostrar resumen de paquete y restante (el paquete inicial nunca cambia)
       var last = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
       $('#widget-summary').html(
         '<p><strong>Paquete inicial:</strong> ' + json.paquete_horas + 'h</p>' +
         '<p><strong>Tiempo restante:</strong> ' + last + 'h</p>'
       );
-
+    
       // Construir filas de historial
       var rows = '';
       json.actividades.forEach(function(act) {
@@ -170,12 +170,11 @@ define(['jquery'], function ($) {
     
       var json = self.data;
       var prev = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
-      // Corregimos el cálculo del tiempo restante
-      var restante = prev + horasNum; // Cambiamos la resta por suma porque el número negativo ya viene en horasNum
+      var restante = prev - horasNum; // Cambiamos a resta para que funcione correctamente
     
       var nueva = {
         fecha: fechaFormateada,
-        tareas: [{ descripcion: desc, horas: horasNum }], // Usamos horasNum en lugar de hrs para asegurar que es número
+        tareas: [{ descripcion: desc, horas: horasNum }],
         tiempo_restante: restante
       };
       json.actividades.push(nueva);

@@ -1,9 +1,8 @@
 {
   "widget": {
-    "name": "Contact Leads",
-    "short_description": "Displays leads associated with a contact.",
-    "description": "Displays leads associated with a contact.",
-    "tour_description": "Tour of the Contact Leads Widget"
+    "name": "Hours Planner",
+    "short_description": "Displays the Hours Planner for the lead",
+    "description": "Displays the Hours Planner for the lead"
   },
   "settings": {
     "api_key": "API Key"

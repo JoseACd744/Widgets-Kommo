@@ -1,9 +1,8 @@
 {
   "widget": {
-    "name": "Leads de Contacto",
-    "short_description": "Muestra los leads asociados con un contacto.",
-    "description": "Muestra los leads asociados con un contacto.",
-    "tour_description": "Tour del Widget de Leads de Contacto"
+    "name": "Plan de Horas",
+    "short_description": "Muestra el Plan de Horas del lead",
+    "description": "Muestra el Plan de Horas del lead"
   },
   "settings": {
     "api_key": "Clave API"

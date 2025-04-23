@@ -1,11 +1,9 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
-    var contactLeadsPage = 1;
-    var isLoadingLeads = false;
-    var allLeadsLoaded = false;
-    var snackbarShown = false;
-    var leadsDetails = [];
+
+    // ID del campo personalizado donde se almacena el JSON de horas/historial
+    this.jsonFieldId = 2968264;
 
     this.callbacks = {
       settings: function () {
@@ -16,24 +14,16 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        $('#km-leads-container').on('scroll', function() {
-          if ($(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight - 100 && !isLoadingLeads && !allLeadsLoaded) {
-            self.fetchContactLeads();
-          }
+        // Agregar entrada al historial
+        $(document).off('click', '#add-entry-btn').on('click', '#add-entry-btn', function () {
+          self.addEntry();
         });
         return true;
       },
       render: function () {
-        self.render_template({
-          caption: {
-            class_name: 'js-km-caption',
-            html: 'Contact Leads'
-          },
-          body: '<div id="km-leads-container" class="km-leads-container"></div>\
-                 <div id="km-snackbar" class="km-snackbar"></div>',
-          render: ''
-        });
-        self.fetchContactLeads();
+        // Renderizamos formulario e historial
+        self.renderTemplate();
+        self.loadData();
         return true;
       },
       onSave: function () {
@@ -47,214 +37,181 @@ define(['jquery'], function ($) {
       destroy: function () {}
     };
 
+    // Carga de estilos mínimos para el widget
     this.loadCSS = function() {
       var settings = self.get_settings();
-      if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"').length < 1) {
-        $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" type="text/css" rel="stylesheet">');
+      if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"]').length < 1) {
+        $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" rel="stylesheet">');
       }
       $('head').append('<style>\
-        .km-snackbar {\
-          visibility: hidden;\
-          min-width: 250px;\
-          margin-left: -125px;\
-          background-color: #333;\
-          color: #fff;\
-          text-align: center;\
-          border-radius: 2px;\
-          padding: 16px;\
-          position: fixed;\
-          z-index: 1;\
-          left: 50%;\
-          bottom: 30px;\
-          font-size: 17px;\
-        }\
-        .km-snackbar.show {\
-          visibility: visible;\
-          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;\
-          animation: fadein 0.5s, fadeout 0.5s 2.5s;\
-        }\
-        @-webkit-keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @-webkit-keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
-        }\
-        @keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
-        }\
-        .km-leads-container {\
-          display: flex;\
-          flex-direction: column;\
-          gap: 10px;\
-          max-height: 400px;\
-          overflow-y: auto;\
-        }\
-        .km-lead-card {\
-          border: 1px solid #ddd;\
-          border-radius: 4px;\
-          padding: 10px;\
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\
-          cursor: pointer;\
-        }\
-        .km-lead-card h3 {\
-          margin: 0 0 10px;\
-          font-size: 18px;\
-        }\
-        .km-lead-card p {\
-          margin: 0;\
-          font-size: 14px;\
-        }\
+        .km-hours-widget { font-family: Arial, sans-serif; padding: 10px; }\
+        .km-hours-widget label { display: block; margin: 5px 0; }\
+        .km-hours-widget input, .km-hours-widget textarea { width: 100%; padding: 4px; margin-top: 2px; }\
+        .km-hours-widget button { margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #0073AA; background: #0085ba; color: #fff; cursor: pointer; }\
+        .km-hours-widget .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }\
+        .km-hours-widget .history-table th, .km-hours-widget .history-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }\
+        #snackbar { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 2px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; font-size: 17px; }\
+        #snackbar.show { visibility: visible; -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s; animation: fadein 0.5s, fadeout 0.5s 2.5s; }\
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }\
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }\
       </style>');
     };
 
-    this.fetchContactLeads = function() {
+    // Obtener el JSON actual desde el campo personalizado
+    this.loadData = function() {
       var leadId = APP.data.current_card.id;
-      console.log('Fetching lead data for lead ID:', leadId);
-
       $.ajax({
-        url: '/api/v4/leads/' + leadId + '?with=contacts',
+        url: '/api/v4/leads/' + leadId,
         method: 'GET',
         dataType: 'json',
         success: function(data) {
-          console.log('Lead data fetched:', data);
-          var contactId = data._embedded.contacts[0].id;
-          console.log('Contact ID:', contactId);
-          isLoadingLeads = true;
-          $.ajax({
-            url: `/api/v4/contacts/${contactId}?with=leads&page=${contactLeadsPage}&limit=20`,
-            method: 'GET',
-            dataType: 'json',
-            success: function(response) {
-              console.log('Contact leads response:', response);
-              if (response && response._embedded && response._embedded.leads) {
-                var leads = response._embedded.leads;
-                if (leads.length === 0) {
-                  allLeadsLoaded = true;
-                  if (!snackbarShown) {
-                    self.showSnackbar('No more leads to load.');
-                    snackbarShown = true;
-                  }
-                } else {
-                  leads.forEach(function(lead) {
-                    self.fetchLeadDetails(lead.id, function(leadDetails) {
-                      leadsDetails.push(leadDetails);
-                      if (leadsDetails.length === leads.length) {
-                        self.displayLeads();
-                      }
-                    });
-                  });
-                  contactLeadsPage++;
-                }
-              } else {
-                console.log('No leads found or response format is incorrect:', response);
-                allLeadsLoaded = true;
-                if (!snackbarShown) {
-                  self.showSnackbar('No more leads to load.');
-                  snackbarShown = true;
-                }
-              }
-              isLoadingLeads = false;
-            },
-            error: function(error) {
-              console.error('Error fetching contact leads:', error);
-              self.showSnackbar('Error fetching contact leads: ' + error.statusText);
-              isLoadingLeads = false;
-            }
-          });
-        },
-        error: function(error) {
-          console.error('Error fetching lead data:', error);
-          self.showSnackbar('Error fetching lead data: ' + error.statusText);
-        }
-      });
-    };
-
-    this.fetchLeadDetails = function(leadId, callback) {
-      $.ajax({
-        url: `/api/v4/leads/${leadId}`,
-        method: 'GET',
-        dataType: 'json',
-        success: function(lead) {
-          console.log('Lead details fetched:', lead);
-          var responsibleUserId = lead.responsible_user_id;
-          if (responsibleUserId) {
-            self.fetchUserName(responsibleUserId, function(userName) {
-              lead.userName = userName;
-              callback(lead);
-            });
-          } else {
-            lead.userName = 'No asignado';
-            callback(lead);
+          // Buscamos el valor del campo JSON
+          var field = data.custom_fields_values.find(f => f.field_id === self.jsonFieldId);
+          var raw = field && field.values.length ? field.values[0].value : '';
+          try {
+            self.data = JSON.parse(raw);
+          } catch (e) {
+            // Estructura inicial si está vacío o inválido
+            self.data = { paquete_horas: 0, actividades: [] };
           }
+          self.renderHistory();
         },
-        error: function(error) {
-          console.error('Error fetching lead details:', error);
-          self.showSnackbar('Error fetching lead details: ' + error.statusText);
-        }
       });
     };
 
-    this.fetchUserName = function(userId, callback) {
+    // Construir la UI del widget
+    this.renderTemplate = function() {
+      var html = '' +
+        '<div class="km-hours-widget">' +
+          '<h3>Historial de Horas</h3>' +
+          '<label>Fecha:<input type="date" id="entry-date" /></label>' +
+          '<label>Descripción:<textarea id="entry-desc" rows="2"></textarea></label>' +
+          '<label>Horas (positivo / negativo):<input type="number" id="entry-hours" /></label>' +
+          '<button id="add-entry-btn">Agregar Registro</button>' +
+          '<div id="widget-summary"></div>' +
+          '<table class="history-table"><thead><tr><th>Fecha</th><th>Tarea(s)</th><th>Horas</th><th>Restante</th></tr></thead><tbody id="widget-history"></tbody></table>' +
+        '</div>';
+
+      self.render_template({
+        caption: { html: '' },
+        body: html,
+        render: ''
+      });
+    };
+
+    // Mostrar el resumen y la tabla de historial
+    this.renderHistory = function() {
+      var json = self.data;
+
+      // Mostrar resumen de paquete y restante
+      var last = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
+      $('#widget-summary').html(
+        '<p><strong>Paquete inicial:</strong> ' + json.paquete_horas + 'h</p>' +
+        '<p><strong>Tiempo restante:</strong> ' + last + 'h</p>'
+      );
+
+      // Construir filas de historial
+      var rows = '';
+      json.actividades.forEach(function(act) {
+        var tareas = act.tareas.map(t => t.descripcion + ' (' + t.horas + 'h)').join('<br>');
+        rows += '<tr>' +
+                  '<td>' + act.fecha + '</td>' +
+                  '<td>' + tareas + '</td>' +
+                  '<td>' + act.tareas.reduce((sum, t) => sum + t.horas, 0) + '</td>' +
+                  '<td>' + act.tiempo_restante + '</td>' +
+                '</tr>';
+      });
+      $('#widget-history').html(rows);
+    };
+
+    // Agregar nueva entrada y actualizar el campo en Kommo
+    this.addEntry = function() {
+      var dateVal = $('#entry-date').val();
+      var desc = $('#entry-desc').val().trim();
+      var hrs = $('#entry-hours').val();
+    
+      // Validaciones específicas
+      if (!dateVal) {
+        self.showSnackbar('Por favor selecciona una fecha válida');
+        return;
+      }
+    
+      if (!desc) {
+        self.showSnackbar('La descripción no puede estar vacía');
+        return;
+      }
+    
+      if (!hrs) {
+        self.showSnackbar('Por favor ingresa la cantidad de horas');
+        return;
+      }
+    
+      // Validar que las horas sean un número válido
+      var horasNum = parseFloat(hrs);
+      if (isNaN(horasNum)) {
+        self.showSnackbar('El formato de horas no es válido. Usa números (ej: 2.5)');
+        return;
+      }
+    
+      // Validar que la fecha no sea futura
+      var selectedDate = new Date(dateVal);
+      var today = new Date();
+      if (selectedDate > today) {
+        self.showSnackbar('No puedes registrar horas para fechas futuras');
+        return;
+      }
+    
+      var fechaFormateada = new Date(dateVal + 'T05:00:00.000Z').toLocaleDateString('es-PE', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    
+      var json = self.data;
+      var prev = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
+      // Corregimos el cálculo del tiempo restante
+      var restante = prev + horasNum; // Cambiamos la resta por suma porque el número negativo ya viene en horasNum
+    
+      var nueva = {
+        fecha: fechaFormateada,
+        tareas: [{ descripcion: desc, horas: horasNum }], // Usamos horasNum en lugar de hrs para asegurar que es número
+        tiempo_restante: restante
+      };
+      json.actividades.push(nueva);
+
+      // Actualizamos el campo custom con el JSON completo
+      var leadId = APP.data.current_card.id;
+      var payload = { custom_fields_values: [{ field_id: self.jsonFieldId, values: [{ value: JSON.stringify(json) }] }] };
       $.ajax({
-        url: `/api/v4/users/${userId}`,
-        method: 'GET',
-        dataType: 'json',
-        success: function(user) {
-          console.log('User details fetched:', user);
-          callback(user.name);
+        url: '/api/v4/leads/' + leadId,
+        method: 'PATCH',
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        success: function() {
+          self.data = json;
+          self.renderHistory();
+          self.showSnackbar('Registro agregado correctamente.');
         },
-        error: function(error) {
-          console.error('Error fetching user details:', error);
-          callback('No asignado');
+        error: function(err) {
+          self.showSnackbar('Error guardando: ' + err.statusText);
         }
       });
     };
 
-    this.displayLeads = function() {
-      leadsDetails.sort(function(a, b) {
-        return b.created_at - a.created_at;
-      });
-
-      leadsDetails.forEach(function(lead) {
-        $('#km-leads-container').append(
-          '<div class="km-lead-card" onclick="window.open(\'/leads/detail/' + lead.id + '\', \'_blank\')">' +
-            '<h3>' + (lead.name || 'Sin nombre') + '</h3>' +
-            '<p>ID: ' + lead.id + '</p>' +
-            '<p>Precio: $' + (lead.price !== undefined ? lead.price : 'No disponible') + '</p>' +
-            '<p>Responsable: ' + (lead.userName || 'No asignado') + '</p>' +
-          '</div>'
-        );
-      });
-
-      self.adjustContainerHeight();
-    };
-
-    this.adjustContainerHeight = function() {
-      var container = $('#km-leads-container');
-      var totalHeight = 0;
-      container.children().each(function() {
-        totalHeight += $(this).outerHeight(true);
-      });
-      container.css('height', totalHeight + 'px');
-    };
-
+    // Mostrar notificaciones estilo snackbar
     this.showSnackbar = function(message) {
-      var snackbar = $('#km-snackbar');
-      snackbar.text(message);
-      snackbar.addClass('show');
-      setTimeout(function() {
-        snackbar.removeClass('show');
-      }, 3000);
+      var sb = $('#snackbar');
+      if (!sb.length) {
+        $('body').append('<div id="snackbar"></div>');
+        sb = $('#snackbar');
+      }
+      sb.text(message).addClass('show');
+      setTimeout(function() { sb.removeClass('show'); }, 3000);
     };
 
     return this;
   };
+
   return CustomWidget;
 });

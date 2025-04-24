@@ -18,6 +18,11 @@ define(['jquery'], function ($) {
         $(document).off('click', '#add-entry-btn').on('click', '#add-entry-btn', function () {
           self.addEntry();
         });
+        // Evento para eliminar entradas
+        $(document).off('click', '.delete-entry-btn').on('click', '.delete-entry-btn', function () {
+          var idx = $(this).data('idx');
+          self.deleteEntry(idx);
+        });
         return true;
       },
       render: function () {
@@ -38,24 +43,34 @@ define(['jquery'], function ($) {
     };
 
     // Carga de estilos mínimos para el widget
+    // ...existing code...
     this.loadCSS = function() {
       var settings = self.get_settings();
       if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"]').length < 1) {
         $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" rel="stylesheet">');
       }
       $('head').append('<style>\
-        .km-hours-widget { font-family: Arial, sans-serif; padding: 10px; }\
-        .km-hours-widget label { display: block; margin: 5px 0; }\
-        .km-hours-widget input, .km-hours-widget textarea { width: 100%; padding: 4px; margin-top: 2px; }\
-        .km-hours-widget button { margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #0073AA; background: #0085ba; color: #fff; cursor: pointer; }\
-        .km-hours-widget .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; }\
-        .km-hours-widget .history-table th, .km-hours-widget .history-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }\
+        .km-hours-widget { font-family: Arial, sans-serif; padding: 10px; max-width: 320px; margin: 0 auto; }\
+        .km-hours-widget label { display: flex; flex-direction: column; margin: 6px 0; font-size: 13px; }\
+        .km-hours-widget input, .km-hours-widget textarea { width: 100%; padding: 4px; margin-top: 2px; font-size: 13px; box-sizing: border-box; }\
+        .km-hours-widget button { margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #0073AA; background: #0085ba; color: #fff; cursor: pointer; font-size: 13px; width: 100%; }\
+        .km-hours-widget .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }\
+        .km-hours-widget .history-table th, .km-hours-widget .history-table td { border: 1px solid #ddd; padding: 4px 3px; text-align: left; word-break: break-word; }\
+        .km-hours-widget .history-table th { background: none; }\
+        .delete-entry-btn { background: none; border: none; color: #e74c3c; padding: 0 4px; border-radius: 3px; cursor: pointer; font-size: 16px; line-height: 1; }\
+        #widget-summary p { margin: 4px 0 0 0; font-size: 13px; }\
         #snackbar { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 2px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; font-size: 17px; }\
         #snackbar.show { visibility: visible; -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s; animation: fadein 0.5s, fadeout 0.5s 2.5s; }\
         @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }\
         @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }\
+        /* Modal estilos */\
+        #history-modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); }\
+        #history-modal .modal-content { background:#fff; color:#111; max-width:500px; margin:60px auto; padding:20px; position:relative; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.15); }\
+        #close-history-modal { position:absolute; top:8px; right:8px; font-size:22px; background:#fff; color:#111; border:1px solid #ccc; border-radius:50%; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }\
+        #close-history-modal:hover { background:#f2f2f2; }\
       </style>');
     };
+    // ...existing code...
 
     // Obtener el JSON actual desde el campo personalizado
     this.loadData = function() {
@@ -89,13 +104,29 @@ define(['jquery'], function ($) {
           '<label>Horas (positivo / negativo):<input type="number" id="entry-hours" /></label>' +
           '<button id="add-entry-btn">Agregar Registro</button>' +
           '<div id="widget-summary"></div>' +
-          '<table class="history-table"><thead><tr><th>Fecha</th><th>Tarea(s)</th><th>Horas</th><th>Restante</th></tr></thead><tbody id="widget-history"></tbody></table>' +
+          '<button id="open-history-modal" style="margin-top:10px;">Ver historial</button>' +
+          // Modal oculto por defecto
+          '<div id="history-modal">' +
+            '<div class="modal-content">' +
+              '<button id="close-history-modal" title="Cerrar">&times;</button>' +
+              '<h4>Historial de Horas</h4>' +
+              '<table class="history-table"><thead><tr><th>Fecha</th><th>Tarea(s)</th><th>Horas</th><th>Restante</th><th>Acción</th></tr></thead><tbody id="widget-history"></tbody></table>' +
+            '</div>' +
+          '</div>' +
         '</div>';
-
+    
       self.render_template({
         caption: { html: '' },
         body: html,
         render: ''
+      });
+    
+      // Eventos para abrir/cerrar el modal
+      $(document).off('click', '#open-history-modal').on('click', '#open-history-modal', function() {
+        $('#history-modal').show();
+      });
+      $(document).off('click', '#close-history-modal').on('click', '#close-history-modal', function() {
+        $('#history-modal').hide();
       });
     };
 
@@ -110,15 +141,16 @@ define(['jquery'], function ($) {
         '<p><strong>Tiempo restante:</strong> ' + last + 'h</p>'
       );
     
-      // Construir filas de historial
+      // Construir filas de historial con botón eliminar (solo ícono)
       var rows = '';
-      json.actividades.forEach(function(act) {
+      json.actividades.forEach(function(act, idx) {
         var tareas = act.tareas.map(t => t.descripcion + ' (' + t.horas + 'h)').join('<br>');
         rows += '<tr>' +
                   '<td>' + act.fecha + '</td>' +
                   '<td>' + tareas + '</td>' +
                   '<td>' + act.tareas.reduce((sum, t) => sum + t.horas, 0) + '</td>' +
                   '<td>' + act.tiempo_restante + '</td>' +
+                  '<td><button class="delete-entry-btn" data-idx="' + idx + '" title="Eliminar"><span aria-label="Eliminar" role="img">🗑️</span></button></td>' +
                 '</tr>';
       });
       $('#widget-history').html(rows);
@@ -131,46 +163,22 @@ define(['jquery'], function ($) {
       var hrs = $('#entry-hours').val();
     
       // Validaciones específicas
-      if (!dateVal) {
-        self.showSnackbar('Por favor selecciona una fecha válida');
+      if (!dateVal || !desc || !hrs || isNaN(parseFloat(hrs))) {
+        self.showSnackbar('Por favor completa todos los campos correctamente.');
         return;
       }
-    
-      if (!desc) {
-        self.showSnackbar('La descripción no puede estar vacía');
-        return;
-      }
-    
-      if (!hrs) {
-        self.showSnackbar('Por favor ingresa la cantidad de horas');
-        return;
-      }
-    
-      // Validar que las horas sean un número válido
-      var horasNum = parseFloat(hrs);
-      if (isNaN(horasNum)) {
-        self.showSnackbar('El formato de horas no es válido. Usa números (ej: 2.5)');
-        return;
-      }
-    
-      // Validar que la fecha no sea futura
-      var selectedDate = new Date(dateVal);
-      var today = new Date();
-      if (selectedDate > today) {
-        self.showSnackbar('No puedes registrar horas para fechas futuras');
-        return;
-      }
-    
-      var fechaFormateada = new Date(dateVal + 'T05:00:00.000Z').toLocaleDateString('es-PE', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+
+      var fechaFormateada = new Date(dateVal + 'T05:00:00.000Z').toLocaleDateString('es-PE', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     
-      var json = self.data;
+      var horasNum = parseFloat(hrs);
+      var json = self.data || { paquete_horas: 0, actividades: [] };
       var prev = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
-      var restante = prev - horasNum; // Cambiamos a resta para que funcione correctamente
+      var restante = prev + horasNum; // Suma o resta dependiendo del signo de horasNum
     
       var nueva = {
         fecha: fechaFormateada,
@@ -178,8 +186,28 @@ define(['jquery'], function ($) {
         tiempo_restante: restante
       };
       json.actividades.push(nueva);
-
-      // Actualizamos el campo custom con el JSON completo
+    
+      self.updateData(json, 'Registro agregado correctamente.');
+    };
+    
+    // Eliminar una entrada y actualizar el campo en Kommo
+    this.deleteEntry = function(idx) {
+      var json = self.data || { paquete_horas: 0, actividades: [] };
+      json.actividades.splice(idx, 1);
+    
+      // Recalcular los tiempos restantes
+      var restante = json.paquete_horas;
+      json.actividades.forEach(function(act) {
+        var horas = act.tareas.reduce((sum, t) => sum + t.horas, 0);
+        restante += horas; // Recalcula correctamente el tiempo restante
+        act.tiempo_restante = restante;
+      });
+    
+      self.updateData(json, 'Registro eliminado correctamente.');
+    };
+    
+    // Actualizar el campo personalizado en Kommo
+    this.updateData = function(json, successMessage) {
       var leadId = APP.data.current_card.id;
       var payload = { custom_fields_values: [{ field_id: self.jsonFieldId, values: [{ value: JSON.stringify(json) }] }] };
       $.ajax({
@@ -190,14 +218,13 @@ define(['jquery'], function ($) {
         success: function() {
           self.data = json;
           self.renderHistory();
-          self.showSnackbar('Registro agregado correctamente.');
+          self.showSnackbar(successMessage);
         },
         error: function(err) {
-          self.showSnackbar('Error guardando: ' + err.statusText);
+          self.showSnackbar('Error al guardar: ' + err.statusText);
         }
       });
     };
-
     // Mostrar notificaciones estilo snackbar
     this.showSnackbar = function(message) {
       var sb = $('#snackbar');

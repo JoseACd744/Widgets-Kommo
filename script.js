@@ -3,7 +3,7 @@ define(['jquery'], function ($) {
     var self = this;
 
     // ID del campo personalizado donde se almacena el JSON de horas/historial
-    this.jsonFieldId = 2968264;
+    this.jsonFieldId = 796855;
 
     this.callbacks = {
       settings: function () {
@@ -43,7 +43,6 @@ define(['jquery'], function ($) {
     };
 
     // Carga de estilos mínimos para el widget
-    // ...existing code...
     this.loadCSS = function() {
       var settings = self.get_settings();
       if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"]').length < 1) {
@@ -70,7 +69,6 @@ define(['jquery'], function ($) {
         #close-history-modal:hover { background:#f2f2f2; }\
       </style>');
     };
-    // ...existing code...
 
     // Obtener el JSON actual desde el campo personalizado
     this.loadData = function() {
@@ -80,14 +78,15 @@ define(['jquery'], function ($) {
         method: 'GET',
         dataType: 'json',
         success: function(data) {
-          // Buscamos el valor del campo JSON
           var field = data.custom_fields_values.find(f => f.field_id === self.jsonFieldId);
           var raw = field && field.values.length ? field.values[0].value : '';
           try {
             self.data = JSON.parse(raw);
           } catch (e) {
-            // Estructura inicial si está vacío o inválido
             self.data = { paquete_horas: 0, actividades: [] };
+          }
+          if (!self.data.actividades || self.data.actividades.length === 0) {
+            $('#initial-package-container').show();
           }
           self.renderHistory();
         },
@@ -99,13 +98,16 @@ define(['jquery'], function ($) {
       var html = '' +
         '<div class="km-hours-widget">' +
           '<h3>Historial de Horas</h3>' +
+          '<div id="initial-package-container" style="display: none;">' +
+            '<label>Paquete inicial de horas:<input type="number" id="initial-package-hours" /></label>' +
+            '<button id="set-initial-package-btn">Establecer Paquete Inicial</button>' +
+          '</div>' +
           '<label>Fecha:<input type="date" id="entry-date" /></label>' +
           '<label>Descripción:<textarea id="entry-desc" rows="2"></textarea></label>' +
           '<label>Horas (positivo / negativo):<input type="number" id="entry-hours" /></label>' +
           '<button id="add-entry-btn">Agregar Registro</button>' +
           '<div id="widget-summary"></div>' +
           '<button id="open-history-modal" style="margin-top:10px;">Ver historial</button>' +
-          // Modal oculto por defecto
           '<div id="history-modal">' +
             '<div class="modal-content">' +
               '<button id="close-history-modal" title="Cerrar">&times;</button>' +
@@ -121,6 +123,11 @@ define(['jquery'], function ($) {
         render: ''
       });
     
+      // Mostrar el contenedor del paquete inicial si el JSON está vacío
+      if (!self.data || !self.data.actividades || self.data.actividades.length === 0) {
+        $('#initial-package-container').show();
+      }
+    
       // Eventos para abrir/cerrar el modal
       $(document).off('click', '#open-history-modal').on('click', '#open-history-modal', function() {
         $('#history-modal').show();
@@ -128,6 +135,22 @@ define(['jquery'], function ($) {
       $(document).off('click', '#close-history-modal').on('click', '#close-history-modal', function() {
         $('#history-modal').hide();
       });
+    
+      // Evento para establecer el paquete inicial
+      $(document).off('click', '#set-initial-package-btn').on('click', '#set-initial-package-btn', function() {
+        var initialHours = parseFloat($('#initial-package-hours').val());
+        if (isNaN(initialHours) || initialHours <= 0) {
+          self.showSnackbar('Por favor ingresa un valor válido para el paquete inicial.');
+          return;
+        }
+        self.setInitialPackage(initialHours);
+      });
+    };
+
+        this.setInitialPackage = function(initialHours) {
+      var json = { paquete_horas: initialHours, actividades: [] };
+      self.updateData(json, 'Paquete inicial establecido correctamente.');
+      $('#initial-package-container').hide();
     };
 
     // Mostrar el resumen y la tabla de historial
@@ -167,7 +190,7 @@ define(['jquery'], function ($) {
         self.showSnackbar('Por favor completa todos los campos correctamente.');
         return;
       }
-
+    
       var fechaFormateada = new Date(dateVal + 'T05:00:00.000Z').toLocaleDateString('es-PE', {
         weekday: 'long',
         year: 'numeric',
@@ -177,16 +200,54 @@ define(['jquery'], function ($) {
     
       var horasNum = parseFloat(hrs);
       var json = self.data || { paquete_horas: 0, actividades: [] };
-      var prev = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
-      var restante = prev + horasNum; // Suma o resta dependiendo del signo de horasNum
     
+      // Crear el nuevo registro
       var nueva = {
         fecha: fechaFormateada,
         tareas: [{ descripcion: desc, horas: horasNum }],
-        tiempo_restante: restante
+        tiempo_restante: 0 // Se recalculará después
       };
       json.actividades.push(nueva);
     
+
+      // Función para convertir fechas en español a formato estándar (YYYY-MM-DD)
+      function parseFechaEspanol(fechaEspanol) {
+        const meses = {
+          enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+          julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
+        };
+      
+        // Ajustar la expresión regular para capturar correctamente las fechas
+        const partes = fechaEspanol.match(/(?:\w+), (\d{1,2}) de (\w+) del? (\d{4})/i);
+        if (!partes) return null;
+      
+        const dia = parseInt(partes[1], 10);
+        const mes = meses[partes[2].toLowerCase()];
+        const anio = parseInt(partes[3], 10);
+      
+        if (isNaN(dia) || isNaN(mes) || isNaN(anio)) return null;
+      
+        return new Date(anio, mes, dia); // Devuelve un objeto Date
+      }
+      
+      // Ordenar los registros por fecha (de más antiguo a más nuevo)
+      json.actividades.sort(function(a, b) {
+        const fechaA = parseFechaEspanol(a.fecha);
+        const fechaB = parseFechaEspanol(b.fecha);
+      
+        // Validar que ambas fechas sean válidas antes de compararlas
+        if (!fechaA || !fechaB) return 0;
+      
+        return fechaA - fechaB; // Ordenar por fecha
+      });
+      // Recalcular los tiempos restantes
+      var restante = json.paquete_horas;
+      json.actividades.forEach(function(act) {
+        var horas = act.tareas.reduce((sum, t) => sum + t.horas, 0);
+        restante += horas; // Ajustar el tiempo restante
+        act.tiempo_restante = restante;
+      });
+      // Actualizar los datos en Kommo
       self.updateData(json, 'Registro agregado correctamente.');
     };
     

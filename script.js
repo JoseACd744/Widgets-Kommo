@@ -66,7 +66,6 @@ define(['jquery'], function ($) {
           border: 1px solid #ddd;
           border-radius: 8px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          background-color: #f9f9f9;
         }
         .km-google-calendar-widget h1 {
           font-size: 20px;

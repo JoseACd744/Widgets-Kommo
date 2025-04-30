@@ -1,9 +1,14 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
+    let tokenClient;
+    let gapiInited = false;
+    let gisInited = false;
 
-    // ID del campo personalizado donde se almacena el JSON de horas/historial
-    this.jsonFieldId = 796855;
+    const CLIENT_ID = '187937463238-45e5o4l80hn1tkpiftvahfs5pf2druj6.apps.googleusercontent.com'; // ⚠️ Reemplaza esto
+    const API_KEY = ''; // No necesario para esta operación específica
+    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
     this.callbacks = {
       settings: function () {
@@ -14,21 +19,22 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () {
-        // Agregar entrada al historial
-        $(document).off('click', '#add-entry-btn').on('click', '#add-entry-btn', function () {
-          self.addEntry();
+        $(document).off('click', '#authorize_button').on('click', '#authorize_button', function () {
+          self.authorizeGoogle();
         });
-        // Evento para eliminar entradas
-        $(document).off('click', '.delete-entry-btn').on('click', '.delete-entry-btn', function () {
-          var idx = $(this).data('idx');
-          self.deleteEntry(idx);
+
+        $(document).off('click', '#signout_button').on('click', '#signout_button', function () {
+          self.signOutGoogle();
         });
+
+        $(document).off('submit', '#reunionForm').on('submit', '#reunionForm', function (e) {
+          self.createEvent(e);
+        });
+
         return true;
       },
       render: function () {
-        // Renderizamos formulario e historial
         self.renderTemplate();
-        self.loadData();
         return true;
       },
       onSave: function () {
@@ -42,259 +48,237 @@ define(['jquery'], function ($) {
       destroy: function () {}
     };
 
-    // Carga de estilos mínimos para el widget
+    // Cargar CSS para el widget y los botones
     this.loadCSS = function() {
       var settings = self.get_settings();
       if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"]').length < 1) {
         $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" rel="stylesheet">');
       }
-      $('head').append('<style>\
-        .km-hours-widget { font-family: Arial, sans-serif; padding: 10px; max-width: 320px; margin: 0 auto; }\
-        .km-hours-widget label { display: flex; flex-direction: column; margin: 6px 0; font-size: 13px; }\
-        .km-hours-widget input, .km-hours-widget textarea { width: 100%; padding: 4px; margin-top: 2px; font-size: 13px; box-sizing: border-box; }\
-        .km-hours-widget button { margin-top: 10px; padding: 6px 12px; border-radius: 4px; border: 1px solid #0073AA; background: #0085ba; color: #fff; cursor: pointer; font-size: 13px; width: 100%; }\
-        .km-hours-widget .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }\
-        .km-hours-widget .history-table th, .km-hours-widget .history-table td { border: 1px solid #ddd; padding: 4px 3px; text-align: left; word-break: break-word; }\
-        .km-hours-widget .history-table th { background: none; }\
-        .delete-entry-btn { background: none; border: none; color: #e74c3c; padding: 0 4px; border-radius: 3px; cursor: pointer; font-size: 16px; line-height: 1; }\
-        #widget-summary p { margin: 4px 0 0 0; font-size: 13px; }\
-        #snackbar { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 2px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; font-size: 17px; }\
-        #snackbar.show { visibility: visible; -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s; animation: fadein 0.5s, fadeout 0.5s 2.5s; }\
-        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }\
-        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }\
-        /* Modal estilos */\
-        #history-modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); }\
-        #history-modal .modal-content { background:#fff; color:#111; max-width:500px; margin:60px auto; padding:20px; position:relative; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.15); }\
-        #close-history-modal { position:absolute; top:8px; right:8px; font-size:22px; background:#fff; color:#111; border:1px solid #ccc; border-radius:50%; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }\
-        #close-history-modal:hover { background:#f2f2f2; }\
-      </style>');
-    };
+      $('head').append('<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">');
 
-    // Obtener el JSON actual desde el campo personalizado
-    this.loadData = function() {
-      var leadId = APP.data.current_card.id;
-      $.ajax({
-        url: '/api/v4/leads/' + leadId,
-        method: 'GET',
-        dataType: 'json',
-        success: function(data) {
-          var field = data.custom_fields_values.find(f => f.field_id === self.jsonFieldId);
-          var raw = field && field.values.length ? field.values[0].value : '';
-          try {
-            self.data = JSON.parse(raw);
-          } catch (e) {
-            self.data = { paquete_horas: 0, actividades: [] };
-          }
-          if (!self.data.actividades || self.data.actividades.length === 0) {
-            $('#initial-package-container').show();
-          }
-          self.renderHistory();
-        },
+      // Agregar estilos personalizados directamente
+      const styles = `
+        .km-google-calendar-widget {
+          font-family: Arial, sans-serif;
+          max-width: 400px;
+          margin: 20px auto;
+          padding: 20px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          background-color: #f9f9f9;
+        }
+        .km-google-calendar-widget h1 {
+          font-size: 20px;
+          margin-bottom: 20px;
+          text-align: center;
+          color: #333;
+        }
+        .km-google-calendar-widget button {
+          display: block;
+          width: 100%;
+          padding: 10px;
+          margin: 10px 0;
+          font-size: 16px;
+          color: #fff;
+          background-color: #007bff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+        }
+        .km-google-calendar-widget button:hover {
+          background-color: #0056b3;
+        }
+        .km-google-calendar-widget button#signout_button {
+          background-color: #dc3545;
+        }
+        .km-google-calendar-widget button#signout_button:hover {
+          background-color: #a71d2a;
+        }
+        .km-google-calendar-widget form {
+          margin-top: 20px;
+        }
+        .km-google-calendar-widget label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
+          color: #555;
+        }
+        .km-google-calendar-widget input,
+        .km-google-calendar-widget select {
+          width: 100%;
+          padding: 8px;
+          margin-bottom: 15px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+        .km-google-calendar-widget input:focus,
+        .km-google-calendar-widget select:focus {
+          border-color: #007bff;
+          outline: none;
+          box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
+        }
+        .km-google-calendar-widget button[type="submit"] {
+          background-color: #28a745;
+        }
+        .km-google-calendar-widget button[type="submit"]:hover {
+          background-color: #218838;
+        }
+      `;
+      $('head').append('<style>' + styles + '</style>');
+
+      // Cargar Google API
+      $.getScript('https://apis.google.com/js/api.js', function() {
+        self.gapiLoaded();
+      });
+
+      // Cargar Google OAuth
+      $.getScript('https://accounts.google.com/gsi/client', function() {
+        self.gisLoaded();
       });
     };
 
-    // Construir la UI del widget
+    // Inicializar Google API
+    this.gapiLoaded = function() {
+      gapi.load('client', self.initializeGapiClient);
+    };
+
+    this.initializeGapiClient = async function() {
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [DISCOVERY_DOC],
+        clientId: CLIENT_ID,
+        scope: SCOPES,
+        conferenceDataVersion: 1, // Habilitar conferencias
+      });
+      gapiInited = true;
+    };
+
+    // Inicializar Google OAuth
+    this.gisLoaded = function() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (tokenResponse) => {
+          if (tokenResponse.error) throw tokenResponse;
+          document.getElementById("formulario").style.display = "block";
+          $('#authorize_button').hide();
+          $('#signout_button').show();
+        },
+      });
+      gisInited = true; // Indicamos que la inicialización de Google OAuth está lista
+    };
+
+    // Función de autorización de Google
+    this.authorizeGoogle = function() {
+      if (gisInited) {
+        tokenClient.requestAccessToken();
+      } else {
+        console.error('Google OAuth aún no está completamente cargado.');
+      }
+    };
+
+    // Función de cierre de sesión
+    this.signOutGoogle = function() {
+      google.accounts.oauth2.revoke(gapi.client.getToken().access_token);
+      gapi.client.setToken('');
+      document.getElementById("formulario").style.display = "none";
+      $('#authorize_button').show();
+      $('#signout_button').hide();
+    };
+
+    // Crear un evento en el calendario seleccionado
+    this.createEvent = async function(e) {
+      e.preventDefault();
+
+      const nombre = document.getElementById("nombre").value;
+      const email = document.getElementById("email").value;
+      const fecha = document.getElementById("fecha").value;
+      const hora = document.getElementById("hora").value;
+      const duracion = document.getElementById("duracion").value;
+
+      const calendarId = 'primary';
+
+      const startDateTime = new Date(`${fecha}T${hora}:00`);
+      const endDateTime = new Date(startDateTime.getTime() + duracion * 60000);
+
+      const event = {
+        summary: `Reunión con ${nombre}`,
+        description: `Solicitada por ${nombre} (${email})`,
+        start: {
+          dateTime: startDateTime.toISOString(),
+          timeZone: 'America/Lima',
+        },
+        end: {
+          dateTime: endDateTime.toISOString(),
+          timeZone: 'America/Lima',
+        },
+        attendees: [{ email: email }],
+        conferenceData: {
+          createRequest: {
+            requestId: `meet-${Date.now()}`,
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+            status: { statusCode: "pending" },
+          },
+        },
+      };
+
+      try {
+        const request = gapi.client.calendar.events.insert({
+          calendarId: calendarId,
+          resource: event,
+          conferenceDataVersion: 1,
+          sendUpdates: "all",
+        });
+
+        const response = await request;
+        const meetLink = response.result.conferenceData.entryPoints.find(
+          (entry) => entry.entryPointType === "video"
+        ).uri;
+
+        alert("Reunión creada con éxito. Link: " + meetLink);
+      } catch (error) {
+        console.error("Error creando el evento:", error);
+        alert("Error creando la reunión.");
+      }
+    };
+
+    // Renderizar la plantilla del widget con los formularios
     this.renderTemplate = function() {
       var html = '' +
-        '<div class="km-hours-widget">' +
-          '<h3>Historial de Horas</h3>' +
-          '<div id="initial-package-container" style="display: none;">' +
-            '<label>Paquete inicial de horas:<input type="number" id="initial-package-hours" /></label>' +
-            '<button id="set-initial-package-btn">Establecer Paquete Inicial</button>' +
-          '</div>' +
-          '<label>Fecha:<input type="date" id="entry-date" /></label>' +
-          '<label>Descripción:<textarea id="entry-desc" rows="2"></textarea></label>' +
-          '<label>Horas (positivo / negativo):<input type="number" id="entry-hours" /></label>' +
-          '<button id="add-entry-btn">Agregar Registro</button>' +
-          '<div id="widget-summary"></div>' +
-          '<button id="open-history-modal" style="margin-top:10px;">Ver historial</button>' +
-          '<div id="history-modal">' +
-            '<div class="modal-content">' +
-              '<button id="close-history-modal" title="Cerrar">&times;</button>' +
-              '<h4>Historial de Horas</h4>' +
-              '<table class="history-table"><thead><tr><th>Fecha</th><th>Tarea(s)</th><th>Horas</th><th>Restante</th><th>Acción</th></tr></thead><tbody id="widget-history"></tbody></table>' +
-            '</div>' +
+        '<div class="km-google-calendar-widget">' +
+          '<h1>Agendar Reunión Automáticamente</h1>' +
+          '<button id="authorize_button">Iniciar sesión con Google</button>' +
+          '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
+          '<div id="formulario" style="display: none;">' +
+            '<form id="reunionForm">' +
+              '<label for="nombre">Nombre:</label>' +
+              '<input type="text" id="nombre" required><br><br>' +
+              '<label for="email">Correo electrónico:</label>' +
+              '<input type="email" id="email" required><br><br>' +
+              '<label for="fecha">Fecha:</label>' +
+              '<input type="date" id="fecha" required><br><br>' +
+              '<label for="hora">Hora:</label>' +
+              '<input type="time" id="hora" required><br><br>' +
+              '<label for="duracion">Duración: ' +
+                '<select id="duracion" required>' +
+                  '<option value="30">30 minutos</option>' +
+                  '<option value="40">40 minutos</option>' +
+                  '<option value="60">60 minutos</option>' +
+                '</select>' +
+              '</label><br><br>' +
+              '<button type="submit">Crear evento</button>' +
+            '</form>' +
           '</div>' +
         '</div>';
-    
+
       self.render_template({
         caption: { html: '' },
         body: html,
         render: ''
       });
-    
-      // Mostrar el contenedor del paquete inicial si el JSON está vacío
-      if (!self.data || !self.data.actividades || self.data.actividades.length === 0) {
-        $('#initial-package-container').show();
-      }
-    
-      // Eventos para abrir/cerrar el modal
-      $(document).off('click', '#open-history-modal').on('click', '#open-history-modal', function() {
-        $('#history-modal').show();
-      });
-      $(document).off('click', '#close-history-modal').on('click', '#close-history-modal', function() {
-        $('#history-modal').hide();
-      });
-    
-      // Evento para establecer el paquete inicial
-      $(document).off('click', '#set-initial-package-btn').on('click', '#set-initial-package-btn', function() {
-        var initialHours = parseFloat($('#initial-package-hours').val());
-        if (isNaN(initialHours) || initialHours <= 0) {
-          self.showSnackbar('Por favor ingresa un valor válido para el paquete inicial.');
-          return;
-        }
-        self.setInitialPackage(initialHours);
-      });
-    };
-
-        this.setInitialPackage = function(initialHours) {
-      var json = { paquete_horas: initialHours, actividades: [] };
-      self.updateData(json, 'Paquete inicial establecido correctamente.');
-      $('#initial-package-container').hide();
-    };
-
-    // Mostrar el resumen y la tabla de historial
-    this.renderHistory = function() {
-      var json = self.data;
-    
-      // Mostrar resumen de paquete y restante (el paquete inicial nunca cambia)
-      var last = json.actividades.length ? json.actividades[json.actividades.length - 1].tiempo_restante : json.paquete_horas;
-      $('#widget-summary').html(
-        '<p><strong>Paquete inicial:</strong> ' + json.paquete_horas + 'h</p>' +
-        '<p><strong>Tiempo restante:</strong> ' + last + 'h</p>'
-      );
-    
-      // Construir filas de historial con botón eliminar (solo ícono)
-      var rows = '';
-      json.actividades.forEach(function(act, idx) {
-        var tareas = act.tareas.map(t => t.descripcion + ' (' + t.horas + 'h)').join('<br>');
-        rows += '<tr>' +
-                  '<td>' + act.fecha + '</td>' +
-                  '<td>' + tareas + '</td>' +
-                  '<td>' + act.tareas.reduce((sum, t) => sum + t.horas, 0) + '</td>' +
-                  '<td>' + act.tiempo_restante + '</td>' +
-                  '<td><button class="delete-entry-btn" data-idx="' + idx + '" title="Eliminar"><span aria-label="Eliminar" role="img">🗑️</span></button></td>' +
-                '</tr>';
-      });
-      $('#widget-history').html(rows);
-    };
-
-    // Agregar nueva entrada y actualizar el campo en Kommo
-    this.addEntry = function() {
-      var dateVal = $('#entry-date').val();
-      var desc = $('#entry-desc').val().trim();
-      var hrs = $('#entry-hours').val();
-    
-      // Validaciones específicas
-      if (!dateVal || !desc || !hrs || isNaN(parseFloat(hrs))) {
-        self.showSnackbar('Por favor completa todos los campos correctamente.');
-        return;
-      }
-    
-      var fechaFormateada = new Date(dateVal + 'T05:00:00.000Z').toLocaleDateString('es-PE', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    
-      var horasNum = parseFloat(hrs);
-      var json = self.data || { paquete_horas: 0, actividades: [] };
-    
-      // Crear el nuevo registro
-      var nueva = {
-        fecha: fechaFormateada,
-        tareas: [{ descripcion: desc, horas: horasNum }],
-        tiempo_restante: 0 // Se recalculará después
-      };
-      json.actividades.push(nueva);
-    
-
-      // Función para convertir fechas en español a formato estándar (YYYY-MM-DD)
-      function parseFechaEspanol(fechaEspanol) {
-        const meses = {
-          enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
-          julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
-        };
-      
-        // Ajustar la expresión regular para capturar correctamente las fechas
-        const partes = fechaEspanol.match(/(?:\w+), (\d{1,2}) de (\w+) del? (\d{4})/i);
-        if (!partes) return null;
-      
-        const dia = parseInt(partes[1], 10);
-        const mes = meses[partes[2].toLowerCase()];
-        const anio = parseInt(partes[3], 10);
-      
-        if (isNaN(dia) || isNaN(mes) || isNaN(anio)) return null;
-      
-        return new Date(anio, mes, dia); // Devuelve un objeto Date
-      }
-      
-      // Ordenar los registros por fecha (de más antiguo a más nuevo)
-      json.actividades.sort(function(a, b) {
-        const fechaA = parseFechaEspanol(a.fecha);
-        const fechaB = parseFechaEspanol(b.fecha);
-      
-        // Validar que ambas fechas sean válidas antes de compararlas
-        if (!fechaA || !fechaB) return 0;
-      
-        return fechaA - fechaB; // Ordenar por fecha
-      });
-      // Recalcular los tiempos restantes
-      var restante = json.paquete_horas;
-      json.actividades.forEach(function(act) {
-        var horas = act.tareas.reduce((sum, t) => sum + t.horas, 0);
-        restante += horas; // Ajustar el tiempo restante
-        act.tiempo_restante = restante;
-      });
-      // Actualizar los datos en Kommo
-      self.updateData(json, 'Registro agregado correctamente.');
-    };
-    
-    // Eliminar una entrada y actualizar el campo en Kommo
-    this.deleteEntry = function(idx) {
-      var json = self.data || { paquete_horas: 0, actividades: [] };
-      json.actividades.splice(idx, 1);
-    
-      // Recalcular los tiempos restantes
-      var restante = json.paquete_horas;
-      json.actividades.forEach(function(act) {
-        var horas = act.tareas.reduce((sum, t) => sum + t.horas, 0);
-        restante += horas; // Recalcula correctamente el tiempo restante
-        act.tiempo_restante = restante;
-      });
-    
-      self.updateData(json, 'Registro eliminado correctamente.');
-    };
-    
-    // Actualizar el campo personalizado en Kommo
-    this.updateData = function(json, successMessage) {
-      var leadId = APP.data.current_card.id;
-      var payload = { custom_fields_values: [{ field_id: self.jsonFieldId, values: [{ value: JSON.stringify(json) }] }] };
-      $.ajax({
-        url: '/api/v4/leads/' + leadId,
-        method: 'PATCH',
-        contentType: 'application/json',
-        data: JSON.stringify(payload),
-        success: function() {
-          self.data = json;
-          self.renderHistory();
-          self.showSnackbar(successMessage);
-        },
-        error: function(err) {
-          self.showSnackbar('Error al guardar: ' + err.statusText);
-        }
-      });
-    };
-    // Mostrar notificaciones estilo snackbar
-    this.showSnackbar = function(message) {
-      var sb = $('#snackbar');
-      if (!sb.length) {
-        $('body').append('<div id="snackbar"></div>');
-        sb = $('#snackbar');
-      }
-      sb.text(message).addClass('show');
-      setTimeout(function() { sb.removeClass('show'); }, 3000);
     };
 
     return this;

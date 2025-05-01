@@ -1,30 +1,56 @@
 define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
-    let tokenClient;
-    let gapiInited = false;
-    let gisInited = false;
-
-    const CLIENT_ID = '187937463238-45e5o4l80hn1tkpiftvahfs5pf2druj6.apps.googleusercontent.com'; // ⚠️ Reemplaza esto
-    const API_KEY = ''; // No necesario para esta operación específica
-    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+    const SERVER_URL = 'https://servidor-calendar-widget-production.up.railway.app'; // Cambia esto a la URL de tu servidor en producción
 
     this.callbacks = {
       settings: function () {
+        var $modal_body = $('.modal-body');
+        var $widget_settings = $modal_body.find('.widget_settings_block');
+
+        // HTML para los ajustes personalizados
+        var settingsHTML = `
+          <div class="km-form">
+            <h3>Configuración del Widget</h3>
+            <div class="button-container">
+              <button id="authorize_button_settings" class="km-button">Iniciar sesión con Google</button>
+            </div>
+          </div>
+        `;
+
+        $widget_settings.html(settingsHTML);
+
+        // Evento para iniciar sesión
+        $('#authorize_button_settings').on('click', async function () {
+          try {
+            const response = await fetch(`${SERVER_URL}/auth-url`);
+            const data = await response.json();
+            if (data.url) {
+              window.location.href = data.url; // Redirige al usuario a la URL de autenticación
+            } else {
+              alert('No se pudo obtener la URL de autenticación.');
+            }
+          } catch (error) {
+            console.error('Error iniciando la autorización:', error);
+            alert('Error iniciando la autorización. Revisa la consola para más detalles.');
+          }
+        });
+
         return true;
       },
+
       init: function () {
         self.loadCSS();
         return true;
       },
+
       bind_actions: function () {
         $(document).off('click', '#authorize_button').on('click', '#authorize_button', function () {
-          self.authorizeGoogle();
+          self.startAuthorization();
         });
 
         $(document).off('click', '#signout_button').on('click', '#signout_button', function () {
-          self.signOutGoogle();
+          self.signOut();
         });
 
         $(document).off('submit', '#reunionForm').on('submit', '#reunionForm', function (e) {
@@ -33,176 +59,122 @@ define(['jquery'], function ($) {
 
         return true;
       },
+
       render: function () {
         self.renderTemplate();
         return true;
       },
+
       onSave: function () {
         return true;
       },
+
       leads: {
         selected: function () {
           return true;
         }
       },
+
       destroy: function () {}
     };
 
-    // Cargar CSS para el widget y los botones
-    this.loadCSS = function() {
-      var settings = self.get_settings();
-      if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"]').length < 1) {
-        $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" rel="stylesheet">');
-      }
-      $('head').append('<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">');
-
-      // Agregar estilos personalizados directamente
-      const styles = `
-        .km-google-calendar-widget {
-          font-family: Arial, sans-serif;
-          max-width: 400px;
-          margin: 20px auto;
-          padding: 20px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    // Iniciar el proceso de autorización
+      this.startAuthorization = async function () {
+        try {
+          console.log('Iniciando autorización...');
+          const response = await fetch(`${SERVER_URL}/auth-url`);
+          console.log('Respuesta del servidor:', response);
+          const data = await response.json();
+          console.log('Datos recibidos:', data);
+      
+          if (data.url) {
+            // Abrir el modal y cargar la URL en un iframe
+            const modalHTML = `
+              <div id="authModal" class="km-modal">
+                <div class="km-modal-content">
+                  <span id="closeModal" class="km-close">&times;</span>
+                  <iframe src="${data.url}" frameborder="0" style="width: 100%; height: 400px;"></iframe>
+                </div>
+              </div>
+            `;
+            $('body').append(modalHTML);
+      
+            // Mostrar el modal
+            $('#authModal').fadeIn();
+      
+            // Cerrar el modal al hacer clic en la "X"
+            $('#closeModal').on('click', function () {
+              $('#authModal').fadeOut(function () {
+                $(this).remove();
+              });
+            });
+          } else {
+            alert('No se pudo obtener la URL de autenticación.');
+          }
+        } catch (error) {
+          console.error('Error iniciando la autorización:', error);
+          alert('Error iniciando la autorización. Revisa la consola para más detalles.');
         }
-        .km-google-calendar-widget h1 {
-          font-size: 20px;
-          margin-bottom: 20px;
-          text-align: center;
-          color: #333;
-        }
-        .km-google-calendar-widget button {
-          display: block;
-          width: 100%;
-          padding: 10px;
-          margin: 10px 0;
-          font-size: 16px;
-          color: #fff;
-          background-color: #007bff;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
-        }
-        .km-google-calendar-widget button:hover {
-          background-color: #0056b3;
-        }
-        .km-google-calendar-widget button#signout_button {
-          background-color: #dc3545;
-        }
-        .km-google-calendar-widget button#signout_button:hover {
-          background-color: #a71d2a;
-        }
-        .km-google-calendar-widget form {
-          margin-top: 20px;
-        }
-        .km-google-calendar-widget label {
-          display: block;
-          margin-bottom: 5px;
-          font-weight: bold;
-          color: #555;
-        }
-        .km-google-calendar-widget input,
-        .km-google-calendar-widget select {
-          width: 100%;
-          padding: 8px;
-          margin-bottom: 15px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 14px;
-        }
-        .km-google-calendar-widget input:focus,
-        .km-google-calendar-widget select:focus {
-          border-color: #007bff;
-          outline: none;
-          box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
-        }
-        .km-google-calendar-widget button[type="submit"] {
-          background-color: #28a745;
-        }
-        .km-google-calendar-widget button[type="submit"]:hover {
-          background-color: #218838;
-        }
-      `;
-      $('head').append('<style>' + styles + '</style>');
-
-      // Cargar Google API
-      $.getScript('https://apis.google.com/js/api.js', function() {
-        self.gapiLoaded();
-      });
-
-      // Cargar Google OAuth
-      $.getScript('https://accounts.google.com/gsi/client', function() {
-        self.gisLoaded();
-      });
-    };
-
-    // Inicializar Google API
-    this.gapiLoaded = function() {
-      gapi.load('client', self.initializeGapiClient);
-    };
-
-    this.initializeGapiClient = async function() {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-        clientId: CLIENT_ID,
-        scope: SCOPES,
-        conferenceDataVersion: 1, // Habilitar conferencias
-      });
-      gapiInited = true;
-    };
-
-    // Inicializar Google OAuth
-    this.gisLoaded = function() {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (tokenResponse) => {
-          if (tokenResponse.error) throw tokenResponse;
-          document.getElementById("formulario").style.display = "block";
-          $('#authorize_button').hide();
-          $('#signout_button').show();
-        },
-      });
-      gisInited = true; // Indicamos que la inicialización de Google OAuth está lista
-    };
-
-    // Función de autorización de Google
-    this.authorizeGoogle = function() {
-      if (gisInited) {
-        tokenClient.requestAccessToken();
-      } else {
-        console.error('Google OAuth aún no está completamente cargado.');
-      }
-    };
-
-    // Función de cierre de sesión
-    this.signOutGoogle = function() {
-      google.accounts.oauth2.revoke(gapi.client.getToken().access_token);
-      gapi.client.setToken('');
-      document.getElementById("formulario").style.display = "none";
-      $('#authorize_button').show();
-      $('#signout_button').hide();
-    };
-
-    // Crear un evento en el calendario seleccionado
-    this.createEvent = async function(e) {
+      };
+      
+      // Estilos para el modal
+      this.loadCSS = function () {
+        var styles = `
+          .km-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+          }
+          .km-modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+          }
+          .km-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+          }
+          .km-close:hover,
+          .km-close:focus {
+            color: black;
+            text-decoration: none;
+          }
+        `;
+        $('head').append('<style>' + styles + '</style>');
+      };
+    
+    this.createEvent = async function (e) {
       e.preventDefault();
-
+    
+      const sessionId = localStorage.getItem('sessionId');
+      if (!sessionId) {
+        alert('Por favor, inicia sesión primero.');
+        return;
+      }
+    
       const nombre = document.getElementById("nombre").value;
       const email = document.getElementById("email").value;
       const fecha = document.getElementById("fecha").value;
       const hora = document.getElementById("hora").value;
       const duracion = document.getElementById("duracion").value;
-
-      const calendarId = 'primary';
-
+      const calendarId = document.getElementById("calendar_select").value;
+    
       const startDateTime = new Date(`${fecha}T${hora}:00`);
       const endDateTime = new Date(startDateTime.getTime() + duracion * 60000);
-
+    
       const event = {
         summary: `Reunión con ${nombre}`,
         description: `Solicitada por ${nombre} (${email})`,
@@ -215,69 +187,138 @@ define(['jquery'], function ($) {
           timeZone: 'America/Lima',
         },
         attendees: [{ email: email }],
-        conferenceData: {
-          createRequest: {
-            requestId: `meet-${Date.now()}`,
-            conferenceSolutionKey: { type: "hangoutsMeet" },
-            status: { statusCode: "pending" },
-          },
-        },
       };
-
+    
+      console.log('Datos del evento:', event);
+    
       try {
-        const request = gapi.client.calendar.events.insert({
-          calendarId: calendarId,
-          resource: event,
-          conferenceDataVersion: 1,
-          sendUpdates: "all",
+        const response = await fetch(`${SERVER_URL}/create-event`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sessionId, calendarId, event }),
         });
-
-        const response = await request;
-        const meetLink = response.result.conferenceData.entryPoints.find(
-          (entry) => entry.entryPointType === "video"
-        ).uri;
-
-        alert("Reunión creada con éxito. Link: " + meetLink);
+    
+        console.log('Respuesta del servidor:', response);
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+    
+        if (response.ok) {
+          alert('Reunión creada con éxito. Link: ' + data.event.htmlLink);
+        } else {
+          console.error('Error creando el evento:', data);
+          alert('Error creando la reunión.');
+        }
       } catch (error) {
-        console.error("Error creando el evento:", error);
-        alert("Error creando la reunión.");
+        console.error('Error creando el evento:', error);
+        alert('Error creando la reunión. Revisa la consola para más detalles.');
+      }
+    };
+    
+    this.renderTemplate = async function () {
+      const sessionId = localStorage.getItem('sessionId');
+      console.log('Session ID:', sessionId);
+    
+      try {
+        const response = await fetch(`${SERVER_URL}/calendars?sessionId=${sessionId}`);
+        console.log('Respuesta del servidor:', response);
+        const calendars = await response.json();
+        console.log('Calendarios obtenidos:', calendars);
+    
+        let calendarOptions = '';
+        calendars.forEach(calendar => {
+          calendarOptions += `<option value="${calendar.id}">${calendar.summary}</option>`;
+        });
+    
+        var html = '' +
+          '<div class="km-google-calendar-widget">' +
+            '<h1>Agendar Reunión Automáticamente</h1>' +
+            '<button id="authorize_button">Iniciar sesión con Google</button>' +
+            '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
+            '<div id="formulario">' +
+              '<form id="reunionForm">' +
+                '<label for="nombre">Nombre:</label>' +
+                '<input type="text" id="nombre" required><br><br>' +
+                '<label for="email">Correo electrónico:</label>' +
+                '<input type="email" id="email" required><br><br>' +
+                '<label for="fecha">Fecha:</label>' +
+                '<input type="date" id="fecha" required><br><br>' +
+                '<label for="hora">Hora:</label>' +
+                '<input type="time" id="hora" required><br><br>' +
+                '<label for="duracion">Duración (minutos):</label>' +
+                '<input type="number" id="duracion" min="15" max="240" required><br><br>' +
+                '<label for="calendar_select">Seleccionar calendario:</label>' +
+                '<select id="calendar_select" required>' +
+                  calendarOptions +
+                '</select><br><br>' +
+                '<button type="submit">Crear evento</button>' +
+              '</form>' +
+            '</div>' +
+          '</div>';
+    
+        self.render_template({
+          caption: { html: '' },
+          body: html,
+          render: ''
+        });
+    
+        if (!sessionId) {
+          $('#authorize_button').show();
+          $('#signout_button').hide();
+          $('#formulario').hide();
+        } else {
+          $('#authorize_button').hide();
+          $('#signout_button').show();
+          $('#formulario').show();
+        }
+    
+        $('#authorize_button').on('click', function () {
+          self.startAuthorization();
+        });
+    
+        $('#signout_button').on('click', function () {
+          self.signOut();
+        });
+      } catch (error) {
+        console.error('Error obteniendo los calendarios:', error);
+        alert('Error obteniendo los calendarios. Revisa la consola para más detalles.');
       }
     };
 
-    // Renderizar la plantilla del widget con los formularios
-    this.renderTemplate = function() {
-      var html = '' +
-        '<div class="km-google-calendar-widget">' +
-          '<h1>Agendar Reunión Automáticamente</h1>' +
-          '<button id="authorize_button">Iniciar sesión con Google</button>' +
-          '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
-          '<div id="formulario" style="display: none;">' +
-            '<form id="reunionForm">' +
-              '<label for="nombre">Nombre:</label>' +
-              '<input type="text" id="nombre" required><br><br>' +
-              '<label for="email">Correo electrónico:</label>' +
-              '<input type="email" id="email" required><br><br>' +
-              '<label for="fecha">Fecha:</label>' +
-              '<input type="date" id="fecha" required><br><br>' +
-              '<label for="hora">Hora:</label>' +
-              '<input type="time" id="hora" required><br><br>' +
-              '<label for="duracion">Duración: ' +
-                '<select id="duracion" required>' +
-                  '<option value="30">30 minutos</option>' +
-                  '<option value="40">40 minutos</option>' +
-                  '<option value="60">60 minutos</option>' +
-                '</select>' +
-              '</label><br><br>' +
-              '<button type="submit">Crear evento</button>' +
-            '</form>' +
-          '</div>' +
-        '</div>';
-
-      self.render_template({
-        caption: { html: '' },
-        body: html,
-        render: ''
-      });
+    // Cargar estilos CSS personalizados
+    this.loadCSS = function () {
+      var styles = `
+        .km-form {
+          padding: 15px;
+          background: #2F2662;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+          max-width: 400px;
+          margin: 0 auto;
+        }
+        .km-form .button-container {
+          display: flex;
+          justify-content: center;
+        }
+        .km-form button {
+          padding: 10px 20px;
+          color: #fff;
+          background: #4CAF50;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 16px;
+        }
+        .km-form button:hover {
+          background: #45a049;
+        }
+        .km-form h3 {
+          color: #fff;
+          text-align: center;
+        }
+      `;
+      $('head').append('<style>' + styles + '</style>');
     };
 
     return this;

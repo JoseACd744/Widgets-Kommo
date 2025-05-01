@@ -5,6 +5,6 @@
     "description": "Displays the Hours Planner for the lead"
   },
   "settings": {
-    "api_key": "API Key"
+    "custom": "settings"
   }
 }

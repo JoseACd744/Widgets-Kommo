@@ -5,6 +5,6 @@
     "description": "Muestra el Plan de Horas del lead"
   },
   "settings": {
-    "api_key": "Clave API"
+    "custom": "Ajustes"
   }
 }

@@ -1,18 +1,11 @@
 {
   "widget": {
-    "name": "Publicador de Dirección",
-    "short_description": "Extrae y publica la dirección del cliente.",
-    "description": "Extrae la dirección del cliente del widget y la publica en Kommo.",
-    "tour_description": "Tour del Publicador de Dirección"
+    "name": "Actualizador de Leads",
+    "short_description": "Actualiza el estado y los campos del lead.",
+    "description": "Permite actualizar el estado del lead, la fecha/hora y un mensaje opcional al cliente en Kommo.",
+    "tour_description": "Tour del Actualizador de Leads"
   },
   "settings": {
     "api_key": "Clave API"
-  },
-  "actions": {
-    "post_address": "Postear Dirección",
-    "address_extracted_success": "Dirección extraída con éxito.",
-    "address_extracted_failure": "No se pudo extraer la dirección.",
-    "address_updated_success": "La dirección se ha actualizado con éxito en Kommo.",
-    "address_updated_failure": "Error al actualizar la dirección en Kommo: "
   }
 }

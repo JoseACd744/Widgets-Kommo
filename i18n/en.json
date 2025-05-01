@@ -1,18 +1,11 @@
 {
   "widget": {
-    "name": "Address Poster",
-    "short_description": "Extracts and posts customer address.",
-    "description": "Extracts the customer address from the widget and posts it to Kommo.",
-    "tour_description": "Tour of the Address Poster"
+    "name": "Lead Updater",
+    "short_description": "Updates lead status and fields.",
+    "description": "Allows updating the lead status, date/time, and an optional client message in Kommo.",
+    "tour_description": "Tour of the Lead Updater"
   },
   "settings": {
     "api_key": "API Key"
-  },
-  "actions": {
-    "post_address": "Post Address",
-    "address_extracted_success": "Address extracted successfully.",
-    "address_extracted_failure": "Failed to extract address.",
-    "address_updated_success": "Address updated successfully in Kommo.",
-    "address_updated_failure": "Failed to update address in Kommo: "
   }
 }

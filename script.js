@@ -4,47 +4,71 @@ define(['jquery'], function ($) {
 
     this.callbacks = {
       settings: function () {
+        console.log('Callback: settings');
         return true;
       },
       init: function () {
+        console.log('Callback: init');
         self.loadCSS();
         return true;
       },
       bind_actions: function () {
-        $(document).off('click', '#post-address-btn').on('click', '#post-address-btn', function () {
-          self.postAddress();
+        console.log('Callback: bind_actions');
+        $(document).off('click', '#save-lead-btn').on('click', '#save-lead-btn', function () {
+          console.log('Save button clicked');
+          self.saveLeadData();
         });
         return true;
       },
       render: function () {
+        console.log('Callback: render');
         self.render_template({
           caption: {
             class_name: 'js-km-caption',
-            html: 'Postear Dirección'
+            html: 'Actualizar Lead'
           },
-          body: '<div class="km-form">\
-                   <div class="button-container">\
-                     <button id="post-address-btn">Postear Dirección</button>\
-                   </div>\
-                   <div id="address-result"></div>\
-                 </div>\
-                 <div id="snackbar"></div>',
+          body: `
+            <div class="km-form">
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="standby-checkbox"> 
+                  <span>Mover a Stand By</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="datetime-input">Fecha y Hora:</label>
+                <input type="datetime-local" id="datetime-input">
+              </div>
+              <div class="form-group">
+                <label for="client-message">Mensaje al Cliente (opcional):</label>
+                <textarea id="client-message" rows="3"></textarea>
+              </div>
+              <div class="button-container">
+                <button id="save-lead-btn">Guardar</button>
+              </div>
+              <div id="snackbar"></div>
+            </div>
+          `,
           render: ''
         });
         return true;
       },
       onSave: function () {
+        console.log('Callback: onSave');
         return true;
       },
       leads: {
         selected: function () {
+          console.log('Callback: leads.selected');
           return true;
         }
       },
-      destroy: function () {}
+      destroy: function () {
+        console.log('Callback: destroy');
+      }
     };
 
-    this.loadCSS = function() {
+    this.loadCSS = function () {
       var settings = self.get_settings();
       if ($('link[href="' + settings.path + '/style.css?v=' + settings.version + '"').length < 1) {
         $('head').append('<link href="' + settings.path + '/style.css?v=' + settings.version + '" type="text/css" rel="stylesheet">');
@@ -52,106 +76,161 @@ define(['jquery'], function ($) {
       $('head').append('<style>\
         #snackbar {\
           visibility: hidden;\
-          min-width: 250px;\
-          margin-left: -125px;\
-          background-color: #333;\
+          min-width: 300px;\
+          margin-left: -150px;\
+          background-color: #323232;\
           color: #fff;\
           text-align: center;\
-          border-radius: 2px;\
+          border-radius: 8px;\
           padding: 16px;\
           position: fixed;\
           z-index: 1;\
           left: 50%;\
           bottom: 30px;\
-          font-size: 17px;\
+          font-size: 16px;\
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);\
+          transition: visibility 0.3s, opacity 0.3s ease-in-out;\
+          opacity: 0;\
         }\
         #snackbar.show {\
           visibility: visible;\
-          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;\
+          opacity: 1;\
           animation: fadein 0.5s, fadeout 0.5s 2.5s;\
         }\
-        @-webkit-keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
+        input, textarea {\
+          padding: 12px;\
+          margin: 10px 0;\
+          box-sizing: border-box;\
+          border: 1px solid #ddd;\
+          border-radius: 6px;\
+          font-size: 16px;\
+          transition: border-color 0.3s, box-shadow 0.3s;\
+        }\
+        input:focus, textarea:focus {\
+          border-color: #4CAF50;\
+          box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);\
+          outline: none;\
+        }\
+        button {\
+          background-color: #4CAF50;\
+          color: white;\
+          padding: 12px 20px;\
+          border: none;\
+          border-radius: 6px;\
+          cursor: pointer;\
+          font-size: 16px;\
+          transition: background-color 0.3s, transform 0.2s;\
+        }\
+        button:hover {\
+          background-color: #45a049;\
+          transform: scale(1.05);\
+        }\
+        .km-form {\
+          max-width: 400px;\
+          padding: 20px;\
+          border-radius: 8px;\
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);\
+        }\
+        .form-group {\
+          margin-bottom: 15px;\
+        }\
+        label {\
+          font-size: 14px;\
+          font-weight: bold;\
+          margin-bottom: 5px;\
+          display: block;\
+        }\
+        .checkbox-label {\
+          display: flex;\
+          align-items: center;\
+          gap: 8px;\
+          font-size: 14px;\
+          font-weight: normal;\
         }\
         @keyframes fadein {\
-          from {bottom: 0; opacity: 0;}\
-          to {bottom: 30px; opacity: 1;}\
-        }\
-        @-webkit-keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
+          from { opacity: 0; }\
+          to { opacity: 1; }\
         }\
         @keyframes fadeout {\
-          from {bottom: 30px; opacity: 1;}\
-          to {bottom: 0; opacity: 0;}\
+          from { opacity: 1; }\
+          to { opacity: 0; }\
         }\
       </style>');
     };
 
-    this.postAddress = function() {
-      var widgetHTML = APP.data.card_page.$widgets_block[0].innerHTML;
-      var addressRegex = /<span class="ui-text ui-text--m ui-text--gray tj5uZWn8gy_AUYr71B77J">([^<]+)<\/span>/g;
-      var matches = widgetHTML.match(addressRegex);
-      if (matches) {
-        var address = matches.map(function(match) {
-          return match.replace(/<[^>]+>/g, '').trim();
-        }).join(', ');
-        $('#address-result').text('Dirección: ' + address);
-        self.showSnackbar('Dirección extraída con éxito.');
-        self.saveAddressToKommo(address);
-      } else {
-        self.showSnackbar('No se pudo extraer la dirección.');
-      }
-    };
+    this.saveLeadData = function () {
+      console.log('saveLeadData called');
+      var moveToStandBy = $('#standby-checkbox').is(':checked');
+      console.log('Move to Stand By:', moveToStandBy);
 
-    this.saveAddressToKommo = function(address) {
+      if (!moveToStandBy) {
+        console.log('Checkbox not selected');
+        self.showSnackbar('El checkbox no está seleccionado. No se realizó ninguna acción.');
+        return;
+      }
+
+      var datetimeValue = $('#datetime-input').val();
+      console.log('Datetime value:', datetimeValue);
+
+      if (!datetimeValue) {
+        console.log('Datetime value is empty');
+        self.showSnackbar('Por favor, ingrese una fecha y hora.');
+        return;
+      }
+
+      var date = new Date(datetimeValue);
+      var minutes = date.getMinutes();
+      var roundedMinutes = Math.round(minutes / 15) * 15;
+      date.setMinutes(roundedMinutes);
+      date.setSeconds(0);
+
+      // Convertir a Unix Timestamp
+      var timestamp = Math.floor(date.getTime() / 1000);
+      console.log('Rounded timestamp (Unix):', timestamp);
+
       var leadId = APP.data.current_card.id;
+      console.log('Lead ID:', leadId);
+
+      var clientMessage = $('#client-message').val();
+      console.log('Client message:', clientMessage);
 
       var customFields = [
-        { field_id: 321852, values: [{ value: address }] } 
+        { field_id: 1982077, values: [{ value: timestamp }] }
       ];
 
+      if (clientMessage) {
+        customFields.push({ field_id: 1982071, values: [{ value: clientMessage }] });
+      }
+
       var leadData = {
+        id: leadId,
+        status_id: 84787844,
         custom_fields_values: customFields
       };
+      console.log('Lead data to send:', leadData);
 
       $.ajax({
         url: '/api/v4/leads/' + leadId,
         method: 'PATCH',
         contentType: 'application/json',
         data: JSON.stringify(leadData),
-        success: function(response) {
+        success: function (response) {
           console.log('Lead data updated:', response);
-          self.showSnackbar('La dirección se ha actualizado con éxito en Kommo.');
-          // Ejecutar el bot con ID 11474
-          $.ajax({
-            url: '/api/v2/salesbot/run',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify([{ bot_id: 11474, entity_id: leadId, entity_type: '2' }]),
-            success: function(botResponse) {
-              console.log('Bot ejecutado con éxito:', botResponse);
-              self.showSnackbar('El bot se ha ejecutado con éxito.');
-            },
-            error: function(botError) {
-              console.error('Error al ejecutar el bot:', botError);
-              self.showSnackbar('Error al ejecutar el bot: ' + botError.statusText);
-            }
-          });
+          self.showSnackbar('Los datos del lead se han actualizado con éxito.');
         },
-        error: function(error) {
+        error: function (error) {
           console.error('Error updating lead data:', error);
-          self.showSnackbar('Error al actualizar la dirección en Kommo: ' + error.statusText);
+          self.showSnackbar('Error al actualizar los datos del lead: ' + error.statusText);
         }
       });
     };
 
-    this.showSnackbar = function(message) {
+    this.showSnackbar = function (message) {
+      console.log('Showing snackbar with message:', message);
       var snackbar = $('#snackbar');
       snackbar.text(message);
       snackbar.addClass('show');
-      setTimeout(function() {
+      setTimeout(function () {
         snackbar.removeClass('show');
       }, 3000);
     };

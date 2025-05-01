@@ -20,13 +20,22 @@ define(['jquery'], function ($) {
 
         $widget_settings.html(settingsHTML);
 
-        // Evento para iniciar sesión
         $('#authorize_button_settings').on('click', async function () {
           try {
             const response = await fetch(`${SERVER_URL}/auth-url`);
             const data = await response.json();
             if (data.url) {
-              window.location.href = data.url; // Redirige al usuario a la URL de autenticación
+              window.open(data.url, '_blank', 'width=600,height=600');
+        
+              // Escuchar el evento de cierre de la ventana para obtener el sessionId
+              const interval = setInterval(async () => {
+                const sessionResponse = await fetch(`${SERVER_URL}/check-session`);
+                const sessionData = await sessionResponse.json();
+                if (sessionData.session) {
+                  localStorage.setItem('sessionId', sessionData.session.id);
+                  clearInterval(interval);
+                }
+              }, 1000);
             } else {
               alert('No se pudo obtener la URL de autenticación.');
             }
@@ -217,75 +226,78 @@ define(['jquery'], function ($) {
     };
     
     this.renderTemplate = async function () {
-      const sessionId = localStorage.getItem('sessionId');
-      console.log('Session ID:', sessionId);
-    
       try {
-        const response = await fetch(`${SERVER_URL}/calendars?sessionId=${sessionId}`);
-        console.log('Respuesta del servidor:', response);
-        const calendars = await response.json();
-        console.log('Calendarios obtenidos:', calendars);
-    
-        let calendarOptions = '';
-        calendars.forEach(calendar => {
-          calendarOptions += `<option value="${calendar.id}">${calendar.summary}</option>`;
+        // Verificar si hay una sesión activa
+        const response = await fetch(`${SERVER_URL}/check-session`, {
+          credentials: 'include', // Incluir cookies en la solicitud
         });
     
-        var html = '' +
-          '<div class="km-google-calendar-widget">' +
-            '<h1>Agendar Reunión Automáticamente</h1>' +
-            '<button id="authorize_button">Iniciar sesión con Google</button>' +
-            '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
-            '<div id="formulario">' +
-              '<form id="reunionForm">' +
-                '<label for="nombre">Nombre:</label>' +
-                '<input type="text" id="nombre" required><br><br>' +
-                '<label for="email">Correo electrónico:</label>' +
-                '<input type="email" id="email" required><br><br>' +
-                '<label for="fecha">Fecha:</label>' +
-                '<input type="date" id="fecha" required><br><br>' +
-                '<label for="hora">Hora:</label>' +
-                '<input type="time" id="hora" required><br><br>' +
-                '<label for="duracion">Duración (minutos):</label>' +
-                '<input type="number" id="duracion" min="15" max="240" required><br><br>' +
-                '<label for="calendar_select">Seleccionar calendario:</label>' +
-                '<select id="calendar_select" required>' +
-                  calendarOptions +
-                '</select><br><br>' +
-                '<button type="submit">Crear evento</button>' +
-              '</form>' +
-            '</div>' +
-          '</div>';
+        if (response.ok) {
+          const data = await response.json();
+          const sessionId = data.sessionId;
     
-        self.render_template({
-          caption: { html: '' },
-          body: html,
-          render: ''
-        });
+          console.log('Session ID obtenido del servidor:', sessionId);
     
-        if (!sessionId) {
-          $('#authorize_button').show();
-          $('#signout_button').hide();
-          $('#formulario').hide();
-        } else {
+          // Usar el sessionId para obtener los calendarios
+          const calendarsResponse = await fetch(`${SERVER_URL}/calendars`, {
+            credentials: 'include', // Incluir cookies en la solicitud
+          });
+    
+          const calendars = await calendarsResponse.json();
+          console.log('Calendarios obtenidos:', calendars);
+    
+          let calendarOptions = '';
+          calendars.forEach(calendar => {
+            calendarOptions += `<option value="${calendar.id}">${calendar.summary}</option>`;
+          });
+    
+          var html = '' +
+            '<div class="km-google-calendar-widget">' +
+              '<h1>Agendar Reunión Automáticamente</h1>' +
+              '<button id="authorize_button">Iniciar sesión con Google</button>' +
+              '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
+              '<div id="formulario">' +
+                '<form id="reunionForm">' +
+                  '<label for="nombre">Nombre:</label>' +
+                  '<input type="text" id="nombre" required><br><br>' +
+                  '<label for="email">Correo electrónico:</label>' +
+                  '<input type="email" id="email" required><br><br>' +
+                  '<label for="fecha">Fecha:</label>' +
+                  '<input type="date" id="fecha" required><br><br>' +
+                  '<label for="hora">Hora:</label>' +
+                  '<input type="time" id="hora" required><br><br>' +
+                  '<label for="duracion">Duración (minutos):</label>' +
+                  '<input type="number" id="duracion" min="15" max="240" required><br><br>' +
+                  '<label for="calendar_select">Seleccionar calendario:</label>' +
+                  '<select id="calendar_select" required>' +
+                    calendarOptions +
+                  '</select><br><br>' +
+                  '<button type="submit">Crear evento</button>' +
+                '</form>' +
+              '</div>' +
+            '</div>';
+    
+          self.render_template({
+            caption: { html: '' },
+            body: html,
+            render: ''
+          });
+    
           $('#authorize_button').hide();
           $('#signout_button').show();
           $('#formulario').show();
+        } else {
+          console.log('No hay sesión activa.');
+          $('#authorize_button').show();
+          $('#signout_button').hide();
+          $('#formulario').hide();
         }
-    
-        $('#authorize_button').on('click', function () {
-          self.startAuthorization();
-        });
-    
-        $('#signout_button').on('click', function () {
-          self.signOut();
-        });
       } catch (error) {
-        console.error('Error obteniendo los calendarios:', error);
-        alert('Error obteniendo los calendarios. Revisa la consola para más detalles.');
+        console.error('Error verificando la sesión:', error);
+        alert('Error verificando la sesión. Revisa la consola para más detalles.');
       }
     };
-
+    
     // Cargar estilos CSS personalizados
     this.loadCSS = function () {
       var styles = `

@@ -139,6 +139,28 @@ define(['jquery'], function ($) {
       });
     };
 
+    this.loadCalendars = function() {
+      // Lista estática de calendarios
+      const calendars = [
+        { id: 'primary', summary: 'Holos Digital Partners | Ventas' },
+        { id: 'c_586d8a87e53fe35bd3fb3e8a998a456f2db0a195f4192c2275a79662ddf70165@group.calendar.google.com', summary: 'Kommo, by Holos' },
+        { id: 'c_462b71c22d24f69ce52edb36254bdd7ab97848aceaea241e01df359762bcfafa@group.calendar.google.com', summary: 'tldv meetings' },
+        { id: 'c_5afd7289c6145e02223863817b7b2e5ccfb0742b56c66cbc8661b712583c5561@group.calendar.google.com', summary: 'Demo Kommo USA - Calendly' },
+        { id: 'c_ba21c2fb63feda18d531228728292bcb4898d94b260ca4325679596fa2208d84@group.calendar.google.com', summary: 'Demo Kommo EC' }
+
+      ];
+    
+      // Generar opciones para el dropdown
+      const dropdown = document.getElementById("calendar_dropdown");
+      calendars.forEach((calendar) => {
+        const option = document.createElement("option");
+        option.value = calendar.id;
+        option.textContent = calendar.summary;
+        dropdown.appendChild(option);
+      });
+    };
+
+
     // Inicializar Google API
     this.gapiLoaded = function() {
       gapi.load('client', self.initializeGapiClient);
@@ -150,7 +172,7 @@ define(['jquery'], function ($) {
         discoveryDocs: [DISCOVERY_DOC],
         clientId: CLIENT_ID,
         scope: SCOPES,
-        conferenceDataVersion: 1, // Habilitar conferencias
+        conferenceDataVersion: 1,
       });
       gapiInited = true;
     };
@@ -194,30 +216,26 @@ define(['jquery'], function ($) {
     
       const email = document.getElementById("email").value;
       const fecha = document.getElementById("fecha").value;
-      const hora = document.getElementById("hora").value;
-      const duracion = document.getElementById("duracion").value;
+      const horaInicio = document.getElementById("hora_inicio").value;
+      const horaFin = document.getElementById("hora_fin").value;
+      const calendarId = document.getElementById("calendar_dropdown").value; // Obtener el calendarId seleccionado
     
-      const calendarId = 'primary';
+      const startDateTime = new Date(`${fecha}T${horaInicio}:00`);
+      const endDateTime = new Date(`${fecha}T${horaFin}:00`);
     
-      const startDateTime = new Date(`${fecha}T${hora}:00`);
-      const endDateTime = new Date(startDateTime.getTime() + duracion * 60000);
-    
-      // Obtener el lead_id y el enlace del lead
       const leadId = APP.data.current_card.id;
       const leadUri = document.getElementById("page_holder").baseURI;
     
       try {
-        // Obtener datos del lead
         const leadResponse = await $.ajax({
           url: '/api/v4/leads/' + leadId,
           method: 'GET',
           dataType: 'json',
         });
     
-        const leadName = leadResponse.name; // Nombre del lead
+        const leadName = leadResponse.name;
         const responsibleUserId = leadResponse.responsible_user_id;
     
-        // Obtener datos del usuario responsable
         const userResponse = await $.ajax({
           url: '/api/v4/users/' + responsibleUserId,
           method: 'GET',
@@ -226,7 +244,6 @@ define(['jquery'], function ($) {
     
         const responsibleUserName = userResponse.name;
     
-        // Crear el evento con los datos obtenidos
         const event = {
           summary: `Reunión con ${leadName}`,
           description: `Lead ID: ${leadId}\nEnlace del lead: ${leadUri}\nResponsable: ${responsibleUserName}`,
@@ -249,7 +266,7 @@ define(['jquery'], function ($) {
         };
     
         const request = gapi.client.calendar.events.insert({
-          calendarId: calendarId,
+          calendarId: calendarId, // Usar el calendarId seleccionado
           resource: event,
           conferenceDataVersion: 1,
           sendUpdates: "all",
@@ -268,19 +285,18 @@ define(['jquery'], function ($) {
     };
 
     // Renderizar la plantilla del widget con los formularios
-    this.renderTemplate = async function() {
+        this.renderTemplate = async function() {
       const leadId = APP.data.current_card.id;
     
       let leadName = '';
       try {
-        // Obtener datos del lead
         const leadResponse = await $.ajax({
           url: '/api/v4/leads/' + leadId,
           method: 'GET',
           dataType: 'json',
         });
     
-        leadName = leadResponse.name; // Nombre del lead
+        leadName = leadResponse.name;
       } catch (error) {
         console.error("Error obteniendo el nombre del lead:", error);
       }
@@ -298,15 +314,14 @@ define(['jquery'], function ($) {
               '<input type="email" id="email" required><br><br>' +
               '<label for="fecha">Fecha:</label>' +
               '<input type="date" id="fecha" required><br><br>' +
-              '<label for="hora">Hora:</label>' +
-              '<input type="time" id="hora" required><br><br>' +
-              '<label for="duracion">Duración: ' +
-                '<select id="duracion" required>' +
-                  '<option value="30">30 minutos</option>' +
-                  '<option value="40">40 minutos</option>' +
-                  '<option value="60">60 minutos</option>' +
-                '</select>' +
-              '</label><br><br>' +
+              '<label for="hora_inicio">Hora de inicio:</label>' +
+              '<input type="time" id="hora_inicio" required><br><br>' +
+              '<label for="hora_fin">Hora de fin:</label>' +
+              '<input type="time" id="hora_fin" required><br><br>' +
+              '<label for="calendar_dropdown">Seleccionar calendario:</label>' +
+              '<select id="calendar_dropdown" required>' +
+                '<option value="" disabled selected>Seleccione un calendario</option>' +
+              '</select><br><br>' +
               '<button type="submit">Crear evento</button>' +
             '</form>' +
           '</div>' +
@@ -317,6 +332,7 @@ define(['jquery'], function ($) {
         body: html,
         render: ''
       });
+      self.loadCalendars(); // Cargar los calendarios al renderizar
     };
 
     return this;

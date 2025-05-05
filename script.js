@@ -158,57 +158,54 @@ define(['jquery'], function ($) {
       </style>');
     };
 
-    this.saveLeadData = function () {
+     this.saveLeadData = function () {
       console.log('saveLeadData called');
       var moveToStandBy = $('#standby-checkbox').is(':checked');
       console.log('Move to Stand By:', moveToStandBy);
-
+    
       if (!moveToStandBy) {
         console.log('Checkbox not selected');
         self.showSnackbar('El checkbox no está seleccionado. No se realizó ninguna acción.');
         return;
       }
-
+    
       var datetimeValue = $('#datetime-input').val();
       console.log('Datetime value:', datetimeValue);
-
+    
       if (!datetimeValue) {
         console.log('Datetime value is empty');
         self.showSnackbar('Por favor, ingrese una fecha y hora.');
         return;
       }
-
+    
       var date = new Date(datetimeValue);
-      var minutes = date.getMinutes();
-      var roundedMinutes = Math.round(minutes / 15) * 15;
-      date.setMinutes(roundedMinutes);
-      date.setSeconds(0);
-
+      date.setSeconds(0); // Solo aseguramos que los segundos sean 0
+    
       // Convertir a Unix Timestamp
       var timestamp = Math.floor(date.getTime() / 1000);
-      console.log('Rounded timestamp (Unix):', timestamp);
-
+      console.log('Timestamp (Unix):', timestamp);
+    
       var leadId = APP.data.current_card.id;
       console.log('Lead ID:', leadId);
-
+    
       var clientMessage = $('#client-message').val();
       console.log('Client message:', clientMessage);
-
+    
       var customFields = [
         { field_id: 1982077, values: [{ value: timestamp }] }
       ];
-
+    
       if (clientMessage) {
         customFields.push({ field_id: 1982071, values: [{ value: clientMessage }] });
       }
-
+    
       var leadData = {
         id: leadId,
         status_id: 84787844,
         custom_fields_values: customFields
       };
       console.log('Lead data to send:', leadData);
-
+    
       $.ajax({
         url: '/api/v4/leads/' + leadId,
         method: 'PATCH',
@@ -224,7 +221,7 @@ define(['jquery'], function ($) {
         }
       });
     };
-
+    
     this.showSnackbar = function (message) {
       console.log('Showing snackbar with message:', message);
       var snackbar = $('#snackbar');

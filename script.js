@@ -62,7 +62,7 @@ define(['jquery'], function ($) {
           font-family: Arial, sans-serif;
           max-width: 400px;
           margin: 20px auto;
-          padding: 20px;
+          padding: 33px;
           border: 1px solid #ddd;
           border-radius: 8px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -191,52 +191,75 @@ define(['jquery'], function ($) {
     // Crear un evento en el calendario seleccionado
     this.createEvent = async function(e) {
       e.preventDefault();
-
-      const nombre = document.getElementById("nombre").value;
+    
       const email = document.getElementById("email").value;
       const fecha = document.getElementById("fecha").value;
       const hora = document.getElementById("hora").value;
       const duracion = document.getElementById("duracion").value;
-
+    
       const calendarId = 'primary';
-
+    
       const startDateTime = new Date(`${fecha}T${hora}:00`);
       const endDateTime = new Date(startDateTime.getTime() + duracion * 60000);
-
-      const event = {
-        summary: `Reunión con ${nombre}`,
-        description: `Solicitada por ${nombre} (${email})`,
-        start: {
-          dateTime: startDateTime.toISOString(),
-          timeZone: 'America/Lima',
-        },
-        end: {
-          dateTime: endDateTime.toISOString(),
-          timeZone: 'America/Lima',
-        },
-        attendees: [{ email: email }],
-        conferenceData: {
-          createRequest: {
-            requestId: `meet-${Date.now()}`,
-            conferenceSolutionKey: { type: "hangoutsMeet" },
-            status: { statusCode: "pending" },
-          },
-        },
-      };
-
+    
+      // Obtener el lead_id y el enlace del lead
+      const leadId = APP.data.current_card.id;
+      const leadUri = document.getElementById("page_holder").baseURI;
+    
       try {
+        // Obtener datos del lead
+        const leadResponse = await $.ajax({
+          url: '/api/v4/leads/' + leadId,
+          method: 'GET',
+          dataType: 'json',
+        });
+    
+        const leadName = leadResponse.name; // Nombre del lead
+        const responsibleUserId = leadResponse.responsible_user_id;
+    
+        // Obtener datos del usuario responsable
+        const userResponse = await $.ajax({
+          url: '/api/v4/users/' + responsibleUserId,
+          method: 'GET',
+          dataType: 'json',
+        });
+    
+        const responsibleUserName = userResponse.name;
+    
+        // Crear el evento con los datos obtenidos
+        const event = {
+          summary: `Reunión con ${leadName}`,
+          description: `Lead ID: ${leadId}\nEnlace del lead: ${leadUri}\nResponsable: ${responsibleUserName}`,
+          start: {
+            dateTime: startDateTime.toISOString(),
+            timeZone: 'America/Lima',
+          },
+          end: {
+            dateTime: endDateTime.toISOString(),
+            timeZone: 'America/Lima',
+          },
+          attendees: [{ email: email }],
+          conferenceData: {
+            createRequest: {
+              requestId: `meet-${Date.now()}`,
+              conferenceSolutionKey: { type: "hangoutsMeet" },
+              status: { statusCode: "pending" },
+            },
+          },
+        };
+    
         const request = gapi.client.calendar.events.insert({
           calendarId: calendarId,
           resource: event,
           conferenceDataVersion: 1,
           sendUpdates: "all",
         });
-
+    
         const response = await request;
         const meetLink = response.result.conferenceData.entryPoints.find(
           (entry) => entry.entryPointType === "video"
         ).uri;
-
+    
         alert("Reunión creada con éxito. Link: " + meetLink);
       } catch (error) {
         console.error("Error creando el evento:", error);
@@ -245,7 +268,23 @@ define(['jquery'], function ($) {
     };
 
     // Renderizar la plantilla del widget con los formularios
-    this.renderTemplate = function() {
+    this.renderTemplate = async function() {
+      const leadId = APP.data.current_card.id;
+    
+      let leadName = '';
+      try {
+        // Obtener datos del lead
+        const leadResponse = await $.ajax({
+          url: '/api/v4/leads/' + leadId,
+          method: 'GET',
+          dataType: 'json',
+        });
+    
+        leadName = leadResponse.name; // Nombre del lead
+      } catch (error) {
+        console.error("Error obteniendo el nombre del lead:", error);
+      }
+    
       var html = '' +
         '<div class="km-google-calendar-widget">' +
           '<h1>Agendar Reunión Automáticamente</h1>' +
@@ -254,7 +293,7 @@ define(['jquery'], function ($) {
           '<div id="formulario" style="display: none;">' +
             '<form id="reunionForm">' +
               '<label for="nombre">Nombre:</label>' +
-              '<input type="text" id="nombre" required><br><br>' +
+              `<input type="text" id="nombre" value="${leadName}" required><br><br>` +
               '<label for="email">Correo electrónico:</label>' +
               '<input type="email" id="email" required><br><br>' +
               '<label for="fecha">Fecha:</label>' +
@@ -272,7 +311,7 @@ define(['jquery'], function ($) {
             '</form>' +
           '</div>' +
         '</div>';
-
+    
       self.render_template({
         caption: { html: '' },
         body: html,

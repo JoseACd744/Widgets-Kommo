@@ -22,17 +22,30 @@ define(['jquery'], function ($) {
         $(document).off('click', '#authorize_button').on('click', '#authorize_button', function () {
           self.authorizeGoogle();
         });
-
+      
         $(document).off('click', '#signout_button').on('click', '#signout_button', function () {
           self.signOutGoogle();
         });
-
+      
         $(document).off('submit', '#reunionForm').on('submit', '#reunionForm', function (e) {
           self.createEvent(e);
         });
-
+      
+        // Evento para actualizar automáticamente la hora de fin
+        $(document).off('input', '#hora_inicio').on('input', '#hora_inicio', function () {
+          const horaInicio = $(this).val();
+          if (horaInicio) {
+            const [hours, minutes] = horaInicio.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours, minutes + 30); // Sumar 30 minutos
+            const horaFin = date.toTimeString().slice(0, 5); // Formato HH:MM
+            $('#hora_fin').val(horaFin);
+          }
+        });
+      
         return true;
       },
+
       render: function () {
         self.renderTemplate();
         return true;
@@ -96,7 +109,7 @@ define(['jquery'], function ($) {
           background-color: #a71d2a;
         }
         .km-google-calendar-widget form {
-          margin-top: 20px;
+          margin-top: 10px;
         }
         .km-google-calendar-widget label {
           display: block;
@@ -106,9 +119,8 @@ define(['jquery'], function ($) {
         }
         .km-google-calendar-widget input,
         .km-google-calendar-widget select {
-          width: 100%;
-          padding: 8px;
-          margin-bottom: 15px;
+          width: 94%;
+          padding: 6px;
           border: 1px solid #ccc;
           border-radius: 4px;
           font-size: 14px;
@@ -147,7 +159,6 @@ define(['jquery'], function ($) {
         { id: 'c_462b71c22d24f69ce52edb36254bdd7ab97848aceaea241e01df359762bcfafa@group.calendar.google.com', summary: 'tldv meetings' },
         { id: 'c_5afd7289c6145e02223863817b7b2e5ccfb0742b56c66cbc8661b712583c5561@group.calendar.google.com', summary: 'Demo Kommo USA - Calendly' },
         { id: 'c_ba21c2fb63feda18d531228728292bcb4898d94b260ca4325679596fa2208d84@group.calendar.google.com', summary: 'Demo Kommo EC' }
-
       ];
     
       // Generar opciones para el dropdown
@@ -156,6 +167,12 @@ define(['jquery'], function ($) {
         const option = document.createElement("option");
         option.value = calendar.id;
         option.textContent = calendar.summary;
+    
+        // Seleccionar por defecto el calendario "primary"
+        if (calendar.id === 'primary') {
+          option.selected = true;
+        }
+    
         dropdown.appendChild(option);
       });
     };
@@ -285,55 +302,77 @@ define(['jquery'], function ($) {
     };
 
     // Renderizar la plantilla del widget con los formularios
-        this.renderTemplate = async function() {
-      const leadId = APP.data.current_card.id;
-    
-      let leadName = '';
-      try {
-        const leadResponse = await $.ajax({
-          url: '/api/v4/leads/' + leadId,
-          method: 'GET',
-          dataType: 'json',
-        });
-    
-        leadName = leadResponse.name;
-      } catch (error) {
-        console.error("Error obteniendo el nombre del lead:", error);
-      }
-    
-      var html = '' +
-        '<div class="km-google-calendar-widget">' +
-          '<h1>Agendar Reunión Automáticamente</h1>' +
-          '<button id="authorize_button">Iniciar sesión con Google</button>' +
-          '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
-          '<div id="formulario" style="display: none;">' +
-            '<form id="reunionForm">' +
-              '<label for="nombre">Nombre:</label>' +
-              `<input type="text" id="nombre" value="${leadName}" required><br><br>` +
-              '<label for="email">Correo electrónico:</label>' +
-              '<input type="email" id="email" required><br><br>' +
-              '<label for="fecha">Fecha:</label>' +
-              '<input type="date" id="fecha" required><br><br>' +
-              '<label for="hora_inicio">Hora de inicio:</label>' +
-              '<input type="time" id="hora_inicio" required><br><br>' +
-              '<label for="hora_fin">Hora de fin:</label>' +
-              '<input type="time" id="hora_fin" required><br><br>' +
-              '<label for="calendar_dropdown">Seleccionar calendario:</label>' +
-              '<select id="calendar_dropdown" required>' +
-                '<option value="" disabled selected>Seleccione un calendario</option>' +
-              '</select><br><br>' +
-              '<button type="submit">Crear evento</button>' +
-            '</form>' +
-          '</div>' +
-        '</div>';
-    
-      self.render_template({
-        caption: { html: '' },
-        body: html,
-        render: ''
-      });
-      self.loadCalendars(); // Cargar los calendarios al renderizar
-    };
+         this.renderTemplate = async function() {
+          const leadId = APP.data.current_card.id;
+        
+          let leadName = '';
+          let email = '';
+        
+          try {
+            // Obtener datos del lead con contactos
+            const leadResponse = await $.ajax({
+              url: `/api/v4/leads/${leadId}?with=contacts`,
+              method: 'GET',
+              dataType: 'json',
+            });
+        
+            leadName = leadResponse.name;
+        
+            // Obtener el ID del contacto principal
+            const mainContact = leadResponse._embedded.contacts.find(contact => contact.is_main);
+            if (mainContact) {
+              const contactId = mainContact.id;
+        
+              // Obtener datos del contacto principal
+              const contactResponse = await $.ajax({
+                url: `/api/v4/contacts/${contactId}`,
+                method: 'GET',
+                dataType: 'json',
+              });
+        
+              // Extraer el email del contacto principal
+              const emailField = contactResponse.custom_fields_values.find(field => field.field_code === 'EMAIL');
+              if (emailField && emailField.values.length > 0) {
+                email = emailField.values[0].value;
+              }
+            }
+          } catch (error) {
+            console.error("Error obteniendo datos del lead o contacto:", error);
+          }
+        
+          var html = '' +
+            '<div class="km-google-calendar-widget">' +
+              '<h1>Agendar Reunión Automáticamente</h1>' +
+              '<button id="authorize_button">Iniciar sesión con Google</button>' +
+              '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
+              '<div id="formulario" style="display: none;">' +
+                '<form id="reunionForm">' +
+                  '<label for="nombre">Nombre:</label>' +
+                  `<input type="text" id="nombre" value="${leadName}" required><br><br>` +
+                  '<label for="email">Correo electrónico:</label>' +
+                  `<input type="email" id="email" value="${email}" required><br><br>` +
+                  '<label for="fecha">Fecha:</label>' +
+                  '<input type="date" id="fecha" required><br><br>' +
+                  '<label for="hora_inicio">Hora de inicio:</label>' +
+                  '<input type="time" id="hora_inicio" required><br><br>' +
+                  '<label for="hora_fin">Hora de fin:</label>' +
+                  '<input type="time" id="hora_fin" required><br><br>' +
+                  '<label for="calendar_dropdown">Seleccionar calendario:</label>' +
+                  '<select id="calendar_dropdown" required>' +
+                    '<option value="" disabled selected>Seleccione un calendario</option>' +
+                  '</select><br><br>' +
+                  '<button type="submit">Crear evento</button>' +
+                '</form>' +
+              '</div>' +
+            '</div>';
+        
+          self.render_template({
+            caption: { html: '' },
+            body: html,
+            render: ''
+          });
+          self.loadCalendars(); // Cargar los calendarios al renderizar
+        };
 
     return this;
   };

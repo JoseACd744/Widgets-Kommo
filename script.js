@@ -10,6 +10,23 @@ define(['jquery'], function ($) {
     const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
     const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
+    // FUNCIÓN PARA EJECUTAR SALESBOT
+    function launchSalesbot(idBot, idLead) {
+      const botLaunch = JSON.stringify([{ bot_id: idBot, entity_type: 2, entity_id: idLead }]);
+      $.ajax({
+        url: '/api/v2/salesbot/run',
+        method: 'POST',
+        contentType: 'application/json',
+        data: botLaunch,
+        success: function(data) {
+          console.log('Respuesta del bot:', data);
+        },
+        error: function(xhr, status, error) {
+          console.error('Error al ejecutar el bot:', status, error, xhr.responseText);
+        }
+      });
+    }
+
     this.callbacks = {
       settings: function () {
         return true;
@@ -22,15 +39,15 @@ define(['jquery'], function ($) {
         $(document).off('click', '#authorize_button').on('click', '#authorize_button', function () {
           self.authorizeGoogle();
         });
-      
+
         $(document).off('click', '#signout_button').on('click', '#signout_button', function () {
           self.signOutGoogle();
         });
-      
+
         $(document).off('submit', '#reunionForm').on('submit', '#reunionForm', function (e) {
           self.createEvent(e);
         });
-      
+
         // Evento para actualizar automáticamente la hora de fin
         $(document).off('input', '#hora_inicio').on('input', '#hora_inicio', function () {
           const horaInicio = $(this).val();
@@ -42,7 +59,7 @@ define(['jquery'], function ($) {
             $('#hora_fin').val(horaFin);
           }
         });
-      
+
         return true;
       },
 
@@ -160,23 +177,22 @@ define(['jquery'], function ($) {
         { id: 'c_5afd7289c6145e02223863817b7b2e5ccfb0742b56c66cbc8661b712583c5561@group.calendar.google.com', summary: 'Demo Kommo USA - Calendly' },
         { id: 'c_ba21c2fb63feda18d531228728292bcb4898d94b260ca4325679596fa2208d84@group.calendar.google.com', summary: 'Demo Kommo EC' }
       ];
-    
+
       // Generar opciones para el dropdown
       const dropdown = document.getElementById("calendar_dropdown");
       calendars.forEach((calendar) => {
         const option = document.createElement("option");
         option.value = calendar.id;
         option.textContent = calendar.summary;
-    
+
         // Seleccionar por defecto el calendario "primary"
         if (calendar.id === 'primary') {
           option.selected = true;
         }
-    
+
         dropdown.appendChild(option);
       });
     };
-
 
     // Inicializar Google API
     this.gapiLoaded = function() {
@@ -230,37 +246,37 @@ define(['jquery'], function ($) {
     // Crear un evento en el calendario seleccionado
     this.createEvent = async function(e) {
       e.preventDefault();
-    
+
       const email = document.getElementById("email").value;
       const fecha = document.getElementById("fecha").value;
       const horaInicio = document.getElementById("hora_inicio").value;
       const horaFin = document.getElementById("hora_fin").value;
-      const calendarId = document.getElementById("calendar_dropdown").value; // Obtener el calendarId seleccionado
-    
+      const calendarId = document.getElementById("calendar_dropdown").value;
+
       const startDateTime = new Date(`${fecha}T${horaInicio}:00`);
       const endDateTime = new Date(`${fecha}T${horaFin}:00`);
-    
+
       const leadId = APP.data.current_card.id;
       const leadUri = document.getElementById("page_holder").baseURI;
-    
+
       try {
         const leadResponse = await $.ajax({
           url: '/api/v4/leads/' + leadId,
           method: 'GET',
           dataType: 'json',
         });
-    
+
         const leadName = leadResponse.name;
         const responsibleUserId = leadResponse.responsible_user_id;
-    
+
         const userResponse = await $.ajax({
           url: '/api/v4/users/' + responsibleUserId,
           method: 'GET',
           dataType: 'json',
         });
-    
+
         const responsibleUserName = userResponse.name;
-    
+
         const event = {
           summary: `Reunión con ${leadName}`,
           description: `Lead ID: ${leadId}\nEnlace del lead: ${leadUri}\nResponsable: ${responsibleUserName}`,
@@ -272,7 +288,6 @@ define(['jquery'], function ($) {
             dateTime: endDateTime.toISOString(),
             timeZone: 'America/Lima',
           },
-          attendees: [{ email: email }],
           conferenceData: {
             createRequest: {
               requestId: `meet-${Date.now()}`,
@@ -281,20 +296,77 @@ define(['jquery'], function ($) {
             },
           },
         };
-    
+
+        if (email && email.trim() !== "") {
+          event.attendees = [{ email: email }];
+        }
+
         const request = gapi.client.calendar.events.insert({
-          calendarId: calendarId, // Usar el calendarId seleccionado
+          calendarId: calendarId,
           resource: event,
           conferenceDataVersion: 1,
           sendUpdates: "all",
         });
-    
         const response = await request;
         const meetLink = response.result.conferenceData.entryPoints.find(
           (entry) => entry.entryPointType === "video"
         ).uri;
-    
+
         alert("Reunión creada con éxito. Link: " + meetLink);
+
+        // PATCH: Actualizar el lead con el link de Meet y la fecha en los custom fields
+        const fechaUnix = Math.floor(startDateTime.getTime() / 1000); // Unix timestamp en segundos
+        console.log("Preparando PATCH al lead:", leadId, "con link:", meetLink, "y fecha:", fechaUnix);
+
+        await $.ajax({
+          url: '/api/v4/leads/' + leadId,
+          method: 'PATCH',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            custom_fields_values: [
+              {
+                field_id: 792794, // ID del campo para el link de Meet
+                values: [{ value: meetLink }]
+              },
+              {
+                field_id: 792418, // ID del campo para la fecha
+                values: [{ value: fechaUnix }]
+              }
+            ]
+          }),
+          success: function(data) {
+            console.log("PATCH exitoso en el lead:", data);
+          },
+          error: function(xhr, status, error) {
+            console.error("Error en PATCH del lead:", status, error, xhr.responseText);
+          }
+        });
+
+        // Lógica del checkbox
+        const checked = document.getElementById("cita_agendada_checkbox").checked;
+        if (checked) {
+          // Cambia el status_id del lead (ajusta el ID de etapa según tu pipeline)
+          const NUEVO_STATUS_ID = 56495775; // <-- Reemplaza por el status_id real de "Cita agendada"
+          console.log("Moviendo lead a etapa 'Cita agendada' con status_id:", NUEVO_STATUS_ID);
+          await $.ajax({
+            url: '/api/v4/leads/' + leadId,
+            method: 'PATCH',
+            contentType: 'application/json',
+            data: JSON.stringify({status_id: NUEVO_STATUS_ID }),
+            success: function(data) {
+              console.log("Lead movido de etapa:", data);
+            },
+            error: function(xhr, status, error) {
+              console.error("Error moviendo lead de etapa:", status, error, xhr.responseText);
+            }
+          });
+          alert("Lead movido a etapa 'Cita agendada'.");
+        } else {
+          // Ejecuta el bot (ajusta los parámetros según tu configuración)
+          const ID_BOT = 40555; // <-- Reemplaza por el ID real de tu bot
+          console.log("Ejecutando Salesbot con ID:", ID_BOT, "para lead:", leadId);
+          launchSalesbot(ID_BOT, leadId);
+        }
       } catch (error) {
         console.error("Error creando el evento:", error);
         alert("Error creando la reunión.");
@@ -302,77 +374,78 @@ define(['jquery'], function ($) {
     };
 
     // Renderizar la plantilla del widget con los formularios
-         this.renderTemplate = async function() {
-          const leadId = APP.data.current_card.id;
-        
-          let leadName = '';
-          let email = '';
-        
-          try {
-            // Obtener datos del lead con contactos
-            const leadResponse = await $.ajax({
-              url: `/api/v4/leads/${leadId}?with=contacts`,
-              method: 'GET',
-              dataType: 'json',
-            });
-        
-            leadName = leadResponse.name;
-        
-            // Obtener el ID del contacto principal
-            const mainContact = leadResponse._embedded.contacts.find(contact => contact.is_main);
-            if (mainContact) {
-              const contactId = mainContact.id;
-        
-              // Obtener datos del contacto principal
-              const contactResponse = await $.ajax({
-                url: `/api/v4/contacts/${contactId}`,
-                method: 'GET',
-                dataType: 'json',
-              });
-        
-              // Extraer el email del contacto principal
-              const emailField = contactResponse.custom_fields_values.find(field => field.field_code === 'EMAIL');
-              if (emailField && emailField.values.length > 0) {
-                email = emailField.values[0].value;
-              }
-            }
-          } catch (error) {
-            console.error("Error obteniendo datos del lead o contacto:", error);
-          }
-        
-          var html = '' +
-            '<div class="km-google-calendar-widget">' +
-              '<h1>Agendar Reunión Automáticamente</h1>' +
-              '<button id="authorize_button">Iniciar sesión con Google</button>' +
-              '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
-              '<div id="formulario" style="display: none;">' +
-                '<form id="reunionForm">' +
-                  '<label for="nombre">Nombre:</label>' +
-                  `<input type="text" id="nombre" value="${leadName}" required><br><br>` +
-                  '<label for="email">Correo electrónico:</label>' +
-                  `<input type="email" id="email" value="${email}" required><br><br>` +
-                  '<label for="fecha">Fecha:</label>' +
-                  '<input type="date" id="fecha" required><br><br>' +
-                  '<label for="hora_inicio">Hora de inicio:</label>' +
-                  '<input type="time" id="hora_inicio" required><br><br>' +
-                  '<label for="hora_fin">Hora de fin:</label>' +
-                  '<input type="time" id="hora_fin" required><br><br>' +
-                  '<label for="calendar_dropdown">Seleccionar calendario:</label>' +
-                  '<select id="calendar_dropdown" required>' +
-                    '<option value="" disabled selected>Seleccione un calendario</option>' +
-                  '</select><br><br>' +
-                  '<button type="submit">Crear evento</button>' +
-                '</form>' +
-              '</div>' +
-            '</div>';
-        
-          self.render_template({
-            caption: { html: '' },
-            body: html,
-            render: ''
+    this.renderTemplate = async function() {
+      const leadId = APP.data.current_card.id;
+
+      let leadName = '';
+      let email = '';
+
+      try {
+        // Obtener datos del lead con contactos
+        const leadResponse = await $.ajax({
+          url: `/api/v4/leads/${leadId}?with=contacts`,
+          method: 'GET',
+          dataType: 'json',
+        });
+
+        leadName = leadResponse.name;
+
+        // Obtener el ID del contacto principal
+        const mainContact = leadResponse._embedded.contacts.find(contact => contact.is_main);
+        if (mainContact) {
+          const contactId = mainContact.id;
+
+          // Obtener datos del contacto principal
+          const contactResponse = await $.ajax({
+            url: `/api/v4/contacts/${contactId}`,
+            method: 'GET',
+            dataType: 'json',
           });
-          self.loadCalendars(); // Cargar los calendarios al renderizar
-        };
+
+          // Extraer el email del contacto principal
+          const emailField = contactResponse.custom_fields_values.find(field => field.field_code === 'EMAIL');
+          if (emailField && emailField.values.length > 0) {
+            email = emailField.values[0].value;
+          }
+        }
+      } catch (error) {
+        console.error("Error obteniendo datos del lead o contacto:", error);
+      }
+
+      var html = '' +
+        '<div class="km-google-calendar-widget">' +
+          '<h1>Agendar Reunión Automáticamente</h1>' +
+          '<button id="authorize_button">Iniciar sesión con Google</button>' +
+          '<button id="signout_button" style="display: none;">Cerrar sesión</button>' +
+          '<div id="formulario" style="display: none;">' +
+            '<form id="reunionForm">' +
+              '<label for="nombre">Nombre:</label>' +
+              `<input type="text" id="nombre" value="${leadName}" required><br><br>` +
+              '<label for="email">Correo electrónico:</label>' +
+              `<input type="email" id="email" value="${email}"><br><br>` + // <-- Quitar required aquí
+              '<label for="fecha">Fecha:</label>' +
+              '<input type="date" id="fecha" required><br><br>' +
+              '<label for="hora_inicio">Hora de inicio:</label>' +
+              '<input type="time" id="hora_inicio" required><br><br>' +
+              '<label for="hora_fin">Hora de fin:</label>' +
+              '<input type="time" id="hora_fin" required><br><br>' +
+              '<label for="calendar_dropdown">Seleccionar calendario:</label>' +
+              '<select id="calendar_dropdown" required>' +
+                '<option value="" disabled selected>Seleccione un calendario</option>' +
+              '</select><br><br>' +
+              '<label><input type="checkbox" id="cita_agendada_checkbox"> Mover a etapa "Cita agendada"</label><br><br>' +
+              '<button type="submit">Crear evento</button>' +
+            '</form>' +
+          '</div>' +
+        '</div>';
+
+      self.render_template({
+        caption: { html: '' },
+        body: html,
+        render: ''
+      });
+      self.loadCalendars(); // Cargar los calendarios al renderizar
+    };
 
     return this;
   };

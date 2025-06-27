@@ -1,0 +1,73 @@
+/* Estilos para el contenedor del formulario */
+.kommo-form {
+  /*padding: 15px;
+  background: #2F2662;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  max-width: 400px;
+  margin: 0 auto;*/
+  margin-top: 1.2em;
+  margin-left: 1em;
+  margin-right: 1em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 1em;
+  border: solid white 1px;
+  border-radius: 1em;
+  gap: 1.5em;
+}
+
+/* Estilos para los inputs de texto y el select */
+/*.kommo-form input[type="text"], .kommo-form input[type="number"], .kommo-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}*/
+
+/* Contenedor para los botones */
+.kommo-form .btn-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Estilos para los botones de calcular y guardar */
+.kommo-form button {
+  flex: 1;
+  padding: 10px 20px;
+  color: #080808;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  margin-right: 10px;
+  box-sizing: border-box;
+}
+
+/* Estilos para las etiquetas dentro del contenedor del formulario */
+.kommo-form label {
+  color: #fff; /* Cambia el color del texto a blanco */
+  padding-bottom: 1em;
+}
+
+.kommo-form select {
+  padding: 0.6em;
+  border: none;
+  border-radius: 0.6em;
+}
+
+/* Estilo específico para el botón de guardar */
+.kommo-form #assign-btn {
+  background: #4CAF50;
+  margin-right: 0; /* Para evitar margen extra en el último botón */
+}
+
+.kommo-form #assign-btn:hover {
+  background: #45a049;
+}
+

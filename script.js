@@ -213,112 +213,146 @@ define(["jquery"], function ($) {
 
     this.saveData = function() {
       console.log("saveData fue llamada");
-
+    
       if (!APP || !APP.data || !APP.data.current_card || !APP.data.current_card.id) {
         console.error("No se encontró el ID del lead");
         return;
       }
-
+    
       const leadId = APP.data.current_card.id;
       const selectedStatus = $('#status-select-cajon').val();
-
-      if (selectedStatus === "no_contesta") {
-        const payload = {
-          custom_fields_values: [
-            {
-              field_id: 498104, // ID de campo seguimiento
-              values: [{ value: "0" }],
-            },
-            {
-              field_id: 498154, // ID de campo ¿mensaje seguimiento?
-              values: [{ value: false }],
-            }, 
-            {
-              field_id: 498204, // ID de campo ¿No contesta?
-              values: [{ value: true }],
-            },                        
-          ],
-          _embedded: {
-            tags: [
-              { id: 33618 } // ID de la etiqueta "No contesta"
-            ]
+    
+      // Primero obtenemos los datos actuales del lead
+      $.ajax({
+        url: `/api/v4/leads/${leadId}`,
+        method: "GET",
+        contentType: "application/json",
+        success: function (leadData) {
+          console.log("Datos del lead obtenidos:", leadData);
+          
+          // Extraemos las etiquetas actuales
+          let currentTags = [];
+          if (leadData._embedded && leadData._embedded.tags) {
+            currentTags = leadData._embedded.tags.map(tag => ({ id: tag.id }));
           }
-        };
-
-        $.ajax({
-          url: `/api/v4/leads/${leadId}`,
-          method: "PATCH",
-          contentType: "application/json",
-          data: JSON.stringify(payload),
-          success: function () {
-            console.log("Valores de No contesta actualizados con éxito");
-            self.launchSalesbot('20500', leadId) //ejecutar bot espera seguimiento
-            self.showSnackbar("Valores guardados");
-          },
-          error: function () {
-            console.error("Error al actualizar valores de No contesta");
-            self.showSnackbar("Error al guardar valores");
-          },
-        });
-
-      } else if (selectedStatus === "standby") {
-        
-        const datetimeValue = $("#datetime-input").val();
-
-        // Validación de fecha obligatoria
-        if (!datetimeValue || datetimeValue.trim() === "") {
-          self.showSnackbar("Error: La fecha y hora son obligatorias");
-          return;
-        }
-
-        const date = new Date(datetimeValue);
-        date.setSeconds(0);
-        const timestamp = Math.floor(date.getTime() / 1000);
-
-        // El mensaje del cliente es opcional
-        const clientMessage = $("#client-message").val();
-
-        const payload = {
-          custom_fields_values: [
-            {
-              field_id: 498302, // ID de campo para fecha y hora recordatorio
-              values: [{ value: timestamp }],
-            },
-            {
-              field_id: 504122, // ID para campo con timestamp + 1 hora
-              values: [{ value: timestamp + 3600 }], // Añade 3600 segundos (1 hora)
-            },
-          ],
-          _embedded: {
-            tags: [
-              { id: 33610 } // ID de la etiqueta "Standby"
-            ]
+          
+          if (selectedStatus === "no_contesta") {
+            // Agregamos la nueva etiqueta a las existentes
+            const newTagId = 33618; // ID de la etiqueta "No contesta"
+            
+            // Verificamos si la etiqueta ya existe para no duplicarla
+            const tagExists = currentTags.some(tag => tag.id === newTagId);
+            if (!tagExists) {
+              currentTags.push({ id: newTagId });
+            }
+            
+            const payload = {
+              custom_fields_values: [
+                {
+                  field_id: 506392, // ID de campo seguimiento
+                  values: [{ value: "1" }],
+                },
+                { 
+                  field_id: 498154, // ID de campo ¿mensaje seguimiento?
+                  values: [{ value: false }],
+                }, 
+                {
+                  field_id: 498204, // ID de campo ¿No contesta?
+                  values: [{ value: true }],
+                },                        
+              ],
+              _embedded: {
+                tags: currentTags
+              }
+            };
+    
+            $.ajax({
+              url: `/api/v4/leads/${leadId}`,
+              method: "PATCH",
+              contentType: "application/json",
+              data: JSON.stringify(payload),
+              success: function () {
+                console.log("Valores de No contesta actualizados con éxito");
+                self.launchSalesbot('20500', leadId) //ejecutar bot espera seguimiento
+                self.showSnackbar("Valores guardados");
+              },
+              error: function (xhr, status, error) {
+                console.error("Error al actualizar valores de No contesta:", error);
+                self.showSnackbar("Error al guardar valores");
+              },
+            });
+    
+          } else if (selectedStatus === "standby") {
+            
+            const datetimeValue = $("#datetime-input").val();
+    
+            // Validación de fecha obligatoria
+            if (!datetimeValue || datetimeValue.trim() === "") {
+              self.showSnackbar("Error: La fecha y hora son obligatorias");
+              return;
+            }
+    
+            const date = new Date(datetimeValue);
+            date.setSeconds(0);
+            const timestamp = Math.floor(date.getTime() / 1000);
+    
+            // El mensaje del cliente es opcional
+            const clientMessage = $("#client-message").val();
+    
+            // Agregamos la nueva etiqueta a las existentes
+            const newTagId = 33610; // ID de la etiqueta "Standby"
+            
+            // Verificamos si la etiqueta ya existe para no duplicarla
+            const tagExists = currentTags.some(tag => tag.id === newTagId);
+            if (!tagExists) {
+              currentTags.push({ id: newTagId });
+            }
+            
+            const payload = {
+              custom_fields_values: [
+                {
+                  field_id: 498302, // ID de campo para fecha y hora recordatorio
+                  values: [{ value: timestamp }],
+                },
+                {
+                  field_id: 504122, // ID para campo con timestamp + 1 hora
+                  values: [{ value: timestamp + 3600 }], // Añade 3600 segundos (1 hora)
+                },
+              ],
+              _embedded: {
+                tags: currentTags
+              }
+            };
+    
+            // Solo agregar el campo de mensaje si el usuario ingresó algo
+            if (clientMessage && clientMessage.trim() !== "") {
+              payload.custom_fields_values.push({
+                field_id: 498352, // ID de campo para el mensaje recordatorio
+                values: [{ value: clientMessage }],
+              });
+            }
+    
+            $.ajax({
+              url: `/api/v4/leads/${leadId}`,
+              method: "PATCH",
+              contentType: "application/json",
+              data: JSON.stringify(payload),
+              success: function () {
+                console.log("Valores de Stand by actualizados con éxito");
+                self.showSnackbar("Valores guardados correctamente");
+              },
+              error: function (xhr, status, error) {
+                console.error("Error al actualizar valores de Stand by:", error);
+                self.showSnackbar("Error al guardar valores");
+              },
+            });
           }
-        };
-
-        // Solo agregar el campo de mensaje si el usuario ingresó algo
-        if (clientMessage && clientMessage.trim() !== "") {
-          payload.custom_fields_values.push({
-            field_id: 498352, // ID de campo para el mensaje recordatorio
-            values: [{ value: clientMessage }],
-          });
+        },
+        error: function (xhr, status, error) {
+          console.error("Error al obtener datos del lead:", error);
+          self.showSnackbar("Error al cargar los datos del lead");
         }
-
-        $.ajax({
-          url: `/api/v4/leads/${leadId}`,
-          method: "PATCH",
-          contentType: "application/json",
-          data: JSON.stringify(payload),
-          success: function () {
-            console.log("Valores de Stand by actualizados con éxito");
-            self.showSnackbar("Valores guardados correctamente");
-          },
-          error: function (xhr, status, error) {
-            console.error("Error al actualizar valores de Stand by:", error);
-            self.showSnackbar("Error al guardar valores");
-          },
-        });
-      }
+      });
     }
 
     this.toggleExtraFields = function (selectedId) {

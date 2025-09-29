@@ -27,6 +27,39 @@ define(['jquery'], function ($) {
       });
     }
 
+    // Función para mostrar snackbars
+    this.showSnackbar = function(message, type = 'info', duration = 3000) {
+      // Eliminar snackbar anterior si existe
+      const existingSnackbar = document.getElementById('snackbar');
+      if (existingSnackbar) {
+        existingSnackbar.remove();
+      }
+
+      // Crear nuevo snackbar
+      const snackbar = document.createElement('div');
+      snackbar.id = 'snackbar';
+      snackbar.className = `snackbar ${type}`;
+      snackbar.textContent = message;
+
+      // Agregar al body
+      document.body.appendChild(snackbar);
+
+      // Mostrar snackbar
+      setTimeout(() => {
+        snackbar.classList.add('show');
+      }, 100);
+
+      // Ocultar y eliminar snackbar después del tiempo especificado
+      setTimeout(() => {
+        snackbar.classList.remove('show');
+        setTimeout(() => {
+          if (snackbar.parentNode) {
+            snackbar.parentNode.removeChild(snackbar);
+          }
+        }, 600);
+      }, duration);
+    };
+
     this.callbacks = {
       settings: function () {
         return true;
@@ -154,6 +187,47 @@ define(['jquery'], function ($) {
         .km-google-calendar-widget button[type="submit"]:hover {
           background-color: #218838;
         }
+
+        /* Estilos para Snackbar */
+        .snackbar {
+          visibility: hidden;
+          min-width: 250px;
+          margin-left: -125px;
+          background-color: #333;
+          color: white;
+          text-align: center;
+          border-radius: 8px;
+          padding: 16px;
+          position: fixed;
+          z-index: 1000;
+          left: 50%;
+          bottom: 30px;
+          font-size: 16px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+          opacity: 0;
+          transition: opacity 0.6s, visibility 0.6s;
+        }
+
+        .snackbar.show {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        .snackbar.success {
+          background-color: #4caf50;
+        }
+
+        .snackbar.error {
+          background-color: #f44336;
+        }
+
+        .snackbar.warning {
+          background-color: #ff9800;
+        }
+
+        .snackbar.info {
+          background-color: #2196f3;
+        }
       `;
       $('head').append('<style>' + styles + '</style>');
 
@@ -269,13 +343,20 @@ define(['jquery'], function ($) {
         const leadName = leadResponse.name;
         const responsibleUserId = leadResponse.responsible_user_id;
 
-        const userResponse = await $.ajax({
-          url: '/api/v4/users/' + responsibleUserId,
-          method: 'GET',
-          dataType: 'json',
-        });
+        // Asignar nombre del usuario responsable manualmente basado en el ID
+        let responsibleUserName = 'Usuario desconocido'; // Valor por defecto
 
-        const responsibleUserName = userResponse.name;
+        switch (responsibleUserId) {
+          case 13786792: // ID de Valeria
+            responsibleUserName = 'Valeria';
+            break;
+          case 8001812: // ID de Juan Carlos
+            responsibleUserName = 'Juan Carlos';
+            break;
+          default:
+            responsibleUserName = 'Usuario no identificado';
+            break;
+        }
 
         const event = {
           summary: `Reunión con ${leadName}`,
@@ -312,7 +393,8 @@ define(['jquery'], function ($) {
           (entry) => entry.entryPointType === "video"
         ).uri;
 
-        alert("Reunión creada con éxito. Link: " + meetLink);
+        // Usar snackbar en lugar de alert
+        self.showSnackbar(`Reunión creada con éxito. Link: ${meetLink}`, 'success', 5000);
 
         // PATCH: Actualizar el lead con el link de Meet y la fecha en los custom fields
         const fechaUnix = Math.floor(startDateTime.getTime() / 1000); // Unix timestamp en segundos
@@ -336,9 +418,11 @@ define(['jquery'], function ($) {
           }),
           success: function(data) {
             console.log("PATCH exitoso en el lead:", data);
+            self.showSnackbar("Lead actualizado con datos de la reunión", 'info');
           },
           error: function(xhr, status, error) {
             console.error("Error en PATCH del lead:", status, error, xhr.responseText);
+            self.showSnackbar("Error actualizando el lead", 'error');
           }
         });
 
@@ -355,21 +439,23 @@ define(['jquery'], function ($) {
             data: JSON.stringify({status_id: NUEVO_STATUS_ID }),
             success: function(data) {
               console.log("Lead movido de etapa:", data);
+              self.showSnackbar("Lead movido a etapa 'Cita agendada'", 'success');
             },
             error: function(xhr, status, error) {
               console.error("Error moviendo lead de etapa:", status, error, xhr.responseText);
+              self.showSnackbar("Error moviendo lead de etapa", 'error');
             }
           });
-          alert("Lead movido a etapa 'Cita agendada'.");
         } else {
           // Ejecuta el bot (ajusta los parámetros según tu configuración)
           const ID_BOT = 40555; // <-- Reemplaza por el ID real de tu bot
           console.log("Ejecutando Salesbot con ID:", ID_BOT, "para lead:", leadId);
           launchSalesbot(ID_BOT, leadId);
+          self.showSnackbar("Ejecutando Salesbot automáticamente", 'info');
         }
       } catch (error) {
         console.error("Error creando el evento:", error);
-        alert("Error creando la reunión.");
+        self.showSnackbar("Error creando la reunión", 'error');
       }
     };
 
@@ -422,7 +508,7 @@ define(['jquery'], function ($) {
               '<label for="nombre">Nombre:</label>' +
               `<input type="text" id="nombre" value="${leadName}" required><br><br>` +
               '<label for="email">Correo electrónico:</label>' +
-              `<input type="email" id="email" value="${email}"><br><br>` + // <-- Quitar required aquí
+              `<input type="email" id="email" value="${email}"><br><br>` +
               '<label for="fecha">Fecha:</label>' +
               '<input type="date" id="fecha" required><br><br>' +
               '<label for="hora_inicio">Hora de inicio:</label>' +

@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Contact Leads",
-    "short_description": "Displays leads associated with a contact.",
-    "description": "Displays leads associated with a contact.",
-    "tour_description": "Tour of the Contact Leads Widget"
+    "name": "Duplicate Lead",
+    "short_description": "Duplicates a lead to a specific pipeline and status.",
+    "description": "Allows duplicating the current lead with all its data (contacts, companies, custom fields) to a selected pipeline and status.",
+    "tour_description": "Tour of the Duplicate Lead Widget"
   },
   "settings": {
     "api_key": "API Key"

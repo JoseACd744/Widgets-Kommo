@@ -67,17 +67,17 @@ define(['jquery'], function ($) {
       init: function () {
         // Obtener ID del usuario de Kommo
         try {
-          const currentUser = self.system().managers;
-          if (currentUser && currentUser.length > 0) {
-            kommoUserId = currentUser[0].id || 'default-user';
+          if (APP.data.current_card && APP.data.current_card.user) {
+            kommoUserId = APP.data.current_card.user.id || 'default-user';
+            console.log('Kommo User ID:', kommoUserId, '- User Name:', APP.data.current_card.user.name);
           } else {
             kommoUserId = 'default-user';
+            console.log('No se pudo obtener el usuario, usando default-user');
           }
         } catch (e) {
+          console.error('Error obteniendo usuario de Kommo:', e);
           kommoUserId = 'default-user';
         }
-        
-        console.log('Kommo User ID:', kommoUserId);
         
         self.loadCSS();
         

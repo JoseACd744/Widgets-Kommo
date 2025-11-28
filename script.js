@@ -5,10 +5,15 @@ define(['jquery'], function ($) {
     let gapiInited = false;
     let gisInited = false;
 
-    const CLIENT_ID = '187937463238-45e5o4l80hn1tkpiftvahfs5pf2druj6.apps.googleusercontent.com'; // ⚠️ Reemplaza esto
-    const API_KEY = ''; // No necesario para esta operación específica
+    // Configuración del servidor backend
+    const SERVER_URL = 'https://servidor-calendar-widget-production.up.railway.app';
+    let kommoUserId = null;
+    let isAuthenticated = false;
+
+    const CLIENT_ID = '187937463238-45e5o4l80hn1tkpiftvahfs5pf2druj6.apps.googleusercontent.com';
+    const API_KEY = '';
     const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+    const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly';
 
     // FUNCIÓN PARA EJECUTAR SALESBOT
     function launchSalesbot(idBot, idLead) {
@@ -65,7 +70,25 @@ define(['jquery'], function ($) {
         return true;
       },
       init: function () {
+        // Obtener ID del usuario de Kommo
+        try {
+          const currentUser = self.system().managers;
+          if (currentUser && currentUser.length > 0) {
+            kommoUserId = currentUser[0].id || 'default-user';
+          } else {
+            kommoUserId = 'default-user';
+          }
+        } catch (e) {
+          kommoUserId = 'default-user';
+        }
+        
+        console.log('Kommo User ID:', kommoUserId);
+        
         self.loadCSS();
+        
+        // Verificar si ya hay sesión activa en el servidor
+        self.checkExistingSession();
+        
         return true;
       },
       bind_actions: function () {
@@ -242,8 +265,159 @@ define(['jquery'], function ($) {
       });
     };
 
-    this.loadCalendars = function() {
-      // Lista estática de calendarios
+    // ========================================
+    // FUNCIONES PARA INTERACTUAR CON EL SERVIDOR
+    // ========================================
+
+    // Verificar si ya hay una sesión activa en el servidor
+    this.checkExistingSession = async function() {
+      try {
+        const response = await fetch(`${SERVER_URL}/auth/status`, {
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.authenticated) {
+          isAuthenticated = true;
+          document.getElementById("formulario").style.display = "block";
+          $('#authorize_button').hide();
+          $('#signout_button').show();
+          
+          // Cargar calendarios desde el servidor
+          await self.loadCalendarsFromServer();
+          
+          console.log('✅ Sesión restaurada desde el servidor');
+          self.showSnackbar('Sesión activa', 'success', 2000);
+        } else {
+          isAuthenticated = false;
+          document.getElementById("formulario").style.display = "none";
+          $('#authorize_button').show();
+          $('#signout_button').hide();
+        }
+      } catch (error) {
+        console.error('Error verificando sesión:', error);
+        // Si hay error, mostrar botón de autorización
+        document.getElementById("formulario").style.display = "none";
+        $('#authorize_button').show();
+        $('#signout_button').hide();
+      }
+    };
+
+    // Cargar calendarios desde el servidor
+    this.loadCalendarsFromServer = async function() {
+      try {
+        const response = await fetch(`${SERVER_URL}/api/calendars`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error obteniendo calendarios');
+        }
+        
+        const calendars = await response.json();
+        
+        if (!calendars || calendars.length === 0) {
+          self.showSnackbar('No se encontraron calendarios', 'warning');
+          self.loadStaticCalendars();
+          return;
+        }
+        
+        const dropdown = document.getElementById("calendar_dropdown");
+        dropdown.innerHTML = '<option value="" disabled selected>Seleccione un calendario</option>';
+        
+        calendars.forEach((calendar) => {
+          const option = document.createElement("option");
+          option.value = calendar.id;
+          option.textContent = calendar.summary;
+          
+          if (calendar.primary || calendar.id === 'primary') {
+            option.selected = true;
+          }
+          
+          dropdown.appendChild(option);
+        });
+        
+        console.log(`✅ ${calendars.length} calendarios cargados desde el servidor`);
+        
+      } catch (error) {
+        console.error('Error cargando calendarios desde servidor:', error);
+        self.showSnackbar('Usando calendarios por defecto', 'info', 2000);
+        self.loadStaticCalendars();
+      }
+    };
+
+    // Función auxiliar para llamadas fetch con manejo de errores
+    async function serverFetch(url, options = {}) {
+      const defaultOptions = {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        },
+        ...options
+      };
+      
+      const response = await fetch(`${SERVER_URL}${url}`, defaultOptions);
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+      
+      return response.json();
+    }
+
+    // Cargar lista estática de calendarios (fallback)
+    this.loadCalendars = async function() {
+      try {
+        // Verificar que gapi esté inicializado y autorizado
+        if (!gapi.client || !gapi.client.getToken()) {
+          console.warn('Usuario no autorizado, usando calendarios estáticos');
+          self.loadStaticCalendars();
+          return;
+        }
+
+        // Obtener lista de calendarios de Google Calendar API
+        const response = await gapi.client.calendar.calendarList.list();
+        const calendars = response.result.items;
+
+        if (!calendars || calendars.length === 0) {
+          self.showSnackbar('No se encontraron calendarios', 'warning');
+          self.loadStaticCalendars();
+          return;
+        }
+
+        // Generar opciones para el dropdown
+        const dropdown = document.getElementById("calendar_dropdown");
+        dropdown.innerHTML = '<option value="" disabled selected>Seleccione un calendario</option>';
+        
+        calendars.forEach((calendar) => {
+          const option = document.createElement("option");
+          option.value = calendar.id;
+          option.textContent = calendar.summary;
+
+          // Seleccionar por defecto el calendario "primary"
+          if (calendar.id === 'primary' || calendar.primary) {
+            option.selected = true;
+          }
+
+          dropdown.appendChild(option);
+        });
+        
+        console.log(`${calendars.length} calendarios cargados exitosamente`);
+        self.showSnackbar('Calendarios cargados exitosamente', 'success', 2000);
+      } catch (error) {
+        console.error('Error cargando calendarios desde Google API:', error);
+        self.showSnackbar('Error cargando calendarios, usando lista por defecto', 'warning');
+        
+        // Fallback a lista estática en caso de error
+        self.loadStaticCalendars();
+      }
+    };
+
+    // Función fallback con lista estática de calendarios
+    this.loadStaticCalendars = function() {
       const calendars = [
         { id: 'primary', summary: 'Holos Digital Partners | Ventas' },
         { id: 'c_586d8a87e53fe35bd3fb3e8a998a456f2db0a195f4192c2275a79662ddf70165@group.calendar.google.com', summary: 'Kommo, by Holos' },
@@ -252,14 +426,14 @@ define(['jquery'], function ($) {
         { id: 'c_ba21c2fb63feda18d531228728292bcb4898d94b260ca4325679596fa2208d84@group.calendar.google.com', summary: 'Demo Kommo EC' }
       ];
 
-      // Generar opciones para el dropdown
       const dropdown = document.getElementById("calendar_dropdown");
+      dropdown.innerHTML = '<option value="" disabled selected>Seleccione un calendario</option>';
+      
       calendars.forEach((calendar) => {
         const option = document.createElement("option");
         option.value = calendar.id;
         option.textContent = calendar.summary;
 
-        // Seleccionar por defecto el calendario "primary"
         if (calendar.id === 'primary') {
           option.selected = true;
         }
@@ -268,64 +442,137 @@ define(['jquery'], function ($) {
       });
     };
 
-    // Inicializar Google API
+    // ========================================
+    // FUNCIONES GAPI/GIS (YA NO SE USAN - El servidor maneja OAuth)
+    // Mantenidas por compatibilidad, pero el widget usa el servidor
+    // ========================================
+
+    // Inicializar Google API (no se usa con servidor)
     this.gapiLoaded = function() {
-      gapi.load('client', self.initializeGapiClient);
+      // Ya no es necesario - el servidor maneja la autenticación
+      console.log('GAPI no es necesario - usando servidor backend');
     };
 
     this.initializeGapiClient = async function() {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOC],
-        clientId: CLIENT_ID,
-        scope: SCOPES,
-        conferenceDataVersion: 1,
-      });
-      gapiInited = true;
+      // Ya no es necesario - el servidor maneja la autenticación
+      console.log('GAPI Client no es necesario - usando servidor backend');
     };
 
-    // Inicializar Google OAuth
+    // Inicializar Google OAuth (no se usa con servidor)
     this.gisLoaded = function() {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (tokenResponse) => {
-          if (tokenResponse.error) throw tokenResponse;
-          document.getElementById("formulario").style.display = "block";
-          $('#authorize_button').hide();
-          $('#signout_button').show();
-        },
-      });
-      gisInited = true; // Indicamos que la inicialización de Google OAuth está lista
+      // Ya no es necesario - el servidor maneja la autenticación
+      console.log('GIS no es necesario - usando servidor backend');
     };
 
-    // Función de autorización de Google
-    this.authorizeGoogle = function() {
-      if (gisInited) {
-        tokenClient.requestAccessToken();
-      } else {
-        console.error('Google OAuth aún no está completamente cargado.');
+    // Función de autorización de Google (usando servidor)
+    this.authorizeGoogle = async function() {
+      try {
+        self.showSnackbar('Conectando con Google...', 'info', 2000);
+        
+        // Obtener URL de autorización del servidor
+        const data = await serverFetch(`/auth/google/url?userId=${kommoUserId}`);
+        
+        if (!data.authUrl) {
+          throw new Error('No se pudo obtener la URL de autorización');
+        }
+        
+        // Abrir ventana emergente para autorización
+        const width = 600;
+        const height = 700;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        
+        const authWindow = window.open(
+          data.authUrl,
+          'Google Authorization',
+          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+        );
+        
+        if (!authWindow) {
+          self.showSnackbar('Por favor habilita las ventanas emergentes', 'warning');
+          return;
+        }
+        
+        // Polling para detectar cuando se cierra la ventana
+        const checkWindowClosed = setInterval(async () => {
+          if (authWindow.closed) {
+            clearInterval(checkWindowClosed);
+            
+            // Esperar un momento para que el servidor procese
+            setTimeout(async () => {
+              // Verificar si la autorización fue exitosa
+              try {
+                const status = await serverFetch('/auth/status');
+                
+                if (status.authenticated) {
+                  isAuthenticated = true;
+                  document.getElementById("formulario").style.display = "block";
+                  $('#authorize_button').hide();
+                  $('#signout_button').show();
+                  
+                  // Cargar calendarios
+                  await self.loadCalendarsFromServer();
+                  
+                  self.showSnackbar('✅ Autorización exitosa', 'success');
+                } else {
+                  self.showSnackbar('La autorización fue cancelada', 'warning');
+                }
+              } catch (error) {
+                console.error('Error verificando estado:', error);
+                self.showSnackbar('Error verificando autorización', 'error');
+              }
+            }, 1000);
+          }
+        }, 500);
+        
+      } catch (error) {
+        console.error('Error en autorización:', error);
+        self.showSnackbar('Error conectando con el servidor: ' + error.message, 'error');
       }
     };
 
-    // Función de cierre de sesión
-    this.signOutGoogle = function() {
-      google.accounts.oauth2.revoke(gapi.client.getToken().access_token);
-      gapi.client.setToken('');
-      document.getElementById("formulario").style.display = "none";
-      $('#authorize_button').show();
-      $('#signout_button').hide();
+    // Función de cierre de sesión (usando servidor)
+    this.signOutGoogle = async function() {
+      try {
+        await serverFetch('/auth/logout', { method: 'POST' });
+        
+        isAuthenticated = false;
+        document.getElementById("formulario").style.display = "none";
+        $('#authorize_button').show();
+        $('#signout_button').hide();
+        
+        // Limpiar el dropdown de calendarios
+        const dropdown = document.getElementById("calendar_dropdown");
+        if (dropdown) {
+          dropdown.innerHTML = '<option value="" disabled selected>Seleccione un calendario</option>';
+        }
+        
+        self.showSnackbar('Sesión cerrada exitosamente', 'info');
+      } catch (error) {
+        console.error('Error cerrando sesión:', error);
+        self.showSnackbar('Error al cerrar sesión', 'error');
+      }
     };
 
-    // Crear un evento en el calendario seleccionado
+    // Crear un evento en el calendario seleccionado (usando servidor)
     this.createEvent = async function(e) {
       e.preventDefault();
+
+      if (!isAuthenticated) {
+        self.showSnackbar('Debes autorizar con Google primero', 'warning');
+        return;
+      }
 
       const email = document.getElementById("email").value;
       const fecha = document.getElementById("fecha").value;
       const horaInicio = document.getElementById("hora_inicio").value;
       const horaFin = document.getElementById("hora_fin").value;
       const calendarId = document.getElementById("calendar_dropdown").value;
+
+      if (!calendarId || !fecha || !horaInicio || !horaFin) {
+        self.showSnackbar('Por favor completa todos los campos obligatorios', 'warning');
+        return;
+      }
 
       const startDateTime = new Date(`${fecha}T${horaInicio}:00`);
       const endDateTime = new Date(`${fecha}T${horaFin}:00`);
@@ -334,6 +581,8 @@ define(['jquery'], function ($) {
       const leadUri = document.getElementById("page_holder").baseURI;
 
       try {
+        self.showSnackbar('Creando evento...', 'info', 2000);
+
         const leadResponse = await $.ajax({
           url: '/api/v4/leads/' + leadId,
           method: 'GET',
@@ -344,13 +593,13 @@ define(['jquery'], function ($) {
         const responsibleUserId = leadResponse.responsible_user_id;
 
         // Asignar nombre del usuario responsable manualmente basado en el ID
-        let responsibleUserName = 'Usuario desconocido'; // Valor por defecto
+        let responsibleUserName = 'Usuario desconocido';
 
         switch (responsibleUserId) {
-          case 13786792: // ID de Valeria
+          case 13786792:
             responsibleUserName = 'Valeria';
             break;
-          case 8001812: // ID de Juan Carlos
+          case 8001812:
             responsibleUserName = 'Juan Carlos';
             break;
           default:
@@ -382,22 +631,23 @@ define(['jquery'], function ($) {
           event.attendees = [{ email: email }];
         }
 
-        const request = gapi.client.calendar.events.insert({
-          calendarId: calendarId,
-          resource: event,
-          conferenceDataVersion: 1,
-          sendUpdates: "all",
+        // Crear evento usando el servidor
+        const createdEvent = await serverFetch('/api/calendar/event', {
+          method: 'POST',
+          body: JSON.stringify({
+            calendarId: calendarId,
+            event: event
+          })
         });
-        const response = await request;
-        const meetLink = response.result.conferenceData.entryPoints.find(
+
+        const meetLink = createdEvent.conferenceData?.entryPoints?.find(
           (entry) => entry.entryPointType === "video"
-        ).uri;
+        )?.uri || 'No se generó link de Meet';
 
-        // Usar snackbar en lugar de alert
-        self.showSnackbar(`Reunión creada con éxito. Link: ${meetLink}`, 'success', 5000);
+        self.showSnackbar(`✅ Reunión creada con éxito. Link: ${meetLink}`, 'success', 5000);
 
-        // PATCH: Actualizar el lead con el link de Meet y la fecha en los custom fields
-        const fechaUnix = Math.floor(startDateTime.getTime() / 1000); // Unix timestamp en segundos
+        // PATCH: Actualizar el lead con el link de Meet y la fecha
+        const fechaUnix = Math.floor(startDateTime.getTime() / 1000);
         console.log("Preparando PATCH al lead:", leadId, "con link:", meetLink, "y fecha:", fechaUnix);
 
         await $.ajax({
@@ -530,7 +780,7 @@ define(['jquery'], function ($) {
         body: html,
         render: ''
       });
-      self.loadCalendars(); // Cargar los calendarios al renderizar
+      // Los calendarios se cargarán automáticamente después de la autorización
     };
 
     return this;

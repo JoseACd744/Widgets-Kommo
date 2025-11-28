@@ -81,9 +81,6 @@ define(['jquery'], function ($) {
         
         self.loadCSS();
         
-        // Verificar si ya hay sesión activa en el servidor
-        self.checkExistingSession();
-        
         return true;
       },
       bind_actions: function () {
@@ -758,7 +755,12 @@ define(['jquery'], function ($) {
         body: html,
         render: ''
       });
-      // Los calendarios se cargarán automáticamente después de la autorización
+      
+      // Verificar si ya hay sesión activa en el servidor
+      // Se ejecuta aquí porque los elementos DOM ya existen
+      setTimeout(function() {
+        self.checkExistingSession();
+      }, 100);
     };
 
     return this;

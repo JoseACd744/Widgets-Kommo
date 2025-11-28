@@ -65,19 +65,25 @@ define(['jquery'], function ($) {
         return true;
       },
       init: function () {
+        console.log('🔵 [INIT] Widget inicializando...');
+        
         // Obtener ID del usuario de Kommo
         try {
           if (APP.data.current_card && APP.data.current_card.user) {
             kommoUserId = APP.data.current_card.user.id || 'default-user';
-            console.log('Kommo User ID:', kommoUserId, '- User Name:', APP.data.current_card.user.name);
+            console.log('🔵 [INIT] Kommo User ID:', kommoUserId, '- User Name:', APP.data.current_card.user.name);
           } else {
             kommoUserId = 'default-user';
-            console.log('No se pudo obtener el usuario, usando default-user');
+            console.log('⚠️ [INIT] No se pudo obtener el usuario, usando default-user');
           }
         } catch (e) {
-          console.error('Error obteniendo usuario de Kommo:', e);
+          console.error('❌ [INIT] Error obteniendo usuario de Kommo:', e);
           kommoUserId = 'default-user';
         }
+        
+        // Verificar sesión inmediatamente
+        console.log('🔵 [INIT] Verificando sesión existente...');
+        self.checkExistingSession();
         
         self.loadCSS();
         
@@ -263,36 +269,75 @@ define(['jquery'], function ($) {
 
     // Verificar si ya hay una sesión activa en el servidor
     this.checkExistingSession = async function() {
+      console.log('🟡 [CHECK_SESSION] Iniciando verificación de sesión...');
+      console.log('🟡 [CHECK_SESSION] SERVER_URL:', SERVER_URL);
+      console.log('🟡 [CHECK_SESSION] Usuario Kommo:', kommoUserId);
+      
       try {
-        const response = await fetch(`${SERVER_URL}/auth/status`, {
+        const url = `${SERVER_URL}/auth/status`;
+        console.log('🟡 [CHECK_SESSION] Llamando a:', url);
+        
+        const response = await fetch(url, {
           credentials: 'include'
         });
         
+        console.log('🟡 [CHECK_SESSION] Response status:', response.status);
+        
         const data = await response.json();
+        console.log('🟡 [CHECK_SESSION] Response data:', data);
         
         if (data.authenticated) {
+          console.log('✅ [CHECK_SESSION] Usuario autenticado!');
           isAuthenticated = true;
-          document.getElementById("formulario").style.display = "block";
-          $('#authorize_button').hide();
-          $('#signout_button').show();
+          
+          // Actualizar UI solo si los elementos existen
+          const formulario = document.getElementById("formulario");
+          const authButton = document.getElementById("authorize_button");
+          const signoutButton = document.getElementById("signout_button");
+          
+          if (formulario) {
+            formulario.style.display = "block";
+            console.log('✅ [CHECK_SESSION] Formulario mostrado');
+          } else {
+            console.warn('⚠️ [CHECK_SESSION] Elemento formulario no encontrado aún');
+          }
+          
+          if (authButton) authButton.style.display = 'none';
+          if (signoutButton) signoutButton.style.display = 'block';
           
           // Cargar calendarios desde el servidor
           await self.loadCalendarsFromServer();
           
-          console.log('✅ Sesión restaurada desde el servidor');
-          self.showSnackbar('Sesión activa', 'success', 2000);
+          console.log('✅ [CHECK_SESSION] Sesión restaurada completamente');
+          if (typeof self.showSnackbar === 'function') {
+            self.showSnackbar('Sesión activa', 'success', 2000);
+          }
         } else {
+          console.log('ℹ️ [CHECK_SESSION] No hay sesión activa');
           isAuthenticated = false;
-          document.getElementById("formulario").style.display = "none";
-          $('#authorize_button').show();
-          $('#signout_button').hide();
+          
+          const formulario = document.getElementById("formulario");
+          const authButton = document.getElementById("authorize_button");
+          const signoutButton = document.getElementById("signout_button");
+          
+          if (formulario) formulario.style.display = "none";
+          if (authButton) authButton.style.display = 'block';
+          if (signoutButton) signoutButton.style.display = 'none';
         }
       } catch (error) {
-        console.error('Error verificando sesión:', error);
+        console.error('❌ [CHECK_SESSION] Error verificando sesión:', error);
+        console.error('❌ [CHECK_SESSION] Error details:', error.message);
+        
+        isAuthenticated = false;
+        
         // Si hay error, mostrar botón de autorización
-        document.getElementById("formulario").style.display = "none";
-        $('#authorize_button').show();
-        $('#signout_button').hide();
+        const formulario = document.getElementById("formulario");
+        const authButton = document.getElementById("authorize_button");
+        const signoutButton = document.getElementById("signout_button");
+        
+        if (formulario) formulario.style.display = "none";
+        if (authButton) authButton.style.display = 'block';
+        if (signoutButton) signoutButton.style.display = 'none';
       }
     };
 
@@ -458,11 +503,18 @@ define(['jquery'], function ($) {
 
     // Función de autorización de Google (usando servidor)
     this.authorizeGoogle = async function() {
+      console.log('🔐 [AUTH] Iniciando autorización de Google...');
+      console.log('🔐 [AUTH] Usuario Kommo:', kommoUserId);
+      
       try {
         self.showSnackbar('Conectando con Google...', 'info', 2000);
         
         // Obtener URL de autorización del servidor
-        const data = await serverFetch(`/auth/google/url?userId=${kommoUserId}`);
+        const url = `/auth/google/url?userId=${kommoUserId}`;
+        console.log('🔐 [AUTH] Solicitando URL de auth:', url);
+        
+        const data = await serverFetch(url);
+        console.log('🔐 [AUTH] Respuesta del servidor:', data);
         
         if (!data.authUrl) {
           throw new Error('No se pudo obtener la URL de autorización');
@@ -474,6 +526,7 @@ define(['jquery'], function ($) {
         const left = (screen.width - width) / 2;
         const top = (screen.height - height) / 2;
         
+        console.log('🔐 [AUTH] Abriendo ventana popup...');
         window.open(
           data.authUrl,
           'Google Authorization',
@@ -481,7 +534,7 @@ define(['jquery'], function ($) {
         );
         
       } catch (error) {
-        console.error('Error en autorización:', error);
+        console.error('❌ [AUTH] Error en autorización:', error);
         self.showSnackbar('Error conectando con el servidor: ' + error.message, 'error');
       }
     };
@@ -666,8 +719,10 @@ define(['jquery'], function ($) {
 
     // Event listener para mensajes del servidor después de autenticación
     window.addEventListener('message', async (event) => {
+      console.log('📨 [MESSAGE] Mensaje recibido:', event.data);
+      
       if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-        console.log('✅ Autenticación exitosa desde servidor para usuario:', event.data.userId);
+        console.log('✅ [MESSAGE] Autenticación exitosa desde servidor para usuario:', event.data.userId);
         
         isAuthenticated = true;
         document.getElementById("formulario").style.display = "block";
@@ -680,7 +735,7 @@ define(['jquery'], function ($) {
         self.showSnackbar('✅ Autorización exitosa', 'success');
         
       } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
-        console.error('❌ Error de autenticación:', event.data.error);
+        console.error('❌ [MESSAGE] Error de autenticación:', event.data.error);
         self.showSnackbar('Error en la autorización: ' + event.data.error, 'error');
       }
     });
@@ -750,17 +805,21 @@ define(['jquery'], function ($) {
           '</div>' +
         '</div>';
 
+      console.log('🟢 [RENDER] Renderizando template...');
+      
       self.render_template({
         caption: { html: '' },
         body: html,
         render: ''
       });
       
-      // Verificar si ya hay sesión activa en el servidor
-      // Se ejecuta aquí porque los elementos DOM ya existen
+      console.log('🟢 [RENDER] Template renderizado');
+      
+      // Verificar sesión nuevamente después del render para actualizar UI
       setTimeout(function() {
+        console.log('🟢 [RENDER] Verificando sesión post-render...');
         self.checkExistingSession();
-      }, 100);
+      }, 200);
     };
 
     return this;

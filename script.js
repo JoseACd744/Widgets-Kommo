@@ -274,7 +274,7 @@ define(['jquery'], function ($) {
       console.log('🟡 [CHECK_SESSION] Usuario Kommo:', kommoUserId);
       
       try {
-        const url = `${SERVER_URL}/auth/status`;
+        const url = `${SERVER_URL}/auth/status?userId=${kommoUserId}`;
         console.log('🟡 [CHECK_SESSION] Llamando a:', url);
         
         const response = await fetch(url, {
@@ -282,9 +282,10 @@ define(['jquery'], function ($) {
         });
         
         console.log('🟡 [CHECK_SESSION] Response status:', response.status);
+        console.log('🟡 [CHECK_SESSION] Response headers:', response.headers);
         
         const data = await response.json();
-        console.log('🟡 [CHECK_SESSION] Response data:', data);
+        console.log('🟡 [CHECK_SESSION] Response data:', JSON.stringify(data, null, 2));
         
         if (data.authenticated) {
           console.log('✅ [CHECK_SESSION] Usuario autenticado!');
@@ -343,16 +344,20 @@ define(['jquery'], function ($) {
 
     // Cargar calendarios desde el servidor
     this.loadCalendarsFromServer = async function() {
+      console.log('📅 [CALENDARS] Cargando calendarios para usuario:', kommoUserId);
       try {
-        const response = await fetch(`${SERVER_URL}/api/calendars`, {
+        const response = await fetch(`${SERVER_URL}/api/calendars?userId=${kommoUserId}`, {
           credentials: 'include'
         });
+        
+        console.log('📅 [CALENDARS] Response status:', response.status);
         
         if (!response.ok) {
           throw new Error('Error obteniendo calendarios');
         }
         
         const calendars = await response.json();
+        console.log('📅 [CALENDARS] Calendarios recibidos:', calendars.length);
         
         if (!calendars || calendars.length === 0) {
           self.showSnackbar('No se encontraron calendarios', 'warning');
@@ -378,7 +383,8 @@ define(['jquery'], function ($) {
         console.log(`✅ ${calendars.length} calendarios cargados desde el servidor`);
         
       } catch (error) {
-        console.error('Error cargando calendarios desde servidor:', error);
+        console.error('❌ [CALENDARS] Error cargando calendarios desde servidor:', error);
+        console.error('❌ [CALENDARS] Error details:', error.message);
         self.showSnackbar('Usando calendarios por defecto', 'info', 2000);
         self.loadStaticCalendars();
       }
@@ -643,6 +649,7 @@ define(['jquery'], function ($) {
         const createdEvent = await serverFetch('/api/calendar/event', {
           method: 'POST',
           body: JSON.stringify({
+            userId: kommoUserId,
             calendarId: calendarId,
             event: event
           })

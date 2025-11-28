@@ -273,6 +273,44 @@ define(['jquery'], function ($) {
       console.log('🟡 [CHECK_SESSION] SERVER_URL:', SERVER_URL);
       console.log('🟡 [CHECK_SESSION] Usuario Kommo:', kommoUserId);
       
+      // Verificar localStorage primero (fallback para cookies cross-origin)
+      const localAuth = localStorage.getItem(`google_auth_${kommoUserId}`);
+      const authTimestamp = localStorage.getItem(`google_auth_timestamp_${kommoUserId}`);
+      const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 días en ms
+      
+      if (localAuth === 'true' && authTimestamp) {
+        const isExpired = (Date.now() - parseInt(authTimestamp)) > sevenDays;
+        console.log('💾 [CHECK_SESSION] localStorage auth:', localAuth, '- Expirado:', isExpired);
+        
+        if (!isExpired) {
+          console.log('✅ [CHECK_SESSION] Sesión válida en localStorage - mostrando formulario');
+          isAuthenticated = true;
+          
+          const formulario = document.getElementById("formulario");
+          const authButton = document.getElementById("authorize_button");
+          const signoutButton = document.getElementById("signout_button");
+          
+          if (formulario) formulario.style.display = "block";
+          if (authButton) authButton.style.display = 'none';
+          if (signoutButton) signoutButton.style.display = 'block';
+          
+          // Intentar cargar calendarios (si falla, no pasa nada)
+          try {
+            await self.loadCalendarsFromServer();
+          } catch (e) {
+            console.warn('⚠️ [CHECK_SESSION] No se pudieron cargar calendarios, usando estáticos');
+            self.loadStaticCalendars();
+          }
+          
+          return; // No necesitamos verificar con el servidor
+        } else {
+          console.log('⏰ [CHECK_SESSION] Sesión expirada en localStorage - limpiando');
+          localStorage.removeItem(`google_auth_${kommoUserId}`);
+          localStorage.removeItem(`google_auth_timestamp_${kommoUserId}`);
+        }
+      }
+      
+      // Si no hay localStorage válido, verificar con el servidor
       try {
         const url = `${SERVER_URL}/auth/status?userId=${kommoUserId}`;
         console.log('🟡 [CHECK_SESSION] Llamando a:', url);
@@ -283,9 +321,15 @@ define(['jquery'], function ($) {
         
         console.log('🟡 [CHECK_SESSION] Response status:', response.status);
         console.log('🟡 [CHECK_SESSION] Response headers:', response.headers);
+        console.log('🟡 [CHECK_SESSION] Response URL completa:', response.url);
+        
+        // Log de todas las cookies disponibles
+        console.log('🟡 [CHECK_SESSION] Cookies del documento:', document.cookie);
         
         const data = await response.json();
         console.log('🟡 [CHECK_SESSION] Response data:', JSON.stringify(data, null, 2));
+        console.log('🟡 [CHECK_SESSION] authenticated value:', data.authenticated);
+        console.log('🟡 [CHECK_SESSION] userId en response:', data.userId);
         
         if (data.authenticated) {
           console.log('✅ [CHECK_SESSION] Usuario autenticado!');
@@ -547,8 +591,22 @@ define(['jquery'], function ($) {
 
     // Función de cierre de sesión (usando servidor)
     this.signOutGoogle = async function() {
+      console.log('🔓 [SIGNOUT] Cerrando sesión para usuario:', kommoUserId);
       try {
-        await serverFetch('/auth/logout', { method: 'POST' });
+        // Enviar userId en el body según la documentación de la API
+        await serverFetch('/auth/logout', { 
+          method: 'POST',
+          body: JSON.stringify({
+            userId: kommoUserId
+          })
+        });
+        
+        console.log('✅ [SIGNOUT] Sesión cerrada en el servidor');
+        
+        // Limpiar localStorage
+        localStorage.removeItem(`google_auth_${kommoUserId}`);
+        localStorage.removeItem(`google_auth_timestamp_${kommoUserId}`);
+        console.log('💾 [SIGNOUT] localStorage limpiado');
         
         isAuthenticated = false;
         document.getElementById("formulario").style.display = "none";
@@ -730,6 +788,11 @@ define(['jquery'], function ($) {
       
       if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
         console.log('✅ [MESSAGE] Autenticación exitosa desde servidor para usuario:', event.data.userId);
+        
+        // Guardar estado en localStorage como fallback para cookies cross-origin
+        localStorage.setItem(`google_auth_${kommoUserId}`, 'true');
+        localStorage.setItem(`google_auth_timestamp_${kommoUserId}`, Date.now().toString());
+        console.log('💾 [MESSAGE] Estado guardado en localStorage');
         
         isAuthenticated = true;
         document.getElementById("formulario").style.display = "block";

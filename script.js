@@ -477,48 +477,11 @@ define(['jquery'], function ($) {
         const left = (screen.width - width) / 2;
         const top = (screen.height - height) / 2;
         
-        const authWindow = window.open(
+        window.open(
           data.authUrl,
           'Google Authorization',
           `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
         );
-        
-        if (!authWindow) {
-          self.showSnackbar('Por favor habilita las ventanas emergentes', 'warning');
-          return;
-        }
-        
-        // Polling para detectar cuando se cierra la ventana
-        const checkWindowClosed = setInterval(async () => {
-          if (authWindow.closed) {
-            clearInterval(checkWindowClosed);
-            
-            // Esperar un momento para que el servidor procese
-            setTimeout(async () => {
-              // Verificar si la autorización fue exitosa
-              try {
-                const status = await serverFetch('/auth/status');
-                
-                if (status.authenticated) {
-                  isAuthenticated = true;
-                  document.getElementById("formulario").style.display = "block";
-                  $('#authorize_button').hide();
-                  $('#signout_button').show();
-                  
-                  // Cargar calendarios
-                  await self.loadCalendarsFromServer();
-                  
-                  self.showSnackbar('✅ Autorización exitosa', 'success');
-                } else {
-                  self.showSnackbar('La autorización fue cancelada', 'warning');
-                }
-              } catch (error) {
-                console.error('Error verificando estado:', error);
-                self.showSnackbar('Error verificando autorización', 'error');
-              }
-            }, 1000);
-          }
-        }, 500);
         
       } catch (error) {
         console.error('Error en autorización:', error);
@@ -704,14 +667,26 @@ define(['jquery'], function ($) {
       }
     };
 
-    window.addEventListener('message', (event) => {
-            if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-              console.log('Autenticación exitosa:', event.data.userId);
-              // Actualizar UI, recargar datos, etc.
-            } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
-              console.error('Error de autenticación:', event.data.error);
-            }
-      });
+    // Event listener para mensajes del servidor después de autenticación
+    window.addEventListener('message', async (event) => {
+      if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+        console.log('✅ Autenticación exitosa desde servidor para usuario:', event.data.userId);
+        
+        isAuthenticated = true;
+        document.getElementById("formulario").style.display = "block";
+        $('#authorize_button').hide();
+        $('#signout_button').show();
+        
+        // Cargar calendarios
+        await self.loadCalendarsFromServer();
+        
+        self.showSnackbar('✅ Autorización exitosa', 'success');
+        
+      } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+        console.error('❌ Error de autenticación:', event.data.error);
+        self.showSnackbar('Error en la autorización: ' + event.data.error, 'error');
+      }
+    });
     // Renderizar la plantilla del widget con los formularios
     this.renderTemplate = async function() {
       const leadId = APP.data.current_card.id;

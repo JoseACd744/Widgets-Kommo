@@ -1,8 +1,8 @@
 {
   "widget": {
-    "name": "Plan de Horas",
-    "short_description": "Muestra el Plan de Horas del lead",
-    "description": "Muestra el Plan de Horas del lead"
+    "name": "Widget Google Calendar",
+    "short_description": "Agenda reuniones con Google Calendar",
+    "description": "Crea y gestiona reuniones en Google Calendar directamente desde Kommo"
   },
   "settings": {
     "api_key": "Clave API"

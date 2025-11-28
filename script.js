@@ -10,11 +10,6 @@ define(['jquery'], function ($) {
     let kommoUserId = null;
     let isAuthenticated = false;
 
-    const CLIENT_ID = '187937463238-45e5o4l80hn1tkpiftvahfs5pf2druj6.apps.googleusercontent.com';
-    const API_KEY = '';
-    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly';
-
     // FUNCIÓN PARA EJECUTAR SALESBOT
     function launchSalesbot(idBot, idLead) {
       const botLaunch = JSON.stringify([{ bot_id: idBot, entity_type: 2, entity_id: idLead }]);
@@ -709,6 +704,14 @@ define(['jquery'], function ($) {
       }
     };
 
+    window.addEventListener('message', (event) => {
+            if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+              console.log('Autenticación exitosa:', event.data.userId);
+              // Actualizar UI, recargar datos, etc.
+            } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+              console.error('Error de autenticación:', event.data.error);
+            }
+      });
     // Renderizar la plantilla del widget con los formularios
     this.renderTemplate = async function() {
       const leadId = APP.data.current_card.id;

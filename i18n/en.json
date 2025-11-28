@@ -1,8 +1,8 @@
 {
   "widget": {
-    "name": "Hours Planner",
-    "short_description": "Displays the Hours Planner for the lead",
-    "description": "Displays the Hours Planner for the lead"
+    "name": "Google Calendar Widget",
+    "short_description": "Schedule meetings with Google Calendar",
+    "description": "Create and manage meetings in Google Calendar directly from Kommo"
   },
   "settings": {
     "api_key": "API Key"

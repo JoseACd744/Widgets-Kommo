@@ -407,32 +407,9 @@ define(['jquery'], function ($) {
     this.checkExistingSession = async function() {
       console.log('🟡 [CHECK_SESSION] Iniciando verificación de sesión...');
       console.log('🟡 [CHECK_SESSION] SERVER_URL:', SERVER_URL);
-      console.log('🟡 [CHECK_SESSION] Usuario Kommo:', kommoUserId);
+      console.log('🟡 [CHECK_SESSION] Account ID:', kommoUserId);
       
-      // Verificar localStorage primero (fallback para cookies cross-origin)
-      const localAuth = localStorage.getItem(`google_auth_${kommoUserId}`);
-      const authTimestamp = localStorage.getItem(`google_auth_timestamp_${kommoUserId}`);
-      const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 días en ms
-      
-      if (localAuth === 'true' && authTimestamp) {
-        const isExpired = (Date.now() - parseInt(authTimestamp)) > sevenDays;
-        console.log('💾 [CHECK_SESSION] localStorage auth:', localAuth, '- Expirado:', isExpired);
-        
-        if (!isExpired) {
-          console.log('✅ [CHECK_SESSION] Sesión válida en localStorage');
-          isAuthenticated = true;
-          
-          // NO intentar manipular el DOM aquí - se hará en renderTemplate
-          // Solo marcar como autenticado
-          return true;
-        } else {
-          console.log('⏰ [CHECK_SESSION] Sesión expirada en localStorage - limpiando');
-          localStorage.removeItem(`google_auth_${kommoUserId}`);
-          localStorage.removeItem(`google_auth_timestamp_${kommoUserId}`);
-        }
-      }
-      
-      // Si no hay localStorage válido, verificar con el servidor
+      // Verificar SOLO con el servidor - sin localStorage
       try {
         const url = `${SERVER_URL}/auth/status?userId=${kommoUserId}`;
         console.log('🟡 [CHECK_SESSION] Llamando a:', url);
@@ -447,11 +424,11 @@ define(['jquery'], function ($) {
         console.log('🟡 [CHECK_SESSION] Response data:', JSON.stringify(data, null, 2));
         
         if (data.authenticated) {
-          console.log('✅ [CHECK_SESSION] Usuario autenticado!');
+          console.log('✅ [CHECK_SESSION] Usuario autenticado en servidor!');
           isAuthenticated = true;
           return true;
         } else {
-          console.log('ℹ️ [CHECK_SESSION] No hay sesión activa');
+          console.log('ℹ️ [CHECK_SESSION] No hay sesión activa en servidor');
           isAuthenticated = false;
           return false;
         }
@@ -687,31 +664,14 @@ define(['jquery'], function ($) {
     this.signOutGoogle = async function() {
       console.log('🔓 [SIGNOUT] Cerrando sesión para usuario:', kommoUserId);
       try {
-        // Enviar userId en el body según la documentación de la API
-        await serverFetch('/auth/logout', { 
-          method: 'POST',
-          body: JSON.stringify({
-            userId: kommoUserId
-          })
+        // Enviar userId en query string para logout
+        await serverFetch(`/auth/logout?userId=${kommoUserId}`, { 
+          method: 'POST'
         });
         
         console.log('✅ [SIGNOUT] Sesión cerrada en el servidor');
         
-        // Limpiar localStorage
-        localStorage.removeItem(`google_auth_${kommoUserId}`);
-        localStorage.removeItem(`google_auth_timestamp_${kommoUserId}`);
-        console.log('💾 [SIGNOUT] localStorage limpiado');
-        
         isAuthenticated = false;
-        document.getElementById("formulario").style.display = "none";
-        $('#authorize_button').show();
-        $('#signout_button').hide();
-        
-        // Limpiar el dropdown de calendarios
-        const dropdown = document.getElementById("calendar_dropdown");
-        if (dropdown) {
-          dropdown.innerHTML = '<option value="" disabled selected>Seleccione un calendario</option>';
-        }
         
         self.showSnackbar('Sesión cerrada exitosamente', 'info');
       } catch (error) {
@@ -786,8 +746,11 @@ define(['jquery'], function ($) {
           console.error('❌ [USER] Error obteniendo usuario:', error);
         }
 
+        // Usar el nombre del evento si está disponible, sino usar el formato anterior
+        const eventSummary = eventName && eventName.trim() !== '' ? eventName : `Reunión con ${leadName}`;
+
         const event = {
-          summary: `Reunión con ${leadName}`,
+          summary: eventSummary,
           description: `Lead ID: ${leadId}\nEnlace del lead: ${leadUri}\nResponsable: ${responsibleUserName}`,
           start: {
             dateTime: startDateTime.toISOString(),
@@ -805,10 +768,6 @@ define(['jquery'], function ($) {
             },
           },
         };
-
-        if (email && email.trim() !== "") {
-          event.attendees = [{ email: email }];
-        }
 
         // Crear evento usando el servidor
         const createdEvent = await serverFetch('/api/calendar/event', {
@@ -1254,21 +1213,21 @@ define(['jquery'], function ($) {
     // Verificar autenticación en la interfaz custom de settings
     this.checkAuthInCustomSettings = async function(savedConfig = {}) {
       console.log('🔐 [CUSTOM_UI] Verificando autenticación...');
-      console.log('🔐 [CUSTOM_UI] kommoUserId:', kommoUserId);
+      console.log('🔐 [CUSTOM_UI] Account ID:', kommoUserId);
       
-      const localAuth = localStorage.getItem(`google_auth_${kommoUserId}`);
-      const authTimestamp = localStorage.getItem(`google_auth_timestamp_${kommoUserId}`);
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      
-      console.log('🔐 [CUSTOM_UI] localStorage google_auth:', localAuth);
-      console.log('🔐 [CUSTOM_UI] localStorage timestamp:', authTimestamp);
-      
+      // Verificar SOLO con el servidor
       let authenticated = false;
       
-      if (localAuth === 'true' && authTimestamp) {
-        const isExpired = (Date.now() - parseInt(authTimestamp)) > sevenDays;
-        authenticated = !isExpired;
-        console.log('🔐 [CUSTOM_UI] Sesión expirada?:', isExpired);
+      try {
+        const response = await fetch(`${SERVER_URL}/auth/status?userId=${kommoUserId}`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        authenticated = data.authenticated || false;
+        console.log('🔐 [CUSTOM_UI] Estado de autenticación desde servidor:', authenticated);
+      } catch (error) {
+        console.error('❌ [CUSTOM_UI] Error verificando autenticación:', error);
+        authenticated = false;
       }
       
       console.log('🔐 [CUSTOM_UI] authenticated final:', authenticated);
@@ -1686,12 +1645,12 @@ define(['jquery'], function ($) {
       
       // Name and Email in grid
       html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
-      html += '<div><label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500;">Nombre:</label>';
+      html += '<div><label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500;">Nombre de Evento:</label>';
       html += self.render({ ref: '/tmpl/controls/input.twig' }, {
         name: 'gc_sub_nombre',
         id: 'gc_sub_nombre',
         value: leadName,
-        placeholder: 'Nombre'
+        placeholder: 'Ej: Reunión de ventas'
       }, true);
       html += '</div>';
       html += '<div><label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500;">Email:</label>';
@@ -1836,6 +1795,7 @@ define(['jquery'], function ($) {
     this.createEventFromSubmission = async function() {
       console.log('📝 [SUBMISSION] Creando evento...');
       
+      const eventName = $('#gc_sub_nombre').val();
       const email = $('#gc_sub_email').val();
       const fecha = $('#gc_sub_fecha').val(); // Formato DD.MM.YYYY del control nativo
       const horaInicio = $('#gc_sub_hora_inicio').val();
@@ -1848,6 +1808,7 @@ define(['jquery'], function ($) {
                          calendarWrapper.find('[name="gc_sub_calendar"]').val();
       
       console.log('🔍 [DEBUG SUBMISSION] Valores capturados:', {
+        eventName,
         email,
         fecha,
         horaInicio,
@@ -1926,8 +1887,11 @@ define(['jquery'], function ($) {
           console.error('❌ [SUBMISSION USER] Error obteniendo usuario:', error);
         }
         
+        // Usar el nombre del evento directamente
+        const eventSummary = eventName && eventName.trim() !== '' ? eventName : `Reunión con ${leadName}`;
+        
         const event = {
-          summary: `Reunión con ${leadName}`,
+          summary: eventSummary,
           description: `Lead ID: ${leadId}\nEnlace del lead: ${leadUri}\nResponsable: ${responsibleUserName}`,
           start: {
             dateTime: startDateTime.toISOString(),

@@ -13,12 +13,15 @@
     "installation": true
   },
   "locations": [
-    "lcard-1"
+    "lcard-0",
+    "ccard",
+    "comcard",
+    "settings"
   ],
   "settings": {
-    "api_key": {
-      "name": "settings.api_key",
-      "type": "text",
+    "google_calendar_config": {
+      "name": "settings.google_calendar_config",
+      "type": "custom",
       "required": false
     }
   }

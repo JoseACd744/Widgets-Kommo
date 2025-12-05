@@ -168,6 +168,62 @@ class CalendarServerAPI {
       return true; // Por defecto asumir disponible si hay error
     }
   }
+
+  /**
+   * Guarda la configuración del widget en el servidor
+   * @param {Object} config - Configuración a guardar
+   * @param {string} config.meet_link_field_id - ID del campo para Meet link
+   * @param {string} config.date_field_id - ID del campo para fecha
+   * @param {string} config.calendar_id - ID del calendario predeterminado
+   */
+  async saveWidgetConfig(config) {
+    try {
+      const response = await fetch(`${this.serverUrl}/api/widget/config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: this.userId,
+          config: config
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error guardando configuración');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error guardando configuración:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene la configuración del widget desde el servidor
+   */
+  async getWidgetConfig() {
+    try {
+      const response = await fetch(
+        `${this.serverUrl}/api/widget/config?userId=${this.userId}`,
+        { credentials: 'include' }
+      );
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null; // No hay configuración guardada
+        }
+        throw new Error('Error obteniendo configuración');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error obteniendo configuración:', error);
+      return null;
+    }
+  }
 }
 
 // Exportar para uso en el widget

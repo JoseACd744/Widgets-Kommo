@@ -1,10 +1,10 @@
 {
   "widget": {
-    "name": "Widget Google Calendar",
+    "name": "Widget de Google Calendar",
     "short_description": "Agenda reuniones con Google Calendar",
     "description": "Crea y gestiona reuniones en Google Calendar directamente desde Kommo"
   },
   "settings": {
-    "api_key": "Clave API"
+    "google_calendar_config": "Configuración de Google Calendar"
   }
 }

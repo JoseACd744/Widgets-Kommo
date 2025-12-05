@@ -14,8 +14,8 @@
   },
   "locations": [
     "lcard-0",
-    "ccard",
-    "comcard",
+    "ccard-0",
+    "comcard-0",
     "settings"
   ],
   "settings": {

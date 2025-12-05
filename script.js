@@ -1418,13 +1418,9 @@ define(['jquery'], function ($) {
           '</div>' +
         '</div>';
       
-      self.render_template({
-        caption: { html: '' },
-        body: html,
-        render: ''
-      });
-      
-      console.log('⚙️ [SETTINGS] Template de settings renderizado');
+      // NO renderizar template - evita que aparezca en panel derecho
+      // El widget solo aparece en Settings (custom field) y Quick Actions (submission)
+      console.log('⚙️ [SETTINGS] Settings page rendered (deprecated - usando custom field)');
       
       // Cargar campos personalizados de la API
       setTimeout(function() {
@@ -2039,26 +2035,23 @@ define(['jquery'], function ($) {
           self.showSnackbar("Ejecutando Salesbot automáticamente", 'info');
         }
         
-        // Esperar un momento para que se vean las notificaciones
+        // Limpiar y resetear el formulario
         setTimeout(() => {
-          // Cerrar la interfaz de agendamiento
-          const submissionElement = $('#gc_submission_form').closest('[data-id="submission"]');
-          if (submissionElement.length) {
-            submissionElement.find('.widget-submission__close-btn, .widget_form__close_btn').click();
-          }
+          // Mostrar mensaje de éxito
+          $('#gc_submission_form').html(`
+            <div style="padding: 40px 20px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+              <h3 style="margin: 0 0 10px 0; color: #28a745; font-size: 18px;">Reunión agendada exitosamente</h3>
+              <p style="margin: 10px 0; color: #666; font-size: 14px;">Los detalles se han guardado en el lead.</p>
+              <p style="margin: 20px 0 0 0; color: #999; font-size: 12px;">Puedes seleccionar otra opción en Quick Actions para continuar.</p>
+            </div>
+          `);
           
-          // Alternativamente, limpiar el contenido
-          $('#gc_submission_form').html('<div style="padding: 20px; text-align: center; color: #28a745;"><h3>✅ Reunión agendada exitosamente</h3><p>Esta ventana se cerrará automáticamente...</p></div>');
-          
-          // Cerrar después de 1 segundo más
+          // Después de 3 segundos, recargar el formulario para poder agendar otra reunión
           setTimeout(() => {
-            // Intentar varios métodos de cierre
-            const closeBtn = $('.widget-submission__close-btn, .widget_form__close_btn, [data-id="submission"] .close, .js-card-fields-close');
-            if (closeBtn.length) {
-              closeBtn.first().click();
-            }
-          }, 1000);
-        }, 2000);
+            self.renderSubmissionControl($('#gc_submission_form').parent());
+          }, 3000);
+        }, 1500);
         
       } catch (error) {
         console.error("❌ [SUBMISSION] Error creando el evento:", error);
@@ -2247,13 +2240,15 @@ define(['jquery'], function ($) {
       
       formHtml += '</div>';
 
-      self.render_template({
-        caption: { html: '' },
-        body: formHtml,
-        render: ''
-      });
+      // NO renderizar template en panel derecho
+      // El widget funciona solo con submission control (Quick Actions)
+      // self.render_template({
+      //   caption: { html: '' },
+      //   body: formHtml,
+      //   render: ''
+      // });
       
-      console.log('🟢 [RENDER] Template renderizado');
+      console.log('🟢 [RENDER] Render callback ejecutado (sin panel derecho)');
       
       // Si está configurado, cargar calendarios
       if (isConfigured) {

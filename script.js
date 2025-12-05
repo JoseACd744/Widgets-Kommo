@@ -772,19 +772,18 @@ define(['jquery'], function ($) {
         const leadName = leadResponse.name;
         const responsibleUserId = leadResponse.responsible_user_id;
 
-        // Asignar nombre del usuario responsable manualmente basado en el ID
+        // Obtener nombre del usuario responsable desde la API
         let responsibleUserName = 'Usuario desconocido';
-
-        switch (responsibleUserId) {
-          case 13786792:
-            responsibleUserName = 'Valeria';
-            break;
-          case 8001812:
-            responsibleUserName = 'Juan Carlos';
-            break;
-          default:
-            responsibleUserName = 'Usuario no identificado';
-            break;
+        try {
+          const userResponse = await $.ajax({
+            url: `/api/v4/users/${responsibleUserId}`,
+            method: 'GET',
+            dataType: 'json'
+          });
+          responsibleUserName = userResponse.name;
+          console.log('👤 [USER] Usuario responsable:', responsibleUserName);
+        } catch (error) {
+          console.error('❌ [USER] Error obteniendo usuario:', error);
         }
 
         const event = {
@@ -1917,17 +1916,18 @@ define(['jquery'], function ($) {
         const leadName = leadResponse.name;
         const responsibleUserId = leadResponse.responsible_user_id;
         
+        // Obtener nombre del usuario responsable desde la API
         let responsibleUserName = 'Usuario desconocido';
-        switch (responsibleUserId) {
-          case 13786792:
-            responsibleUserName = 'Valeria';
-            break;
-          case 8001812:
-            responsibleUserName = 'Juan Carlos';
-            break;
-          default:
-            responsibleUserName = 'Usuario no identificado';
-            break;
+        try {
+          const userResponse = await $.ajax({
+            url: `/api/v4/users/${responsibleUserId}`,
+            method: 'GET',
+            dataType: 'json'
+          });
+          responsibleUserName = userResponse.name;
+          console.log('👤 [SUBMISSION USER] Usuario responsable:', responsibleUserName);
+        } catch (error) {
+          console.error('❌ [SUBMISSION USER] Error obteniendo usuario:', error);
         }
         
         const event = {
@@ -2039,10 +2039,26 @@ define(['jquery'], function ($) {
           self.showSnackbar("Ejecutando Salesbot automáticamente", 'info');
         }
         
-        // Limpiar formulario
-        $('#gc_sub_fecha').val('');
-        $('#gc_sub_hora_inicio').val('');
-        $('#gc_sub_hora_fin').val('');
+        // Esperar un momento para que se vean las notificaciones
+        setTimeout(() => {
+          // Cerrar la interfaz de agendamiento
+          const submissionElement = $('#gc_submission_form').closest('[data-id="submission"]');
+          if (submissionElement.length) {
+            submissionElement.find('.widget-submission__close-btn, .widget_form__close_btn').click();
+          }
+          
+          // Alternativamente, limpiar el contenido
+          $('#gc_submission_form').html('<div style="padding: 20px; text-align: center; color: #28a745;"><h3>✅ Reunión agendada exitosamente</h3><p>Esta ventana se cerrará automáticamente...</p></div>');
+          
+          // Cerrar después de 1 segundo más
+          setTimeout(() => {
+            // Intentar varios métodos de cierre
+            const closeBtn = $('.widget-submission__close-btn, .widget_form__close_btn, [data-id="submission"] .close, .js-card-fields-close');
+            if (closeBtn.length) {
+              closeBtn.first().click();
+            }
+          }, 1000);
+        }, 2000);
         
       } catch (error) {
         console.error("❌ [SUBMISSION] Error creando el evento:", error);

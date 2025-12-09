@@ -829,33 +829,36 @@ define(['jquery'], function ($) {
           });
         }
 
-        // Lógica del checkbox
-        const checked = document.getElementById("cita_agendada_checkbox").checked;
-        if (checked) {
-          // Cambia el status_id del lead (ajusta el ID de etapa según tu pipeline)
-          const NUEVO_STATUS_ID = 56495775; // <-- Reemplaza por el status_id real de "Cita agendada"
-          console.log("Moviendo lead a etapa 'Cita agendada' con status_id:", NUEVO_STATUS_ID);
-          await $.ajax({
-            url: '/api/v4/leads/' + leadId,
-            method: 'PATCH',
-            contentType: 'application/json',
-            data: JSON.stringify({status_id: NUEVO_STATUS_ID }),
-            success: function(data) {
-              console.log("Lead movido de etapa:", data);
-              self.showSnackbar("Lead movido a etapa 'Cita agendada'", 'success');
-            },
-            error: function(xhr, status, error) {
-              console.error("Error moviendo lead de etapa:", status, error, xhr.responseText);
-              self.showSnackbar("Error moviendo lead de etapa", 'error');
-            }
-          });
-        } else {
-          // Ejecuta el bot (ajusta los parámetros según tu configuración)
-          const ID_BOT = 40555; // <-- Reemplaza por el ID real de tu bot
-          console.log("Ejecutando Salesbot con ID:", ID_BOT, "para lead:", leadId);
-          launchSalesbot(ID_BOT, leadId);
-          self.showSnackbar("Ejecutando Salesbot automáticamente", 'info');
+        // Lógica del toggle para mover a etapa
+        const moveStageWrapper = $('#wrapper');
+        const moveStageChecked = moveStageWrapper.find('input[name="gc_sub_move_stage"]').is(':checked');
+        
+        if (moveStageChecked) {
+          // Obtener status_id desde la configuración guardada
+          const moveStatusId = savedConfig?.status_id ? parseInt(savedConfig.status_id) : null;
+          
+          if (!moveStatusId) {
+            console.warn('⚠️ No se ha configurado una etapa de destino en Settings');
+            self.showSnackbar('⚠️ Configura la etapa de destino en Settings', 'warning');
+          } else {
+            console.log("Moviendo lead a etapa configurada con status_id:", moveStatusId);
+            await $.ajax({
+              url: '/api/v4/leads/' + leadId,
+              method: 'PATCH',
+              contentType: 'application/json',
+              data: JSON.stringify({status_id: moveStatusId }),
+              success: function(data) {
+                console.log("Lead movido de etapa:", data);
+                self.showSnackbar("Lead movido a etapa configurada", 'success');
+              },
+              error: function(xhr, status, error) {
+                console.error("Error moviendo lead de etapa:", status, error, xhr.responseText);
+                self.showSnackbar("Error moviendo lead de etapa", 'error');
+              }
+            });
+          }
         }
+
       } catch (error) {
         console.error("Error creando el evento:", error);
         self.showSnackbar("Error creando la reunión", 'error');
@@ -998,6 +1001,16 @@ define(['jquery'], function ($) {
       html += '<div id="gc_date_field_wrapper"></div>';
       html += '</div>';
       
+      html += '<div style="margin-bottom: 15px;">';
+      html += '<label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 500;">Pipeline (Embudo):</label>';
+      html += '<div id="gc_pipeline_wrapper"></div>';
+      html += '</div>';
+      
+      html += '<div style="margin-bottom: 15px;">';
+      html += '<label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 500;">Etapa del Pipeline:</label>';
+      html += '<div id="gc_status_wrapper"></div>';
+      html += '</div>';
+      
       html += self.render({ ref: '/tmpl/controls/button.twig' }, {
         name: 'gc_save_config',
         id: 'gc_save_config',
@@ -1030,6 +1043,9 @@ define(['jquery'], function ($) {
       
       // Cargar campos personalizados CON la configuración para preseleccionar
       await self.loadCustomFieldsForSettings(loadedConfig);
+      
+      // Cargar pipelines y statuses
+      await self.loadPipelinesForSettings(loadedConfig);
       
       // Verificar autenticación y cargar calendarios
       await self.checkAuthInCustomSettings(loadedConfig);
@@ -1086,16 +1102,35 @@ define(['jquery'], function ($) {
           calendar: calendarValue
         });
         
+        // Capturar valores de pipeline y status
+        const pipelineWrapper = $('#gc_pipeline_wrapper');
+        const statusWrapper = $('#gc_status_wrapper');
+        
+        const pipelineValue = pipelineWrapper.find('input[name="gc_pipeline"]').val() || 
+                              pipelineWrapper.find('select[name="gc_pipeline"]').val() ||
+                              pipelineWrapper.find('[name="gc_pipeline"]').val();
+        
+        const statusValue = statusWrapper.find('input[name="gc_status"]').val() || 
+                           statusWrapper.find('select[name="gc_status"]').val() ||
+                           statusWrapper.find('[name="gc_status"]').val();
+        
         const config = {
           meet_link_field_id: meetFieldValue,
           date_field_id: dateFieldValue,
-          calendar_id: calendarValue
+          calendar_id: calendarValue,
+          pipeline_id: pipelineValue,
+          status_id: statusValue
         };
         
         console.log('📋 [CONFIG] Valores capturados:', config);
         
         if (!config.meet_link_field_id || !config.date_field_id) {
           alert('Por favor selecciona ambos campos personalizados');
+          return;
+        }
+        
+        if (!config.pipeline_id || !config.status_id) {
+          alert('Por favor selecciona el pipeline y la etapa');
           return;
         }
         
@@ -1138,6 +1173,190 @@ define(['jquery'], function ($) {
           self.showSnackbar('⚠️ Guardado localmente (error en servidor)', 'warning');
         }
       });
+    };
+    
+    // Cargar pipelines para la interfaz custom de settings
+    this.loadPipelinesForSettings = async function(savedConfig = {}) {
+      console.log('🔀 [CUSTOM_UI] Cargando pipelines...');
+      console.log('🔀 [CUSTOM_UI] Config para preseleccionar:', savedConfig);
+      
+      try {
+        const response = await $.ajax({
+          url: '/api/v4/leads/pipelines',
+          method: 'GET',
+          dataType: 'json'
+        });
+        
+        const pipelines = response._embedded.pipelines;
+        console.log('🔀 [CUSTOM_UI] Pipelines recibidos:', pipelines.length);
+        
+        // Build items for Pipeline select
+        const pipelineItems = pipelines.map(pipeline => ({
+          id: pipeline.id,
+          option: pipeline.name
+        }));
+        
+        const selectedPipelineId = savedConfig.pipeline_id ? parseInt(savedConfig.pipeline_id) : null;
+        
+        // Render Pipeline select using native control
+        const pipelineSelectHtml = self.render({ ref: '/tmpl/controls/select.twig' }, {
+          name: 'gc_pipeline',
+          id: 'gc_pipeline',
+          items: pipelineItems,
+          selected: selectedPipelineId,
+          class_name: 'gc-pipeline-select'
+        }, true);
+        $('#gc_pipeline_wrapper').html(pipelineSelectHtml);
+        
+        console.log('✅ [CUSTOM_UI] Pipeline select renderizado con', pipelineItems.length, 'opciones, selected:', selectedPipelineId);
+        
+        // Cargar statuses si hay un pipeline guardado
+        if (savedConfig.pipeline_id) {
+          await self.loadStatusesForSettings(savedConfig.pipeline_id, savedConfig);
+        }
+        
+        // Evento change para cargar statuses cuando se cambie el pipeline
+        $(document).off('change', '#gc_pipeline_wrapper select, #gc_pipeline_wrapper input').on('change', '#gc_pipeline_wrapper select, #gc_pipeline_wrapper input', async function() {
+          const pipelineId = $(this).val();
+          if (pipelineId) {
+            await self.loadStatusesForSettings(pipelineId, {});
+          }
+        });
+        
+      } catch (error) {
+        console.error('❌ [CUSTOM_UI] Error cargando pipelines:', error);
+      }
+    };
+    
+    // Cargar statuses (etapas) de un pipeline específico
+    this.loadStatusesForSettings = async function(pipelineId, savedConfig = {}) {
+      console.log('📊 [CUSTOM_UI] Cargando statuses para pipeline:', pipelineId);
+      
+      try {
+        const response = await $.ajax({
+          url: `/api/v4/leads/pipelines/${pipelineId}`,
+          method: 'GET',
+          dataType: 'json'
+        });
+        
+        const statuses = response._embedded.statuses;
+        console.log('📊 [CUSTOM_UI] Statuses recibidos:', statuses.length);
+        
+        // Build items for Status select
+        const statusItems = statuses.map(status => ({
+          id: status.id,
+          option: status.name
+        }));
+        
+        const selectedStatusId = savedConfig.status_id ? parseInt(savedConfig.status_id) : null;
+        
+        // Render Status select using native control
+        const statusSelectHtml = self.render({ ref: '/tmpl/controls/select.twig' }, {
+          name: 'gc_status',
+          id: 'gc_status',
+          items: statusItems,
+          selected: selectedStatusId,
+          class_name: 'gc-status-select'
+        }, true);
+        $('#gc_status_wrapper').html(statusSelectHtml);
+        
+        console.log('✅ [CUSTOM_UI] Status select renderizado con', statusItems.length, 'opciones, selected:', selectedStatusId);
+        
+      } catch (error) {
+        console.error('❌ [CUSTOM_UI] Error cargando statuses:', error);
+      }
+    };
+    
+    // Cargar pipelines para la interfaz custom de settings
+    this.loadPipelinesForSettings = async function(savedConfig = {}) {
+      console.log('🔀 [CUSTOM_UI] Cargando pipelines...');
+      console.log('🔀 [CUSTOM_UI] Config para preseleccionar:', savedConfig);
+      
+      try {
+        const response = await $.ajax({
+          url: '/api/v4/leads/pipelines',
+          method: 'GET',
+          dataType: 'json'
+        });
+        
+        const pipelines = response._embedded.pipelines;
+        console.log('🔀 [CUSTOM_UI] Pipelines recibidos:', pipelines.length);
+        
+        // Build items for Pipeline select
+        const pipelineItems = pipelines.map(pipeline => ({
+          id: pipeline.id,
+          option: pipeline.name
+        }));
+        
+        const selectedPipelineId = savedConfig.pipeline_id ? parseInt(savedConfig.pipeline_id) : null;
+        
+        // Render Pipeline select using native control
+        const pipelineSelectHtml = self.render({ ref: '/tmpl/controls/select.twig' }, {
+          name: 'gc_pipeline',
+          id: 'gc_pipeline',
+          items: pipelineItems,
+          selected: selectedPipelineId,
+          class_name: 'gc-pipeline-select'
+        }, true);
+        $('#gc_pipeline_wrapper').html(pipelineSelectHtml);
+        
+        console.log('✅ [CUSTOM_UI] Pipeline select renderizado con', pipelineItems.length, 'opciones, selected:', selectedPipelineId);
+        
+        // Cargar statuses si hay un pipeline guardado
+        if (savedConfig.pipeline_id) {
+          await self.loadStatusesForSettings(savedConfig.pipeline_id, savedConfig);
+        }
+        
+        // Evento change para cargar statuses cuando se cambie el pipeline
+        $(document).off('change', '#gc_pipeline_wrapper select, #gc_pipeline_wrapper input').on('change', '#gc_pipeline_wrapper select, #gc_pipeline_wrapper input', async function() {
+          const pipelineId = $(this).val();
+          if (pipelineId) {
+            await self.loadStatusesForSettings(pipelineId, {});
+          }
+        });
+        
+      } catch (error) {
+        console.error('❌ [CUSTOM_UI] Error cargando pipelines:', error);
+      }
+    };
+    
+    // Cargar statuses (etapas) de un pipeline específico
+    this.loadStatusesForSettings = async function(pipelineId, savedConfig = {}) {
+      console.log('📊 [CUSTOM_UI] Cargando statuses para pipeline:', pipelineId);
+      
+      try {
+        const response = await $.ajax({
+          url: `/api/v4/leads/pipelines/${pipelineId}`,
+          method: 'GET',
+          dataType: 'json'
+        });
+        
+        const statuses = response._embedded.statuses;
+        console.log('📊 [CUSTOM_UI] Statuses recibidos:', statuses.length);
+        
+        // Build items for Status select
+        const statusItems = statuses.map(status => ({
+          id: status.id,
+          option: status.name
+        }));
+        
+        const selectedStatusId = savedConfig.status_id ? parseInt(savedConfig.status_id) : null;
+        
+        // Render Status select using native control
+        const statusSelectHtml = self.render({ ref: '/tmpl/controls/select.twig' }, {
+          name: 'gc_status',
+          id: 'gc_status',
+          items: statusItems,
+          selected: selectedStatusId,
+          class_name: 'gc-status-select'
+        }, true);
+        $('#gc_status_wrapper').html(statusSelectHtml);
+        
+        console.log('✅ [CUSTOM_UI] Status select renderizado con', statusItems.length, 'opciones, selected:', selectedStatusId);
+        
+      } catch (error) {
+        console.error('❌ [CUSTOM_UI] Error cargando statuses:', error);
+      }
     };
     
     // Cargar campos personalizados para la interfaz custom de settings
@@ -1577,15 +1796,18 @@ define(['jquery'], function ($) {
       const savedConfig = await self.loadConfigFromServer() || {};
       console.log('📥 [SUBMISSION] Configuración cargada:', savedConfig);
       
-      // Verificar si está configurado
-      const localAuth = localStorage.getItem(`google_auth_${kommoUserId}`);
-      const authTimestamp = localStorage.getItem(`google_auth_timestamp_${kommoUserId}`);
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      // Verificar autenticación con el servidor
       let isConfigured = false;
-      
-      if (localAuth === 'true' && authTimestamp) {
-        const isExpired = (Date.now() - parseInt(authTimestamp)) > sevenDays;
-        isConfigured = !isExpired;
+      try {
+        const response = await fetch(`${SERVER_URL}/auth/status?userId=${kommoUserId}`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        isConfigured = data.authenticated || false;
+        console.log('🔐 [SUBMISSION] Estado de autenticación:', isConfigured);
+      } catch (error) {
+        console.error('❌ [SUBMISSION] Error verificando autenticación:', error);
+        isConfigured = false;
       }
       
       if (!isConfigured) {
@@ -1649,7 +1871,7 @@ define(['jquery'], function ($) {
       html += self.render({ ref: '/tmpl/controls/input.twig' }, {
         name: 'gc_sub_nombre',
         id: 'gc_sub_nombre',
-        value: leadName,
+        value: `Reunión con ${leadName}`,
         placeholder: 'Ej: Reunión de ventas'
       }, true);
       html += '</div>';
@@ -1682,13 +1904,13 @@ define(['jquery'], function ($) {
       html += '<div id="gc_sub_calendar_wrapper"><label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500;">Calendario:</label>';
       html += '<select id="gc_sub_calendar" name="gc_sub_calendar" style="width: 100%; padding: 8px; border: 1px solid #d5d8dd; border-radius: 3px; font-size: 13px;"><option value="">Cargando...</option></select></div>';
       
-      // Checkbox
-      html += '<div style="margin-top: 4px;">';
-      html += self.render({ ref: '/tmpl/controls/checkbox.twig' }, {
-        name: 'gc_sub_mover_etapa',
-        id: 'gc_sub_mover_etapa',
-        text: 'Mover a etapa "Cita agendada"',
-        small: true
+      // Toggle para mover a etapa
+      html += '<div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 4px;">';
+      html += '<label style="font-size: 13px; font-weight: 500; margin: 0;">Mover a etapa configurada:</label>';
+      html += self.render({ ref: '/tmpl/controls/toggle.twig' }, {
+        name: 'gc_sub_move_stage',
+        id: 'gc_sub_move_stage',
+        class_name: 'gc-toggle-move-stage'
       }, true);
       html += '</div>';
       

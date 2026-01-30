@@ -338,34 +338,31 @@ define(['jquery'], function ($) {
       console.log('Duplicando lead...');
       $('#km-duplicate-btn').prop('disabled', true).text('Duplicando...');
 
-      // Preparar datos para el nuevo lead
+      // Preparar datos para el nuevo lead (solo nombre básico y contacto principal)
       var newLeadData = [{
         name: currentLeadData.name + ' (Copia)',
-        price: currentLeadData.price || 0,
         status_id: parseInt(selectedStatus),
         pipeline_id: parseInt(selectedPipeline),
-        responsible_user_id: currentLeadData.responsible_user_id,
-        custom_fields_values: currentLeadData.custom_fields_values || [],
         _embedded: {}
       }];
 
-      // Agregar contactos si existen
+      // Agregar solo el contacto principal si existe
       if (currentLeadData._embedded && currentLeadData._embedded.contacts) {
-        newLeadData[0]._embedded.contacts = currentLeadData._embedded.contacts.map(function(contact) {
-          return {
-            id: contact.id,
-            is_main: contact.is_main || false
-          };
+        var mainContact = currentLeadData._embedded.contacts.find(function(contact) {
+          return contact.is_main === true;
         });
-      }
-
-      // Agregar empresas si existen
-      if (currentLeadData._embedded && currentLeadData._embedded.companies) {
-        newLeadData[0]._embedded.companies = currentLeadData._embedded.companies.map(function(company) {
-          return {
-            id: company.id
-          };
-        });
+        
+        // Si no hay contacto principal, tomar el primero
+        if (!mainContact && currentLeadData._embedded.contacts.length > 0) {
+          mainContact = currentLeadData._embedded.contacts[0];
+        }
+        
+        if (mainContact) {
+          newLeadData[0]._embedded.contacts = [{
+            id: mainContact.id,
+            is_main: true
+          }];
+        }
       }
 
       console.log('Datos para el nuevo lead:', newLeadData);

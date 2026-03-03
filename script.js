@@ -1,4 +1,4 @@
-define(['jquery'], function ($) {
+﻿define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
     let tokenClient;
@@ -19,7 +19,6 @@ define(['jquery'], function ($) {
         contentType: 'application/json',
         data: botLaunch,
         success: function(data) {
-          console.log('Respuesta del bot:', data);
         },
         error: function(xhr, status, error) {
           console.error('Error al ejecutar el bot:', status, error, xhr.responseText);
@@ -63,30 +62,25 @@ define(['jquery'], function ($) {
     // Función para cargar configuración desde el servidor
     this.loadConfigFromServer = async function() {
       if (!kommoUserId) {
-        console.warn('⚠️ [CONFIG] No hay userId disponible');
         return null;
       }
       
       try {
-        console.log('📥 [CONFIG] Cargando configuración desde servidor para usuario:', kommoUserId);
         const response = await fetch(`${SERVER_URL}/api/widget/config?userId=${kommoUserId}`, {
           credentials: 'include'
         });
         
         if (!response.ok) {
           if (response.status === 404) {
-            console.log('📥 [CONFIG] No hay configuración guardada en servidor');
             return null;
           }
           throw new Error('Error cargando configuración');
         }
         
         const data = await response.json();
-        console.log('✅ [CONFIG] Configuración cargada desde servidor:', data);
         return data.config || data;
         
       } catch (error) {
-        console.warn('⚠️ [CONFIG] Error cargando desde servidor:', error.message);
         return null;
       }
     };
@@ -94,22 +88,16 @@ define(['jquery'], function ($) {
     this.callbacks = {
       settings: function () {
         // Implementar lógica para campo custom en settings
-        console.log('⚙️ [SETTINGS_CALLBACK] Inicializando campo custom...');
-        console.log('⚙️ [SETTINGS_CALLBACK] self.get_settings():', self.get_settings());
-        console.log('⚙️ [SETTINGS_CALLBACK] self.system():', self.system());
         
         // Obtener account ID en contexto de settings (si no se obtuvo en init)
         if (!kommoUserId) {
           try {
             if (typeof APP !== 'undefined' && APP.constant && APP.constant('account')) {
               kommoUserId = APP.constant('account').id;
-              console.log('⚙️ [SETTINGS_CALLBACK] Kommo Account ID desde APP:', kommoUserId);
             } else if (typeof AMOCRM !== 'undefined' && AMOCRM.constant && AMOCRM.constant('account')) {
               kommoUserId = AMOCRM.constant('account').id;
-              console.log('⚙️ [SETTINGS_CALLBACK] Kommo Account ID desde AMOCRM:', kommoUserId);
             } else {
               kommoUserId = 'default-user';
-              console.log('⚠️ [SETTINGS_CALLBACK] No se pudo obtener account ID, usando default');
             }
           } catch (e) {
             console.error('❌ [SETTINGS_CALLBACK] Error obteniendo account ID:', e);
@@ -120,37 +108,27 @@ define(['jquery'], function ($) {
         setTimeout(function() {
           // Obtener código del widget desde las settings
           const widgetSettings = self.get_settings();
-          console.log('⚙️ [SETTINGS_CALLBACK] widgetSettings completo:', JSON.stringify(widgetSettings, null, 2));
           
           const widgetCode = widgetSettings.widget_code || 'google_calendar';
-          console.log('⚙️ [SETTINGS_CALLBACK] widgetCode:', widgetCode);
           
           // ID del div donde inyectaremos nuestra interfaz
           const customContentId = `${widgetCode}_custom_content`;
           const customInputId = `${widgetCode}_custom`;
           
-          console.log('⚙️ [SETTINGS_CALLBACK] Custom content ID:', customContentId);
-          console.log('⚙️ [SETTINGS_CALLBACK] Custom input ID:', customInputId);
           
           // Verificar si existen los elementos en el DOM
           const contentElement = document.getElementById(customContentId);
           const inputElement = document.getElementById(customInputId);
           
-          console.log('⚙️ [SETTINGS_CALLBACK] Content element existe?:', !!contentElement, contentElement);
-          console.log('⚙️ [SETTINGS_CALLBACK] Input element existe?:', !!inputElement, inputElement);
           
           // Listar todos los divs que tienen "custom" en el ID
           const allDivs = document.querySelectorAll('div[id*="custom"]');
-          console.log('⚙️ [SETTINGS_CALLBACK] Divs con "custom" en ID:', allDivs.length);
           allDivs.forEach(div => {
-            console.log('  - Div encontrado:', div.id, div);
           });
           
           // Listar todos los inputs que tienen "custom" en el ID o name
           const allInputs = document.querySelectorAll('input[id*="custom"], input[name*="custom"]');
-          console.log('⚙️ [SETTINGS_CALLBACK] Inputs con "custom" en ID/name:', allInputs.length);
           allInputs.forEach(input => {
-            console.log('  - Input encontrado:', input.id, input.name, input);
           });
           
           // Construir interfaz personalizada
@@ -160,41 +138,32 @@ define(['jquery'], function ($) {
         return true;
       },
       init: function () {
-        console.log('🔵 [INIT] Widget inicializando...');
         
         // Obtener ID de la cuenta de Kommo (consistente en todos los contextos)
         try {
           if (typeof APP !== 'undefined' && APP.constant && APP.constant('account')) {
             kommoUserId = APP.constant('account').id;
-            console.log('🔵 [INIT] Kommo Account ID:', kommoUserId);
           } else if (typeof AMOCRM !== 'undefined' && AMOCRM.constant && AMOCRM.constant('account')) {
             kommoUserId = AMOCRM.constant('account').id;
-            console.log('🔵 [INIT] Kommo Account ID (AMOCRM):', kommoUserId);
           } else {
             kommoUserId = 'default-user';
-            console.log('⚠️ [INIT] No se pudo obtener el account ID, usando default-user');
           }
         } catch (e) {
           console.error('❌ [INIT] Error obteniendo account ID de Kommo:', e);
           kommoUserId = 'default-user';
         }
         
-        console.log('🔵 [INIT] Account ID final establecido:', kommoUserId);
         
         // Verificar sesión de forma silenciosa (sin manipular DOM)
         // Esto solo actualiza la variable isAuthenticated para uso posterior
-        console.log('🔵 [INIT] Verificando sesión silenciosamente...');
         self.checkExistingSession().then(function(authenticated) {
-          console.log('🔵 [INIT] Estado de autenticación:', authenticated);
         }).catch(function(error) {
-          console.warn('⚠️ [INIT] Error en verificación de sesión:', error);
         });
         
         self.loadCSS();
         
         // Agregar fuente personalizada en el control de envío
         self.add_source('custom', function($el) {
-          console.log('📝 [SOURCE] Inicializando fuente de agendamiento...');
           self.renderSubmissionControl($el);
         }, '📅 Agendar Reunión');
         
@@ -244,12 +213,10 @@ define(['jquery'], function ($) {
       render: function () {
         // Detectar en qué ubicación estamos
         const currentArea = self.system().area;
-        console.log('🎯 [RENDER] Área actual:', currentArea);
         
         if (currentArea === 'settings') {
           // En settings NO usamos render_template, la UI se inyecta en el campo custom
           // desde el callback settings()
-          console.log('🎯 [RENDER] En settings - NO renderizar template, usar campo custom');
           return true;
         } else {
           // En otras áreas (lcard, ccard, comcard) renderizamos normalmente
@@ -405,30 +372,22 @@ define(['jquery'], function ($) {
 
     // Verificar si ya hay una sesión activa en el servidor
     this.checkExistingSession = async function() {
-      console.log('🟡 [CHECK_SESSION] Iniciando verificación de sesión...');
-      console.log('🟡 [CHECK_SESSION] SERVER_URL:', SERVER_URL);
-      console.log('🟡 [CHECK_SESSION] Account ID:', kommoUserId);
       
       // Verificar SOLO con el servidor - sin localStorage
       try {
         const url = `${SERVER_URL}/auth/status?userId=${kommoUserId}`;
-        console.log('🟡 [CHECK_SESSION] Llamando a:', url);
         
         const response = await fetch(url, {
           credentials: 'include'
         });
         
-        console.log('🟡 [CHECK_SESSION] Response status:', response.status);
         
         const data = await response.json();
-        console.log('🟡 [CHECK_SESSION] Response data:', JSON.stringify(data, null, 2));
         
         if (data.authenticated) {
-          console.log('✅ [CHECK_SESSION] Usuario autenticado en servidor!');
           isAuthenticated = true;
           return true;
         } else {
-          console.log('ℹ️ [CHECK_SESSION] No hay sesión activa en servidor');
           isAuthenticated = false;
           return false;
         }
@@ -441,20 +400,17 @@ define(['jquery'], function ($) {
 
     // Cargar calendarios desde el servidor
     this.loadCalendarsFromServer = async function() {
-      console.log('📅 [CALENDARS] Cargando calendarios para usuario:', kommoUserId);
       try {
         const response = await fetch(`${SERVER_URL}/api/calendars?userId=${kommoUserId}`, {
           credentials: 'include'
         });
         
-        console.log('📅 [CALENDARS] Response status:', response.status);
         
         if (!response.ok) {
           throw new Error('Error obteniendo calendarios');
         }
         
         const calendars = await response.json();
-        console.log('📅 [CALENDARS] Calendarios recibidos:', calendars.length);
         
         if (!calendars || calendars.length === 0) {
           self.showSnackbar('No se encontraron calendarios', 'warning');
@@ -466,7 +422,6 @@ define(['jquery'], function ($) {
         
         // Verificar que el dropdown existe antes de usarlo
         if (!dropdown) {
-          console.warn('⚠️ [CALENDARS] Dropdown no existe aún en el DOM, guardando calendarios para después');
           // Guardar calendarios para cuando el DOM esté listo
           window.pendingCalendars = calendars;
           return;
@@ -486,7 +441,6 @@ define(['jquery'], function ($) {
           dropdown.appendChild(option);
         });
         
-        console.log(`✅ ${calendars.length} calendarios cargados desde el servidor`);
         
       } catch (error) {
         console.error('❌ [CALENDARS] Error cargando calendarios desde servidor:', error);
@@ -522,7 +476,6 @@ define(['jquery'], function ($) {
       try {
         // Verificar que gapi esté inicializado y autorizado
         if (!gapi.client || !gapi.client.getToken()) {
-          console.warn('Usuario no autorizado, usando calendarios estáticos');
           self.loadStaticCalendars();
           return;
         }
@@ -554,7 +507,6 @@ define(['jquery'], function ($) {
           dropdown.appendChild(option);
         });
         
-        console.log(`${calendars.length} calendarios cargados exitosamente`);
         self.showSnackbar('Calendarios cargados exitosamente', 'success', 2000);
       } catch (error) {
         console.error('Error cargando calendarios desde Google API:', error);
@@ -579,7 +531,6 @@ define(['jquery'], function ($) {
       
       // Verificar que el dropdown existe antes de usarlo
       if (!dropdown) {
-        console.warn('⚠️ [STATIC_CALENDARS] Dropdown no existe aún en el DOM, guardando calendarios para después');
         // Guardar calendarios para cuando el DOM esté listo
         window.pendingCalendars = calendars;
         return;
@@ -608,34 +559,27 @@ define(['jquery'], function ($) {
     // Inicializar Google API (no se usa con servidor)
     this.gapiLoaded = function() {
       // Ya no es necesario - el servidor maneja la autenticación
-      console.log('GAPI no es necesario - usando servidor backend');
     };
 
     this.initializeGapiClient = async function() {
       // Ya no es necesario - el servidor maneja la autenticación
-      console.log('GAPI Client no es necesario - usando servidor backend');
     };
 
     // Inicializar Google OAuth (no se usa con servidor)
     this.gisLoaded = function() {
       // Ya no es necesario - el servidor maneja la autenticación
-      console.log('GIS no es necesario - usando servidor backend');
     };
 
     // Función de autorización de Google (usando servidor)
     this.authorizeGoogle = async function() {
-      console.log('🔐 [AUTH] Iniciando autorización de Google...');
-      console.log('🔐 [AUTH] Usuario Kommo:', kommoUserId);
       
       try {
         self.showSnackbar('Conectando con Google...', 'info', 2000);
         
         // Obtener URL de autorización del servidor
         const url = `/auth/google/url?userId=${kommoUserId}`;
-        console.log('🔐 [AUTH] Solicitando URL de auth:', url);
         
         const data = await serverFetch(url);
-        console.log('🔐 [AUTH] Respuesta del servidor:', data);
         
         if (!data.authUrl) {
           throw new Error('No se pudo obtener la URL de autorización');
@@ -647,7 +591,6 @@ define(['jquery'], function ($) {
         const left = (screen.width - width) / 2;
         const top = (screen.height - height) / 2;
         
-        console.log('🔐 [AUTH] Abriendo ventana popup...');
         window.open(
           data.authUrl,
           'Google Authorization',
@@ -662,14 +605,12 @@ define(['jquery'], function ($) {
 
     // Función de cierre de sesión (usando servidor)
     this.signOutGoogle = async function() {
-      console.log('🔓 [SIGNOUT] Cerrando sesión para usuario:', kommoUserId);
       try {
         // Enviar userId en query string para logout
         await serverFetch(`/auth/logout?userId=${kommoUserId}`, { 
           method: 'POST'
         });
         
-        console.log('✅ [SIGNOUT] Sesión cerrada en el servidor');
         
         isAuthenticated = false;
         
@@ -741,7 +682,6 @@ define(['jquery'], function ($) {
             dataType: 'json'
           });
           responsibleUserName = userResponse.name;
-          console.log('👤 [USER] Usuario responsable:', responsibleUserName);
         } catch (error) {
           console.error('❌ [USER] Error obteniendo usuario:', error);
         }
@@ -787,19 +727,15 @@ define(['jquery'], function ($) {
 
         // PATCH: Actualizar el lead con el link de Meet y la fecha
         const fechaUnix = Math.floor(startDateTime.getTime() / 1000);
-        console.log("📝 Preparando PATCH al lead:", leadId, "con link:", meetLink, "y fecha:", fechaUnix);
         
         // Obtener IDs de campos desde la configuración del servidor
         const savedConfig = await self.loadConfigFromServer();
-        console.log('🔍 [DEBUG] Configuración cargada para PATCH:', savedConfig);
         
         const meetLinkFieldId = savedConfig?.meet_link_field_id ? parseInt(savedConfig.meet_link_field_id) : null;
         const dateFieldId = savedConfig?.date_field_id ? parseInt(savedConfig.date_field_id) : null;
         
-        console.log("📝 Usando field_ids desde configuración:", { meetLinkFieldId, dateFieldId });
 
         if (!meetLinkFieldId || !dateFieldId) {
-          console.warn('⚠️ No se encontraron field IDs en la configuración, saltando PATCH');
           self.showSnackbar('⚠️ Reunión creada pero no se actualizó el lead (falta configuración)', 'warning');
         } else {
           await $.ajax({
@@ -819,7 +755,6 @@ define(['jquery'], function ($) {
               ]
             }),
             success: function(data) {
-              console.log("✅ PATCH exitoso en el lead:", data);
               self.showSnackbar("Lead actualizado con datos de la reunión", 'info');
             },
             error: function(xhr, status, error) {
@@ -838,17 +773,14 @@ define(['jquery'], function ($) {
           const moveStatusId = savedConfig?.status_id ? parseInt(savedConfig.status_id) : null;
           
           if (!moveStatusId) {
-            console.warn('⚠️ No se ha configurado una etapa de destino en Settings');
             self.showSnackbar('⚠️ Configura la etapa de destino en Settings', 'warning');
           } else {
-            console.log("Moviendo lead a etapa configurada con status_id:", moveStatusId);
             await $.ajax({
               url: '/api/v4/leads/' + leadId,
               method: 'PATCH',
               contentType: 'application/json',
               data: JSON.stringify({status_id: moveStatusId }),
               success: function(data) {
-                console.log("Lead movido de etapa:", data);
                 self.showSnackbar("Lead movido a etapa configurada", 'success');
               },
               error: function(xhr, status, error) {
@@ -871,39 +803,15 @@ define(['jquery'], function ($) {
     
     // Construir interfaz personalizada en el campo custom de settings
     this.buildCustomSettingsUI = async function(customContentId, customInputId) {
-      console.log('🎨 [CUSTOM_UI] ========================================');
-      console.log('🎨 [CUSTOM_UI] Construyendo interfaz personalizada...');
-      console.log('🎨 [CUSTOM_UI] customContentId recibido:', customContentId);
-      console.log('🎨 [CUSTOM_UI] customInputId recibido:', customInputId);
       
       const container = document.getElementById(customContentId);
       const hiddenInput = document.getElementById(customInputId);
       
-      console.log('🎨 [CUSTOM_UI] Container encontrado?:', !!container);
-      console.log('🎨 [CUSTOM_UI] Container element:', container);
-      console.log('🎨 [CUSTOM_UI] Hidden input encontrado?:', !!hiddenInput);
-      console.log('🎨 [CUSTOM_UI] Hidden input element:', hiddenInput);
       
       if (!container) {
-        console.error('❌ [CUSTOM_UI] No se encontró el contenedor:', customContentId);
-        console.error('❌ [CUSTOM_UI] Buscando elementos alternativos...');
-        
-        // Buscar cualquier div que contenga "custom" en el ID
-        const allCustomDivs = document.querySelectorAll('div[id*="custom"]');
-        console.error('❌ [CUSTOM_UI] Divs con "custom" encontrados:', allCustomDivs.length);
-        allCustomDivs.forEach(div => {
-          console.error('  - Candidato:', div.id, div);
-        });
-        
-        // Intentar buscar en el DOM completo
-        console.error('❌ [CUSTOM_UI] Estructura del DOM en settings:');
-        console.error(document.body.innerHTML.substring(0, 2000));
-        
         return;
       }
       
-      console.log('✅ [CUSTOM_UI] Contenedor encontrado correctamente');
-      console.log('✅ [CUSTOM_UI] Iniciando construcción de HTML...');
       
       // Forzar visibilidad del contenedor y sus padres
       container.style.display = 'block';
@@ -914,23 +822,14 @@ define(['jquery'], function ($) {
       
       // Verificar estilos computados del contenedor
       const computedStyles = window.getComputedStyle(container);
-      console.log('🎨 [CUSTOM_UI] Estilos computados del contenedor:');
-      console.log('  - display:', computedStyles.display);
-      console.log('  - visibility:', computedStyles.visibility);
-      console.log('  - opacity:', computedStyles.opacity);
-      console.log('  - height:', computedStyles.height);
-      console.log('  - overflow:', computedStyles.overflow);
       
       // Verificar el padre del contenedor y forzar visibilidad
       let parentElement = container.parentElement;
       while (parentElement && parentElement !== document.body) {
-        console.log('🎨 [CUSTOM_UI] Verificando padre:', parentElement.tagName, parentElement.className, parentElement.id);
         const parentStyles = window.getComputedStyle(parentElement);
-        console.log('  - display:', parentStyles.display);
         
         // Forzar visibilidad si está oculto
         if (parentStyles.display === 'none') {
-          console.log('⚠️ [CUSTOM_UI] Padre oculto - forzando visibilidad');
           parentElement.style.display = 'block';
         }
         if (parentStyles.visibility === 'hidden') {
@@ -945,10 +844,8 @@ define(['jquery'], function ($) {
       try {
         if (hiddenInput && hiddenInput.value) {
           savedConfig = JSON.parse(hiddenInput.value);
-          console.log('📦 [CUSTOM_UI] Configuración cargada:', savedConfig);
         }
       } catch (e) {
-        console.warn('⚠️ [CUSTOM_UI] Error parseando configuración:', e);
       }
       
       // Construir HTML usando controles nativos de Kommo
@@ -1032,11 +929,9 @@ define(['jquery'], function ($) {
       html += '</ol></div></div>';
       
       container.innerHTML = html;
-      console.log('✅ [CUSTOM_UI] HTML inyectado en el contenedor');
       
       // Cargar configuración guardada PRIMERO
       const loadedConfig = await self.loadConfigFromServer() || {};
-      console.log('📥 [CUSTOM_UI] Configuración cargada para prellenar:', loadedConfig);
       
       // Vincular eventos
       self.bindCustomSettingsEvents(hiddenInput, loadedConfig);
@@ -1053,7 +948,6 @@ define(['jquery'], function ($) {
     
     // Vincular eventos de la interfaz custom de settings
     this.bindCustomSettingsEvents = function(hiddenInput, savedConfig) {
-      console.log('🔗 [CUSTOM_UI] Vinculando eventos...');
       
       // Botón de autorización
       $('#gc_authorize_button').off('click').on('click', function() {
@@ -1074,15 +968,6 @@ define(['jquery'], function ($) {
         const dateFieldWrapper = $('#gc_date_field_wrapper');
         const calendarWrapper = $('#gc_calendar_select_wrapper');
         
-        console.log('🔍 [DEBUG] Wrappers encontrados:', {
-          meet: meetFieldWrapper.length,
-          date: dateFieldWrapper.length,
-          calendar: calendarWrapper.length
-        });
-        
-        console.log('🔍 [DEBUG] HTML de meet wrapper:', meetFieldWrapper.html());
-        console.log('🔍 [DEBUG] HTML de date wrapper:', dateFieldWrapper.html());
-        
         // Intentar acceder al input/select dentro del control nativo
         const meetFieldValue = meetFieldWrapper.find('input[name="gc_meet_field"]').val() || 
                                meetFieldWrapper.find('select[name="gc_meet_field"]').val() ||
@@ -1095,12 +980,6 @@ define(['jquery'], function ($) {
         const calendarValue = calendarWrapper.find('input[name="gc_calendar_select"]').val() || 
                               calendarWrapper.find('select[name="gc_calendar_select"]').val() ||
                               calendarWrapper.find('[name="gc_calendar_select"]').val();
-        
-        console.log('🔍 [DEBUG] Valores encontrados:', {
-          meet: meetFieldValue,
-          date: dateFieldValue,
-          calendar: calendarValue
-        });
         
         // Capturar valores de pipeline y status
         const pipelineWrapper = $('#gc_pipeline_wrapper');
@@ -1122,7 +1001,6 @@ define(['jquery'], function ($) {
           status_id: statusValue
         };
         
-        console.log('📋 [CONFIG] Valores capturados:', config);
         
         if (!config.meet_link_field_id || !config.date_field_id) {
           alert('Por favor selecciona ambos campos personalizados');
@@ -1136,7 +1014,6 @@ define(['jquery'], function ($) {
         
         try {
           // Guardar en el servidor (base de datos)
-          console.log('💾 [CUSTOM_UI] Guardando configuración en servidor...');
           const response = await fetch(`${SERVER_URL}/api/widget/config`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1151,7 +1028,6 @@ define(['jquery'], function ($) {
             throw new Error('Error guardando en servidor');
           }
           
-          console.log('✅ [CUSTOM_UI] Configuración guardada en servidor');
           
           // También guardar en el hidden input para compatibilidad
           if (hiddenInput) {
@@ -1177,8 +1053,6 @@ define(['jquery'], function ($) {
     
     // Cargar pipelines para la interfaz custom de settings
     this.loadPipelinesForSettings = async function(savedConfig = {}) {
-      console.log('🔀 [CUSTOM_UI] Cargando pipelines...');
-      console.log('🔀 [CUSTOM_UI] Config para preseleccionar:', savedConfig);
       
       try {
         const response = await $.ajax({
@@ -1188,7 +1062,6 @@ define(['jquery'], function ($) {
         });
         
         const pipelines = response._embedded.pipelines;
-        console.log('🔀 [CUSTOM_UI] Pipelines recibidos:', pipelines.length);
         
         // Build items for Pipeline select
         const pipelineItems = pipelines.map(pipeline => ({
@@ -1208,7 +1081,6 @@ define(['jquery'], function ($) {
         }, true);
         $('#gc_pipeline_wrapper').html(pipelineSelectHtml);
         
-        console.log('✅ [CUSTOM_UI] Pipeline select renderizado con', pipelineItems.length, 'opciones, selected:', selectedPipelineId);
         
         // Cargar statuses si hay un pipeline guardado
         if (savedConfig.pipeline_id) {
@@ -1230,7 +1102,6 @@ define(['jquery'], function ($) {
     
     // Cargar statuses (etapas) de un pipeline específico
     this.loadStatusesForSettings = async function(pipelineId, savedConfig = {}) {
-      console.log('📊 [CUSTOM_UI] Cargando statuses para pipeline:', pipelineId);
       
       try {
         const response = await $.ajax({
@@ -1240,7 +1111,6 @@ define(['jquery'], function ($) {
         });
         
         const statuses = response._embedded.statuses;
-        console.log('📊 [CUSTOM_UI] Statuses recibidos:', statuses.length);
         
         // Build items for Status select
         const statusItems = statuses.map(status => ({
@@ -1260,7 +1130,6 @@ define(['jquery'], function ($) {
         }, true);
         $('#gc_status_wrapper').html(statusSelectHtml);
         
-        console.log('✅ [CUSTOM_UI] Status select renderizado con', statusItems.length, 'opciones, selected:', selectedStatusId);
         
       } catch (error) {
         console.error('❌ [CUSTOM_UI] Error cargando statuses:', error);
@@ -1269,8 +1138,6 @@ define(['jquery'], function ($) {
     
     // Cargar pipelines para la interfaz custom de settings
     this.loadPipelinesForSettings = async function(savedConfig = {}) {
-      console.log('🔀 [CUSTOM_UI] Cargando pipelines...');
-      console.log('🔀 [CUSTOM_UI] Config para preseleccionar:', savedConfig);
       
       try {
         const response = await $.ajax({
@@ -1280,7 +1147,6 @@ define(['jquery'], function ($) {
         });
         
         const pipelines = response._embedded.pipelines;
-        console.log('🔀 [CUSTOM_UI] Pipelines recibidos:', pipelines.length);
         
         // Build items for Pipeline select
         const pipelineItems = pipelines.map(pipeline => ({
@@ -1300,7 +1166,6 @@ define(['jquery'], function ($) {
         }, true);
         $('#gc_pipeline_wrapper').html(pipelineSelectHtml);
         
-        console.log('✅ [CUSTOM_UI] Pipeline select renderizado con', pipelineItems.length, 'opciones, selected:', selectedPipelineId);
         
         // Cargar statuses si hay un pipeline guardado
         if (savedConfig.pipeline_id) {
@@ -1322,7 +1187,6 @@ define(['jquery'], function ($) {
     
     // Cargar statuses (etapas) de un pipeline específico
     this.loadStatusesForSettings = async function(pipelineId, savedConfig = {}) {
-      console.log('📊 [CUSTOM_UI] Cargando statuses para pipeline:', pipelineId);
       
       try {
         const response = await $.ajax({
@@ -1332,7 +1196,6 @@ define(['jquery'], function ($) {
         });
         
         const statuses = response._embedded.statuses;
-        console.log('📊 [CUSTOM_UI] Statuses recibidos:', statuses.length);
         
         // Build items for Status select
         const statusItems = statuses.map(status => ({
@@ -1352,7 +1215,6 @@ define(['jquery'], function ($) {
         }, true);
         $('#gc_status_wrapper').html(statusSelectHtml);
         
-        console.log('✅ [CUSTOM_UI] Status select renderizado con', statusItems.length, 'opciones, selected:', selectedStatusId);
         
       } catch (error) {
         console.error('❌ [CUSTOM_UI] Error cargando statuses:', error);
@@ -1361,8 +1223,6 @@ define(['jquery'], function ($) {
     
     // Cargar campos personalizados para la interfaz custom de settings
     this.loadCustomFieldsForSettings = async function(savedConfig = {}) {
-      console.log('📋 [CUSTOM_UI] Cargando campos personalizados...');
-      console.log('📋 [CUSTOM_UI] Config para preseleccionar:', savedConfig);
       
       try {
         const response = await $.ajax({
@@ -1372,7 +1232,6 @@ define(['jquery'], function ($) {
         });
         
         const customFields = response._embedded.custom_fields;
-        console.log('📋 [CUSTOM_UI] Campos recibidos:', customFields.length);
         
         // Build items for Meet Link field (text/url fields)
         const meetFieldItems = customFields
@@ -1401,7 +1260,6 @@ define(['jquery'], function ($) {
             class_name: 'gc-meet-field-select'
           }, true);
           $('#gc_meet_field_wrapper').html(meetSelectHtml);
-          console.log('📋 [CUSTOM_UI] Meet field select renderizado con', meetFieldItems.length, 'opciones, selected:', selectedMeetId);
         } else {
           $('#gc_meet_field_wrapper').html('<p style="color: #999; font-size: 12px;">No hay campos de texto/URL disponibles</p>');
         }
@@ -1417,12 +1275,10 @@ define(['jquery'], function ($) {
             class_name: 'gc-date-field-select'
           }, true);
           $('#gc_date_field_wrapper').html(dateSelectHtml);
-          console.log('📋 [CUSTOM_UI] Date field select renderizado con', dateFieldItems.length, 'opciones, selected:', selectedDateId);
         } else {
           $('#gc_date_field_wrapper').html('<p style="color: #999; font-size: 12px;">No hay campos de fecha disponibles</p>');
         }
         
-        console.log('✅ [CUSTOM_UI] Campos cargados con native controls');
         
       } catch (error) {
         console.error('❌ [CUSTOM_UI] Error cargando campos:', error);
@@ -1431,8 +1287,6 @@ define(['jquery'], function ($) {
     
     // Verificar autenticación en la interfaz custom de settings
     this.checkAuthInCustomSettings = async function(savedConfig = {}) {
-      console.log('🔐 [CUSTOM_UI] Verificando autenticación...');
-      console.log('🔐 [CUSTOM_UI] Account ID:', kommoUserId);
       
       // Verificar SOLO con el servidor
       let authenticated = false;
@@ -1443,25 +1297,18 @@ define(['jquery'], function ($) {
         });
         const data = await response.json();
         authenticated = data.authenticated || false;
-        console.log('🔐 [CUSTOM_UI] Estado de autenticación desde servidor:', authenticated);
       } catch (error) {
         console.error('❌ [CUSTOM_UI] Error verificando autenticación:', error);
         authenticated = false;
       }
       
-      console.log('🔐 [CUSTOM_UI] authenticated final:', authenticated);
       
       const authStatus = $('#gc_auth_status');
       const calendarSection = $('#gc_calendar_section');
       const fieldMapping = $('#gc_field_mapping');
       
-      console.log('🔐 [CUSTOM_UI] Elementos jQuery encontrados:');
-      console.log('  - authStatus:', authStatus.length, authStatus[0]);
-      console.log('  - calendarSection:', calendarSection.length, calendarSection[0]);
-      console.log('  - fieldMapping:', fieldMapping.length, fieldMapping[0]);
       
       if (authenticated) {
-        console.log('✅ [CUSTOM_UI] Usuario autenticado - mostrando secciones');
         $('#gc_authorize_button').hide();
         $('#gc_signout_button').show();
         
@@ -1477,7 +1324,6 @@ define(['jquery'], function ($) {
         await self.loadCalendarsInCustomSettings(savedConfig);
         
       } else {
-        console.log('⚠️ [CUSTOM_UI] Usuario NO autenticado - mostrando mensaje de advertencia');
         $('#gc_authorize_button').show();
         $('#gc_signout_button').show();
         
@@ -1489,14 +1335,11 @@ define(['jquery'], function ($) {
         calendarSection.hide();
         fieldMapping.hide();
         
-        console.log('⚠️ [CUSTOM_UI] Secciones ocultas - se debe ver el botón de autorización');
       }
     };
     
     // Cargar calendarios en la interfaz custom de settings
     this.loadCalendarsInCustomSettings = async function(savedConfig = {}) {
-      console.log('📅 [CUSTOM_UI] Cargando calendarios...');
-      console.log('📅 [CUSTOM_UI] Config para preseleccionar:', savedConfig);
       
       try {
         const response = await fetch(`${SERVER_URL}/api/calendars?userId=${kommoUserId}`, {
@@ -1529,7 +1372,6 @@ define(['jquery'], function ($) {
         
         $('#gc_calendar_select_wrapper').html(selectHtml);
         
-        console.log('✅ [CUSTOM_UI] Calendarios cargados con native control:', calendarItems.length, 'calendarios, selected:', selectedCalendarId);
         
       } catch (error) {
         console.error('❌ [CUSTOM_UI] Error cargando calendarios:', error);
@@ -1541,7 +1383,6 @@ define(['jquery'], function ($) {
     // ========================================
     
     this.renderSettingsPage = async function() {
-      console.log('⚙️ [SETTINGS] Renderizando página de configuración...');
       
       var html = '' +
         '<div class="km-google-calendar-widget" style="max-width: 800px;">' +
@@ -1598,7 +1439,6 @@ define(['jquery'], function ($) {
       
       // NO renderizar template - evita que aparezca en panel derecho
       // El widget solo aparece en Settings (custom field) y Quick Actions (submission)
-      console.log('⚙️ [SETTINGS] Settings page rendered (deprecated - usando custom field)');
       
       // Cargar campos personalizados de la API
       setTimeout(function() {
@@ -1609,7 +1449,6 @@ define(['jquery'], function ($) {
     
     // Cargar campos personalizados de leads desde la API de Kommo
     this.loadCustomFields = async function() {
-      console.log('📋 [SETTINGS] Cargando campos personalizados...');
       try {
         const response = await $.ajax({
           url: '/api/v4/leads/custom_fields',
@@ -1618,13 +1457,11 @@ define(['jquery'], function ($) {
         });
         
         const customFields = response._embedded.custom_fields;
-        console.log('📋 [SETTINGS] Campos personalizados recibidos:', customFields.length);
         
         const meetLinkSelect = document.getElementById('meet_link_field_select');
         const dateFieldSelect = document.getElementById('date_field_select');
         
         if (!meetLinkSelect || !dateFieldSelect) {
-          console.warn('⚠️ [SETTINGS] Dropdowns de campos no encontrados');
           return;
         }
         
@@ -1661,7 +1498,6 @@ define(['jquery'], function ($) {
           }
         });
         
-        console.log('✅ [SETTINGS] Campos personalizados cargados en dropdowns');
         
       } catch (error) {
         console.error('❌ [SETTINGS] Error cargando campos personalizados:', error);
@@ -1671,7 +1507,6 @@ define(['jquery'], function ($) {
     
     // Verificar sesión en la página de settings
     this.checkExistingSessionInSettings = async function() {
-      console.log('⚙️ [SETTINGS] Verificando sesión en settings...');
       
       // Verificar localStorage primero
       const localAuth = localStorage.getItem(`google_auth_${kommoUserId}`);
@@ -1684,7 +1519,6 @@ define(['jquery'], function ($) {
         const isExpired = (Date.now() - parseInt(authTimestamp)) > sevenDays;
         if (!isExpired) {
           authenticated = true;
-          console.log('✅ [SETTINGS] Sesión válida en localStorage');
         }
       }
       
@@ -1727,7 +1561,6 @@ define(['jquery'], function ($) {
     
     // Cargar calendarios en la página de settings
     this.loadCalendarsInSettings = async function() {
-      console.log('📅 [SETTINGS] Cargando calendarios en settings...');
       try {
         const response = await fetch(`${SERVER_URL}/api/calendars?userId=${kommoUserId}`, {
           credentials: 'include'
@@ -1738,7 +1571,6 @@ define(['jquery'], function ($) {
         }
         
         const calendars = await response.json();
-        console.log('📅 [SETTINGS] Calendarios recibidos:', calendars.length);
         
         const dropdown = document.getElementById('settings_calendar_dropdown');
         if (dropdown) {
@@ -1763,7 +1595,6 @@ define(['jquery'], function ($) {
     
     // Guardar mapeo de campos desde settings
     this.saveFieldMapping = function() {
-      console.log('💾 [SETTINGS] Guardando configuración de campos...');
       
       const meetLinkFieldId = document.getElementById('meet_link_field_select').value;
       const dateFieldId = document.getElementById('date_field_select').value;
@@ -1780,7 +1611,6 @@ define(['jquery'], function ($) {
         google_calendar_configured: 'true'
       });
       
-      console.log('✅ [SETTINGS] Configuración guardada:', { meetLinkFieldId, dateFieldId });
       self.showSnackbar('✅ Configuración guardada correctamente', 'success');
     };
 
@@ -1790,11 +1620,9 @@ define(['jquery'], function ($) {
     
     // Renderizar formulario en el submission control (área de envío en el feed)
     this.renderSubmissionControl = async function($el) {
-      console.log('📝 [SUBMISSION] Renderizando control de agendamiento...');
       
       // Cargar configuración guardada
       const savedConfig = await self.loadConfigFromServer() || {};
-      console.log('📥 [SUBMISSION] Configuración cargada:', savedConfig);
       
       // Verificar autenticación con el servidor
       let isConfigured = false;
@@ -1804,7 +1632,6 @@ define(['jquery'], function ($) {
         });
         const data = await response.json();
         isConfigured = data.authenticated || false;
-        console.log('🔐 [SUBMISSION] Estado de autenticación:', isConfigured);
       } catch (error) {
         console.error('❌ [SUBMISSION] Error verificando autenticación:', error);
         isConfigured = false;
@@ -1834,8 +1661,6 @@ define(['jquery'], function ($) {
         
         leadName = leadResponse.name;
         
-        console.log('📧 [SUBMISSION] leadResponse._embedded:', leadResponse._embedded);
-        console.log('📧 [SUBMISSION] contacts:', leadResponse._embedded?.contacts);
         
         // Verificar que existan contactos antes de acceder
         const mainContact = leadResponse._embedded?.contacts?.find(contact => contact.is_main);
@@ -1847,8 +1672,6 @@ define(['jquery'], function ($) {
             dataType: 'json',
           });
           
-          console.log('📧 [SUBMISSION] contactResponse:', contactResponse);
-          console.log('📧 [SUBMISSION] custom_fields_values:', contactResponse.custom_fields_values);
           
           // Verificar que existan custom_fields_values antes de acceder
           const emailField = contactResponse.custom_fields_values?.find(field => field.field_code === 'EMAIL');
@@ -1956,8 +1779,6 @@ define(['jquery'], function ($) {
     
     // Cargar calendarios en submission control
     this.loadCalendarsInSubmission = async function(savedConfig = {}) {
-      console.log('📅 [SUBMISSION] Cargando calendarios...');
-      console.log('📅 [SUBMISSION] Config para preseleccionar:', savedConfig);
       try {
         const response = await fetch(`${SERVER_URL}/api/calendars?userId=${kommoUserId}`, {
           credentials: 'include'
@@ -1991,7 +1812,6 @@ define(['jquery'], function ($) {
           '<label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500;">Calendario:</label>' + selectHtml
         );
         
-        console.log('✅ [SUBMISSION] Calendarios cargados, selected:', selectedCalendarId);
         
       } catch (error) {
         console.error('❌ [SUBMISSION] Error cargando calendarios:', error);
@@ -2006,7 +1826,6 @@ define(['jquery'], function ($) {
     
     // Vincular eventos del submission control
     this.bindSubmissionEvents = function() {
-      console.log('🔗 [SUBMISSION] Vinculando eventos...');
       
       $('#gc_sub_crear_evento').off('click').on('click', async function() {
         await self.createEventFromSubmission();
@@ -2015,7 +1834,6 @@ define(['jquery'], function ($) {
     
     // Crear evento desde el submission control
     this.createEventFromSubmission = async function() {
-      console.log('📝 [SUBMISSION] Creando evento...');
       
       const eventName = $('#gc_sub_nombre').val();
       const email = $('#gc_sub_email').val();
@@ -2028,15 +1846,6 @@ define(['jquery'], function ($) {
       const calendarId = calendarWrapper.find('input[name="gc_sub_calendar"]').val() || 
                          calendarWrapper.find('select[name="gc_sub_calendar"]').val() ||
                          calendarWrapper.find('[name="gc_sub_calendar"]').val();
-      
-      console.log('🔍 [DEBUG SUBMISSION] Valores capturados:', {
-        eventName,
-        email,
-        fecha,
-        horaInicio,
-        horaFin,
-        calendarId
-      });
       
       if (!fecha || !horaInicio || !horaFin || !calendarId) {
         self.showSnackbar('Por favor completa todos los campos obligatorios', 'warning');
@@ -2057,31 +1866,12 @@ define(['jquery'], function ($) {
       
       const fechaISO = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       
-      console.log('🔍 [DEBUG SUBMISSION] Conversión de fecha:', {
-        fechaOriginal: fecha,
-        fechaISO,
-        day,
-        month,
-        year
-      });
-      
       const startDateTime = new Date(`${fechaISO}T${horaInicio}:00`);
       const endDateTime = new Date(`${fechaISO}T${horaFin}:00`);
-      
-      console.log('🔍 [DEBUG SUBMISSION] Fechas creadas:', {
-        startString: `${fechaISO}T${horaInicio}:00`,
-        endString: `${fechaISO}T${horaFin}:00`,
-        startDateTime,
-        endDateTime,
-        startValid: !isNaN(startDateTime.getTime()),
-        endValid: !isNaN(endDateTime.getTime())
-      });
       
       const leadId = APP.data.current_card.id;
       const leadUri = document.getElementById("page_holder").baseURI;
       
-      console.log('🔍 [DEBUG SUBMISSION] Lead ID:', leadId);
-      console.log('🔍 [DEBUG SUBMISSION] Lead URI:', leadUri);
       
       try {
         self.showSnackbar('Creando evento...', 'info', 2000);
@@ -2104,7 +1894,6 @@ define(['jquery'], function ($) {
             dataType: 'json'
           });
           responsibleUserName = userResponse.name;
-          console.log('👤 [SUBMISSION USER] Usuario responsable:', responsibleUserName);
         } catch (error) {
           console.error('❌ [SUBMISSION USER] Error obteniendo usuario:', error);
         }
@@ -2153,21 +1942,12 @@ define(['jquery'], function ($) {
         
         // PATCH al lead - Cargar configuración desde el servidor
         const savedConfig = await self.loadConfigFromServer();
-        console.log('🔍 [DEBUG SUBMISSION] Configuración cargada para PATCH:', savedConfig);
         
         const fechaUnix = Math.floor(startDateTime.getTime() / 1000);
         const meetLinkFieldId = savedConfig?.meet_link_field_id ? parseInt(savedConfig.meet_link_field_id) : null;
         const dateFieldId = savedConfig?.date_field_id ? parseInt(savedConfig.date_field_id) : null;
         
-        console.log('🔍 [DEBUG SUBMISSION] Field IDs para PATCH:', {
-          meetLinkFieldId,
-          dateFieldId,
-          meetLink,
-          fechaUnix
-        });
-        
         if (!meetLinkFieldId || !dateFieldId) {
-          console.warn('⚠️ [SUBMISSION] No se encontraron field IDs en la configuración, saltando PATCH');
           self.showSnackbar('⚠️ Reunión creada pero no se actualizó el lead (falta configuración)', 'warning');
         } else {
           await $.ajax({
@@ -2187,7 +1967,6 @@ define(['jquery'], function ($) {
               ]
             }),
             success: function(data) {
-              console.log("✅ [SUBMISSION] PATCH exitoso en el lead:", data);
               self.showSnackbar("Lead actualizado con datos de la reunión", 'info');
             },
             error: function(xhr, status, error) {
@@ -2207,7 +1986,6 @@ define(['jquery'], function ($) {
             contentType: 'application/json',
             data: JSON.stringify({ status_id: NUEVO_STATUS_ID }),
             success: function(data) {
-              console.log("✅ [SUBMISSION] Lead movido de etapa:", data);
               self.showSnackbar("Lead movido a etapa 'Cita agendada'", 'success');
             },
             error: function(xhr, status, error) {
@@ -2247,15 +2025,12 @@ define(['jquery'], function ($) {
 
     // Event listener para mensajes del servidor después de autenticación
     window.addEventListener('message', async (event) => {
-      console.log('📨 [MESSAGE] Mensaje recibido:', event.data);
       
       if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-        console.log('✅ [MESSAGE] Autenticación exitosa desde servidor para usuario:', event.data.userId);
         
         // Guardar estado en localStorage como fallback para cookies cross-origin
         localStorage.setItem(`google_auth_${kommoUserId}`, 'true');
         localStorage.setItem(`google_auth_timestamp_${kommoUserId}`, Date.now().toString());
-        console.log('💾 [MESSAGE] Estado guardado en localStorage');
         
         isAuthenticated = true;
         
@@ -2288,7 +2063,6 @@ define(['jquery'], function ($) {
     });
     // Renderizar la plantilla del widget con los formularios
     this.renderTemplate = async function() {
-      console.log('🟢 [RENDER] Renderizando formulario de eventos...');
       
       const leadId = APP.data.current_card.id;
 
@@ -2305,8 +2079,6 @@ define(['jquery'], function ($) {
 
         leadName = leadResponse.name;
         
-        console.log('📧 [TEMPLATE] leadResponse._embedded:', leadResponse._embedded);
-        console.log('📧 [TEMPLATE] contacts:', leadResponse._embedded?.contacts);
 
         // Obtener el ID del contacto principal - verificar que existan contactos
         const mainContact = leadResponse._embedded?.contacts?.find(contact => contact.is_main);
@@ -2320,8 +2092,6 @@ define(['jquery'], function ($) {
             dataType: 'json',
           });
 
-          console.log('📧 [TEMPLATE] contactResponse:', contactResponse);
-          console.log('📧 [TEMPLATE] custom_fields_values:', contactResponse.custom_fields_values);
           
           // Extraer el email del contacto principal - verificar que existan custom_fields_values
           const emailField = contactResponse.custom_fields_values?.find(field => field.field_code === 'EMAIL');
@@ -2434,16 +2204,13 @@ define(['jquery'], function ($) {
       //   render: ''
       // });
       
-      console.log('🟢 [RENDER] Render callback ejecutado (sin panel derecho)');
       
       // Si está configurado, cargar calendarios
       if (isConfigured) {
         setTimeout(function() {
-          console.log('🟢 [RENDER] Cargando calendarios en formulario...');
           
           // Si hay calendarios pendientes guardados durante init(), cargarlos ahora
           if (window.pendingCalendars && window.pendingCalendars.length > 0) {
-            console.log('📅 [RENDER] Cargando calendarios pendientes:', window.pendingCalendars.length);
             const dropdown = document.getElementById("calendar_dropdown");
             if (dropdown) {
               dropdown.innerHTML = '<option value="" disabled selected>Seleccione un calendario</option>';
@@ -2456,7 +2223,6 @@ define(['jquery'], function ($) {
                 }
                 dropdown.appendChild(option);
               });
-              console.log(`✅ ${window.pendingCalendars.length} calendarios pendientes cargados`);
               window.pendingCalendars = null; // Limpiar después de cargar
             }
           } else {

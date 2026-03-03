@@ -1,8 +1,9 @@
 {
   "widget": {
-    "name": "Google Calendar Widget",
-    "short_description": "Schedule meetings with Google Calendar",
-    "description": "Create and manage meetings in Google Calendar directly from Kommo"
+    "name": "Google Calendar by YourCompany",
+    "short_description": "Schedule Google Meet meetings from Kommo",
+    "description": "Connect Google Calendar with Kommo to create and manage Google Meet meetings directly from lead and contact cards. Automatically saves meeting links and dates to custom fields. Requires a Google account.",
+    "installation_description": "Thank you for installing Google Calendar Widget!\n\nTo get started:\n1. Go to Settings → Integrations → Google Calendar Widget → Settings.\n2. Authorize your Google account.\n3. Select the pipeline and stage where meetings will be moved after scheduling.\n4. Map the custom fields for the meeting link and date.\n\nNeed help? Contact us at support@yourcompany.com or visit https://yourcompany.com/support"
   },
   "settings": {
     "google_calendar_config": "Google Calendar Configuration"

@@ -10,7 +10,8 @@
       "en",
       "es"
     ],
-    "installation": true
+    "installation": true,
+    "installation_description": "widget.installation_description"
   },
   "locations": [
     "lcard-0",

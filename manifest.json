@@ -23,14 +23,14 @@
     "is_tour": true,
     "tour_images": {
       "en": [
-        "/images/slideshow_1_en.jpg",
-        "/images/slideshow_2_en.jpg",
-        "/images/slideshow_3_en.jpg"
+        "/images/slideshow_1_en.png",
+        "/images/slideshow_2_en.png",
+        "/images/slideshow_3_en.png"
       ],
       "es": [
-        "/images/slideshow_1_es.jpg",
-        "/images/slideshow_2_es.jpg",
-        "/images/slideshow_3_es.jpg"
+        "/images/slideshow_1_es.png",
+        "/images/slideshow_2_es.png",
+        "/images/slideshow_3_es.png"
       ]
     },
     "tour_description": "widget.tour_description"

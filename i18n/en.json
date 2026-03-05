@@ -2,7 +2,8 @@
   "widget": {
     "name": "Google Calendar Widget",
     "short_description": "Schedule meetings with Google Calendar",
-    "description": "Create and manage meetings in Google Calendar directly from Kommo"
+    "description": "Create and manage meetings in Google Calendar directly from Kommo",
+    "tour_description": "Manage your Google Calendar meetings directly from Kommo"
   },
   "settings": {
     "google_calendar_config": "Google Calendar Configuration"

@@ -3,7 +3,8 @@
     "name": "Google Calendar by YourCompany",
     "short_description": "Agenda reuniones de Google Meet desde Kommo",
     "description": "Conecta Google Calendar con Kommo para crear y gestionar reuniones de Google Meet directamente desde tarjetas de leads y contactos. Guarda el enlace y la fecha en campos personalizados. Requiere cuenta de Google.",
-    "installation_description": "¡Gracias por instalar Google Calendar Widget!\n\nPara comenzar:\n1. Ve a Configuración → Integraciones → Google Calendar Widget → Configuración.\n2. Autoriza tu cuenta de Google.\n3. Selecciona el pipeline y la etapa a la que se moverán los leads tras agendar una reunión.\n4. Mapea los campos personalizados para el enlace de reunión y la fecha.\n\n¿Necesitas ayuda? Escríbenos a soporte@tuempresa.com o visita https://tuempresa.com/soporte"
+    "installation_description": "¡Gracias por instalar Google Calendar Widget!\n\nPara comenzar:\n1. Ve a Configuración → Integraciones → Google Calendar Widget → Configuración.\n2. Autoriza tu cuenta de Google.\n3. Selecciona el pipeline y la etapa a la que se moverán los leads tras agendar una reunión.\n4. Mapea los campos personalizados para el enlace de reunión y la fecha.\n\n¿Necesitas ayuda? Escríbenos a soporte@tuempresa.com o visita https://tuempresa.com/soporte",
+    "tour_description": "Agenda reuniones de Google Meet directamente desde los leads y contactos de Kommo. Conecta tu Google Calendar, mapea tus campos personalizados y comienza a reservar en segundos."
   },
   "settings": {
     "google_calendar_config": "Configuración de Google Calendar"

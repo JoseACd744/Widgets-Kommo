@@ -851,7 +851,7 @@
       // Construir HTML usando controles nativos de Kommo
       let html = '<div style="padding: 20px;">';
       html += '<h2 style="margin-top: 0; font-size: 18px; font-weight: 600; margin-bottom: 20px;">⚙️ Configuración de Google Calendar</h2>';
-      
+
       // Sección de Autenticación
       html += '<div style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 4px;">';
       html += '<h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">🔐 Autenticación de Google</h3>';

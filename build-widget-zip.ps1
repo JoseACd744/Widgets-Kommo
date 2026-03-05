@@ -37,7 +37,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = $PSScriptRoot
 
-# ─── Archivos a incluir ───────────────────────────────────────────────────────
+# ─── Archivos a incluir (base obligatoria) ───────────────────────────────────
 $filesToInclude = @(
     "manifest.json",
     "script.js",
@@ -49,6 +49,14 @@ $filesToInclude = @(
     "images\logo_min.png",
     "images\logo_small.png"
 )
+
+# ─── Agregar imágenes del tour si existen ─────────────────────────────────────
+# El tour nativo de Kommo requiere imágenes JPG de 1188×616px en /images/
+# Convención de nombre: slideshow_N_LANG.jpg  (N = 1..5, LANG = en|es|pt)
+$tourImages = Get-ChildItem -Path (Join-Path $Root "images") -Filter "slideshow_*.jpg" -ErrorAction SilentlyContinue
+foreach ($img in $tourImages) {
+    $filesToInclude += "images\$($img.Name)"
+}
 
 # ─── Verificar que todos los archivos existen ─────────────────────────────────
 Write-Host "`n[build] Verificando archivos requeridos..." -ForegroundColor Cyan
@@ -118,6 +126,29 @@ if ($manifestLocales) {
         } else {
             Write-Host "  ❌  i18n/$locale.json faltante (declarado en manifest como locale)" -ForegroundColor Red
         }
+    }
+}
+
+# Verificar tour (slideshow nativo de Kommo)
+$tourOk = $false
+if ($manifest.tour -and ($manifest.tour.is_tour -eq $true)) {
+    $totalTourImgs = 0
+    $manifest.tour.tour_images.PSObject.Properties | ForEach-Object {
+        $locale = $_.Name
+        $_.Value | ForEach-Object {
+            $imgFull = Join-Path $Root $_.TrimStart('/')
+            if (Test-Path $imgFull) {
+                $totalTourImgs++
+            } else {
+                Write-Host "  [WARN] Tour image faltante ($locale): $_  --> Crea JPG 1188x616px en images/" -ForegroundColor Yellow
+            }
+        }
+    }
+    if ($totalTourImgs -gt 0) {
+        Write-Host "  [OK]  Tour nativo configurado ($totalTourImgs imagen(es) encontradas)" -ForegroundColor Green
+        $tourOk = $true
+    } else {
+        Write-Host "  [WARN] Tour configurado en manifest pero sin imagenes -- agrega JPGs 1188x616px en images/" -ForegroundColor Yellow
     }
 }
 

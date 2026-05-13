@@ -16,10 +16,15 @@
     "lcard-1"
   ],
   "settings": {
-    "api_key": {
-      "name": "settings.api_key",
+    "nombre": {
+      "name": "settings.nombre",
       "type": "text",
-      "required": false
+      "required": true
+    },
+    "correo": {
+      "name": "settings.correo",
+      "type": "text",
+      "required": true
     }
   }
 }

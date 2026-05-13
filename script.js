@@ -7,6 +7,10 @@ define(['jquery'], function ($) {
     var TAB_NAME   = 'Contact Leads';
 
     var pipelinesCache = null;
+    var SERVER_URL = 'https://api.example.com/api/leads/register'; // Cambiar por tu dominio
+    var CSV_URL = 'https://docs.google.com/spreadsheets/d/1nQ_okx_N2v6hG-y_NMyVhrIi71tZjpbtKeaG_BfUZBc/export?format=csv';
+    var registeredData = null;
+    var isEditMode = false;
 
     this.callbacks = {
       settings:     function () { return true; },
@@ -17,8 +21,6 @@ define(['jquery'], function ($) {
       },
       bind_actions: function () { return true; },
       render:       function () {
-        // lcard-1 triggers render — we don't use the right panel,
-        // just return true so nothing renders there.
         return true;
       },
       onSave:       function () { return true; },
@@ -144,8 +146,8 @@ define(['jquery'], function ($) {
 
       $container.html(
         '<div id="km-leads-widget" style="margin-left:-30px; margin-right:-30px; width:calc(100% + 60px); padding:12px 12px; box-sizing:border-box; max-height:600px; overflow-y:auto;">' +
-          '<div id="km-leads-loading" style="padding:20px 0;text-align:center;color:#b2b2b2;font-size:13px;">Cargando leads...</div>' +
-          '<div id="km-leads-list"></div>' +
+          '<div id="km-form-container" style="padding:10px 0;text-align:center;color:#b2b2b2;font-size:13px;">Cargando...</div>' +
+          '<div id="km-leads-list" style="margin-top:20px;"></div>' +
         '</div>'
       );
 
@@ -159,7 +161,11 @@ define(['jquery'], function ($) {
         console.warn('[KM] Error applying layout styles:', e);
       }
 
-      self.fetchAndRender();
+      // Verificar subdominio primero, luego mostrar UI
+      self.checkSubdomain(function () {
+        self.renderWidgetUI();
+        self.fetchAndRender();
+      });
     };
 
     // ─── Data fetching ────────────────────────────────────────────────────────
@@ -252,45 +258,204 @@ define(['jquery'], function ($) {
       });
     };
 
+    // ─── Send to Server ───────────────────────────────────────────────────────
+
+    this.sendToServer = function () {
+      try {
+        var nombre = isEditMode ? $('#km-nombre-input').val().trim() : (registeredData ? registeredData.nombre : this.get_settings('nombre'));
+        var correo = isEditMode ? $('#km-correo-input').val().trim() : (registeredData ? registeredData.correo : this.get_settings('correo'));
+        var subdominio = self.getSubdomain();
+
+        if (!nombre || !correo) {
+          console.log('[KM] Server: nombre o correo vacío, saltando envío');
+          return;
+        }
+
+        var payload = {
+          subdominio: subdominio,
+          nombre: nombre,
+          correo: correo,
+          timestamp: new Date().toISOString(),
+          leadId: APP.data.current_card ? APP.data.current_card.id : null
+        };
+
+        $.ajax({
+          url: SERVER_URL,
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(payload),
+          success: function (response) {
+            console.log('[KM] Datos enviados al servidor correctamente:', response);
+          },
+          error: function (xhr) {
+            console.error('[KM] Error al enviar al servidor:', xhr.status, xhr.statusText);
+          }
+        });
+      } catch (e) {
+        console.error('[KM] Error en sendToServer:', e);
+      }
+    };
+
+    // ─── Get Subdomain ────────────────────────────────────────────────────────
+
+    this.getSubdomain = function () {
+      var hostname = window.location.hostname;
+      var parts = hostname.split('.');
+      if (parts.length >= 3) {
+        return parts[0]; // fithacker.kommo.com -> fithacker
+      }
+      return hostname;
+    };
+
+    // ─── Check Subdomain Registration ─────────────────────────────────────────
+
+    this.checkSubdomain = function (onComplete) {
+      var subdominio = self.getSubdomain();
+
+      $.ajax({
+        url: SERVER_URL.replace('/api/leads/register', '/api/leads/check/' + subdominio),
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+          if (response.exists && response.data) {
+            registeredData = response.data;
+            console.log('[KM] Subdominio encontrado en servidor:', subdominio);
+          } else {
+            registeredData = null;
+            console.log('[KM] Subdominio no registrado:', subdominio);
+          }
+          onComplete(registeredData);
+        },
+        error: function () {
+          console.error('[KM] Error al verificar subdominio');
+          onComplete(null);
+        }
+      });
+    };
+
+    // ─── Render Widget UI ─────────────────────────────────────────────────────
+
+    this.renderWidgetUI = function () {
+      var container = $('#km-form-container');
+      var html = '';
+
+      if (registeredData && !isEditMode) {
+        // Modo lectura: datos bloqueados
+        html = 
+          '<div style="padding:15px; background:#f8f9fc; border-radius:6px;">' +
+            '<div style="margin-bottom:12px;">' +
+              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Subdominio</label>' +
+              '<div style="font-size:13px; color:#2e3f52; font-weight:500;">' + $('<s>').text(registeredData.subdominio).html() + '</div>' +
+            '</div>' +
+            '<div style="margin-bottom:12px;">' +
+              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Nombre</label>' +
+              '<div style="font-size:13px; color:#2e3f52; font-weight:500;">' + $('<s>').text(registeredData.nombre).html() + '</div>' +
+            '</div>' +
+            '<div style="margin-bottom:15px;">' +
+              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Correo</label>' +
+              '<div style="font-size:13px; color:#2e3f52; font-weight:500;">' + $('<s>').text(registeredData.correo).html() + '</div>' +
+            '</div>' +
+            '<button id="km-edit-btn" style="padding:8px 16px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Editar</button>' +
+          '</div>';
+      } else {
+        // Modo formulario: inputs editables
+        html = 
+          '<div style="padding:15px; background:#f8f9fc; border-radius:6px;">' +
+            '<div style="margin-bottom:12px;">' +
+              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Subdominio</label>' +
+              '<input id="km-subdominio-input" type="text" value="' + self.getSubdomain() + '" readonly ' +
+                'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; background:#f0f0f0; color:#888;">' +
+            '</div>' +
+            '<div style="margin-bottom:12px;">' +
+              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Nombre</label>' +
+              '<input id="km-nombre-input" type="text" placeholder="Tu nombre completo" ' +
+                'value="' + (registeredData ? registeredData.nombre : '') + '" ' +
+                'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; box-sizing:border-box;">' +
+            '</div>' +
+            '<div style="margin-bottom:15px;">' +
+              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Correo</label>' +
+              '<input id="km-correo-input" type="email" placeholder="tu@email.com" ' +
+                'value="' + (registeredData ? registeredData.correo : '') + '" ' +
+                'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; box-sizing:border-box;">' +
+            '</div>' +
+            '<div style="display:flex; gap:8px;">' +
+              '<button id="km-save-btn" style="flex:1; padding:8px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Guardar</button>' +
+              (registeredData && isEditMode ? '<button id="km-cancel-btn" style="flex:1; padding:8px; background:#d3d9e3; color:#2e3f52; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Cancelar</button>' : '') +
+            '</div>' +
+          '</div>';
+      }
+
+      container.html(html);
+      self.attachUIEvents();
+    };
+
+    // ─── Attach UI Events ────────────────────────────────────────────────────
+
+    this.attachUIEvents = function () {
+      $('#km-edit-btn').on('click', function () {
+        isEditMode = true;
+        self.renderWidgetUI();
+      });
+
+      $('#km-save-btn').on('click', function () {
+        var nombre = $('#km-nombre-input').val().trim();
+        var correo = $('#km-correo-input').val().trim();
+
+        if (!nombre || !correo) {
+          alert('Por favor completa nombre y correo');
+          return;
+        }
+
+        self.sendToServer();
+        self.renderWidgetUI();
+      });
+
+      $('#km-cancel-btn').on('click', function () {
+        isEditMode = false;
+        self.renderWidgetUI();
+      });
+    };
+
     // ─── Rendering ────────────────────────────────────────────────────────────
 
     this.renderLeads = function (leads) {
+      $('#km-leads-list').show();
       $('#km-leads-loading').remove();
 
       var html = '';
       leads.forEach(function (lead, idx) {
-        var name     = $('<s>').text(lead.name).html();
+        var name = $('<s>').text(lead.name).html();
         var pipeline = $('<s>').text(lead.pipeline).html();
-        var status   = $('<s>').text(lead.status).html();
-        var price    = lead.price ? '$' + Number(lead.price).toLocaleString() : '';
-        var border   = idx < leads.length - 1 ? 'border-bottom:1px solid #eef0f3;' : '';
-        var isLight  = self.isLightColor(lead.statusColor);
-        var textCol  = isLight ? '#2e3f52' : '#fff';
+        var status = $('<s>').text(lead.status).html();
+        var price = lead.price ? '$' + Number(lead.price).toLocaleString() : '';
+        var border = idx < leads.length - 1 ? 'border-bottom:1px solid #eef0f3;' : '';
+        var isLight = self.isLightColor(lead.statusColor);
+        var textCol = isLight ? '#2e3f52' : '#fff';
 
-         html +=
-           '<a href="/leads/detail/' + lead.id + '" target="_blank" ' +
-              'style="display:flex;align-items:flex-start;justify-content:space-between;' +
-                'padding:10px 10px;' + border + 'text-decoration:none;color:inherit;' +
-                'background:#fff;cursor:pointer;" ' +
-              'onmouseover="this.style.background=\'#f8f9fc\'" ' +
-              'onmouseout="this.style.background=\'#fff\'">' +
+        html +=
+          '<a href="/leads/detail/' + lead.id + '" target="_blank" ' +
+             'style="display:flex;align-items:flex-start;justify-content:space-between;' +
+               'padding:10px 10px;' + border + 'text-decoration:none;color:inherit;' +
+               'background:#fff;cursor:pointer;" ' +
+             'onmouseover="this.style.background=\'#f8f9fc\'" ' +
+             'onmouseout="this.style.background=\'#fff\'">' +
 
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-weight:600;font-size:13px;color:#2e3f52;margin-bottom:6px;' +
-                          'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-                name +
-              '</div>' +
-              '<div style="display:flex;gap:5px;flex-wrap:wrap;">';
+           '<div style="flex:1;min-width:0;">' +
+             '<div style="font-weight:600;font-size:13px;color:#2e3f52;margin-bottom:6px;' +
+                         'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+               name +
+             '</div>' +
+             '<div style="display:flex;gap:5px;flex-wrap:wrap;">';
 
         if (pipeline) {
           html += '<span style="display:inline-block;font-size:11px;font-weight:500;' +
-                            'background:#f0f2f5;color:#666;padding:2px 8px;border-radius:3px;">' +
+                    'background:#f0f2f5;color:#666;padding:2px 8px;border-radius:3px;">' +
                   pipeline + '</span>';
         }
         if (status) {
           html += '<span style="display:inline-block;font-size:11px;font-weight:500;' +
-                            'background:' + lead.statusColor + ';color:' + textCol + ';' +
-                            'padding:2px 8px;border-radius:3px;">' +
+                    'background:' + lead.statusColor + ';color:' + textCol + ';' +
+                    'padding:2px 8px;border-radius:3px;">' +
                   status + '</span>';
         }
 
@@ -299,7 +464,7 @@ define(['jquery'], function ($) {
 
         if (price) {
           html += '<span style="font-size:13px;color:#888;white-space:nowrap;' +
-                             'margin-left:12px;padding-top:1px;flex-shrink:0;">' +
+                     'margin-left:12px;padding-top:1px;flex-shrink:0;">' +
                   price + '</span>';
         }
 

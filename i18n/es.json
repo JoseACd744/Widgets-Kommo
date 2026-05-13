@@ -6,6 +6,7 @@
     "tour_description": "Tour del Widget de Leads de Contacto"
   },
   "settings": {
-    "api_key": "Clave API"
+    "nombre": "Nombre",
+    "correo": "Correo Electrónico"
   }
 }

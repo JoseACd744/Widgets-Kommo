@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Leads de Contacto",
-    "short_description": "Muestra los leads asociados con un contacto.",
-    "description": "Muestra los leads asociados con un contacto.",
-    "tour_description": "Tour del Widget de Leads de Contacto"
+    "name": "Leads de Contacto via Holos",
+    "short_description": "Otros leads del mismo contacto.",
+    "description": "Muestra todos los leads vinculados al mismo contacto dentro de la tarjeta del lead.",
+    "tour_description": "Este widget muestra todos los leads vinculados al mismo contacto directamente en la tarjeta del lead.\n\nPara comenzar:\n1. Instala el widget desde el Marketplace.\n2. Ingresa tu nombre y correo en la pestaña Contact Leads.\n3. Los leads del contacto aparecerán ordenados por fecha.\n\n¿Necesitas ayuda? Escríbenos a soporte@holos.com"
   },
   "settings": {
     "nombre": "Nombre",

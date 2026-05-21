@@ -2,27 +2,22 @@ define(['jquery'], function ($) {
   var CustomWidget = function () {
     var self = this;
 
-    // Name of the marker field that identifies our tab
     var FIELD_NAME = 'km_contact_leads_tab';
     var TAB_NAME   = 'Contact Leads';
 
     var pipelinesCache = null;
-    var SERVER_URL = 'https://api.example.com/api/leads/register'; // Cambiar por tu dominio
-    var CSV_URL = 'https://docs.google.com/spreadsheets/d/1nQ_okx_N2v6hG-y_NMyVhrIi71tZjpbtKeaG_BfUZBc/export?format=csv';
+    var SERVER_URL = 'https://appscripts-server-production.up.railway.app/webhooks/other_leads/api/leads/register';
     var registeredData = null;
     var isEditMode = false;
 
     this.callbacks = {
       settings:     function () { return true; },
       init:         function () {
-        console.log('[KM] init v1.0.2');
         self.setup();
         return true;
       },
       bind_actions: function () { return true; },
-      render:       function () {
-        return true;
-      },
+      render:       function () { return true; },
       onSave:       function () { return true; },
       destroy:      function () {}
     };
@@ -35,7 +30,6 @@ define(['jquery'], function ($) {
       var field = self.findMarkerField();
 
       if (!field) {
-        // First install: create group + marker field, then reload
         self.createFieldGroup();
         return;
       }
@@ -58,8 +52,6 @@ define(['jquery'], function ($) {
     // ─── Create group + field via API (first install only) ───────────────────
 
     this.createFieldGroup = function () {
-      console.log('[KM] Creating tab group...');
-
       $.ajax({
         url: '/api/v4/leads/custom_fields/groups',
         method: 'POST',
@@ -72,7 +64,6 @@ define(['jquery'], function ($) {
             return;
           }
           var groupId = groups[0].id;
-          console.log('[KM] Group created, id:', groupId);
 
           $.ajax({
             url: '/api/v4/leads/custom_fields',
@@ -84,7 +75,6 @@ define(['jquery'], function ($) {
               group_id: groupId
             }]),
             success: function () {
-              console.log('[KM] Marker field created. Reloading...');
               location.reload();
             },
             error: function (xhr) {
@@ -119,7 +109,6 @@ define(['jquery'], function ($) {
       }
 
       var tabId = tab.id;
-      console.log('[KM] Found tab id:', tabId);
 
       var $container = $('.linked-forms__group-wrapper[data-id="' + tabId + '"]');
 
@@ -151,7 +140,6 @@ define(['jquery'], function ($) {
         '</div>'
       );
 
-      // Ensure the tab container can grow and allow internal scrolling if needed.
       // Some host layouts constrain height; set sensible defaults and let CSS handle overflow.
       try {
         $container.css({ 'min-height': '200px', 'box-sizing': 'border-box' });
@@ -161,7 +149,6 @@ define(['jquery'], function ($) {
         console.warn('[KM] Error applying layout styles:', e);
       }
 
-      // Verificar subdominio primero, luego mostrar UI
       self.checkSubdomain(function () {
         self.renderWidgetUI();
         self.fetchAndRender();
@@ -178,8 +165,6 @@ define(['jquery'], function ($) {
           url: '/api/v4/leads/' + leadId + '?with=contacts',
           method: 'GET', dataType: 'json',
           success: function (lead) {
-            console.log('[KM] lead ok:', lead.id);
-
             if (!lead._embedded || !lead._embedded.contacts || !lead._embedded.contacts.length) {
               self.showEmpty('Este lead no tiene contactos.');
               return;
@@ -266,10 +251,7 @@ define(['jquery'], function ($) {
         var correo = isEditMode ? $('#km-correo-input').val().trim() : (registeredData ? registeredData.correo : this.get_settings('correo'));
         var subdominio = self.getSubdomain();
 
-        if (!nombre || !correo) {
-          console.log('[KM] Server: nombre o correo vacío, saltando envío');
-          return;
-        }
+        if (!nombre || !correo) return;
 
         var payload = {
           subdominio: subdominio,
@@ -284,9 +266,6 @@ define(['jquery'], function ($) {
           method: 'POST',
           contentType: 'application/json',
           data: JSON.stringify(payload),
-          success: function (response) {
-            console.log('[KM] Datos enviados al servidor correctamente:', response);
-          },
           error: function (xhr) {
             console.error('[KM] Error al enviar al servidor:', xhr.status, xhr.statusText);
           }
@@ -302,7 +281,7 @@ define(['jquery'], function ($) {
       var hostname = window.location.hostname;
       var parts = hostname.split('.');
       if (parts.length >= 3) {
-        return parts[0]; // fithacker.kommo.com -> fithacker
+        return parts[0]; // e.g. empresa.kommo.com -> empresa
       }
       return hostname;
     };
@@ -313,17 +292,11 @@ define(['jquery'], function ($) {
       var subdominio = self.getSubdomain();
 
       $.ajax({
-        url: SERVER_URL.replace('/api/leads/register', '/api/leads/check/' + subdominio),
+        url: SERVER_URL.replace('register', 'check/' + subdominio),
         method: 'GET',
         dataType: 'json',
         success: function (response) {
-          if (response.exists && response.data) {
-            registeredData = response.data;
-            console.log('[KM] Subdominio encontrado en servidor:', subdominio);
-          } else {
-            registeredData = null;
-            console.log('[KM] Subdominio no registrado:', subdominio);
-          }
+          registeredData = (response.exists && response.data) ? response.data : null;
           onComplete(registeredData);
         },
         error: function () {
@@ -340,8 +313,7 @@ define(['jquery'], function ($) {
       var html = '';
 
       if (registeredData && !isEditMode) {
-        // Modo lectura: datos bloqueados
-        html = 
+        html =
           '<div style="padding:15px; background:#f8f9fc; border-radius:6px;">' +
             '<div style="margin-bottom:12px;">' +
               '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Subdominio</label>' +
@@ -358,8 +330,7 @@ define(['jquery'], function ($) {
             '<button id="km-edit-btn" style="padding:8px 16px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Editar</button>' +
           '</div>';
       } else {
-        // Modo formulario: inputs editables
-        html = 
+        html =
           '<div style="padding:15px; background:#f8f9fc; border-radius:6px;">' +
             '<div style="margin-bottom:12px;">' +
               '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Subdominio</label>' +
@@ -378,9 +349,12 @@ define(['jquery'], function ($) {
                 'value="' + (registeredData ? registeredData.correo : '') + '" ' +
                 'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; box-sizing:border-box;">' +
             '</div>' +
-            '<div style="display:flex; gap:8px;">' +
-              '<button id="km-save-btn" style="flex:1; padding:8px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Guardar</button>' +
-              (registeredData && isEditMode ? '<button id="km-cancel-btn" style="flex:1; padding:8px; background:#d3d9e3; color:#2e3f52; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Cancelar</button>' : '') +
+            '<div>' +
+              '<div style="display:flex; gap:8px;">' +
+                '<button id="km-save-btn" style="flex:1; padding:8px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Guardar</button>' +
+                (registeredData && isEditMode ? '<button id="km-cancel-btn" style="flex:1; padding:8px; background:#d3d9e3; color:#2e3f52; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Cancelar</button>' : '') +
+              '</div>' +
+              '<div id="km-form-error" style="color:#d9534f; font-size:12px; margin-top:8px; text-align:center; display:none;"></div>' +
             '</div>' +
           '</div>';
       }
@@ -402,7 +376,7 @@ define(['jquery'], function ($) {
         var correo = $('#km-correo-input').val().trim();
 
         if (!nombre || !correo) {
-          alert('Por favor completa nombre y correo');
+          $('#km-form-error').text('Por favor completa nombre y correo.').show();
           return;
         }
 
@@ -424,13 +398,13 @@ define(['jquery'], function ($) {
 
       var html = '';
       leads.forEach(function (lead, idx) {
-        var name = $('<s>').text(lead.name).html();
+        var name     = $('<s>').text(lead.name).html();
         var pipeline = $('<s>').text(lead.pipeline).html();
-        var status = $('<s>').text(lead.status).html();
-        var price = lead.price ? '$' + Number(lead.price).toLocaleString() : '';
-        var border = idx < leads.length - 1 ? 'border-bottom:1px solid #eef0f3;' : '';
-        var isLight = self.isLightColor(lead.statusColor);
-        var textCol = isLight ? '#2e3f52' : '#fff';
+        var status   = $('<s>').text(lead.status).html();
+        var price    = lead.price ? '$' + Number(lead.price).toLocaleString() : '';
+        var border   = idx < leads.length - 1 ? 'border-bottom:1px solid #eef0f3;' : '';
+        var isLight  = self.isLightColor(lead.statusColor);
+        var textCol  = isLight ? '#2e3f52' : '#fff';
 
         html +=
           '<a href="/leads/detail/' + lead.id + '" target="_blank" ' +

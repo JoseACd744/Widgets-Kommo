@@ -10,7 +10,11 @@
       "en",
       "es"
     ],
-    "installation": true
+    "installation": true,
+    "company": "Holos",
+    "privacy_policy": "https://holos.com/privacy",
+    "support_url": "https://holos.com/support",
+    "support_email": "soporte@holos.com"
   },
   "locations": [
     "lcard-1"

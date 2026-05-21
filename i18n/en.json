@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Contact Leads via Holos",
-    "short_description": "Other leads of the same contact.",
-    "description": "Shows all leads linked to the same contact directly inside the lead card.",
-    "tour_description": "This widget displays all leads linked to the same contact directly inside the lead card.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Enter your name and email in the Contact Leads tab.\n3. The contact's leads will appear sorted by date.\n\nNeed help? Contact us at support@holos.com"
+    "name": "Contact Leads & Phone Time via Holos",
+    "short_description": "Other leads of the same contact + local time by phone.",
+    "description": "Shows all leads linked to the same contact inside the lead card, and displays the contact's local time and country flag next to each phone number.",
+    "tour_description": "This widget provides two features:\n\n1. Contact Leads tab — displays all leads linked to the same contact, sorted by date, directly inside the lead card.\n\n2. Phone Time — shows a country flag and the contact's local time next to every phone number, in both the lead card and the contact card. Hover over the badge to see the country name.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Enter your name and email in the Contact Leads tab.\n3. The contact's leads will appear sorted by date, and phone time badges will appear automatically.\n\nNeed help? Contact us at support@holos.com"
   },
   "settings": {
     "nombre": "Name",

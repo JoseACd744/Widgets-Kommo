@@ -17,7 +17,8 @@
     "support_email": "soporte@holos.com"
   },
   "locations": [
-    "lcard-1"
+    "lcard-1",
+    "ccard-1"
   ],
   "settings": {
     "nombre": {

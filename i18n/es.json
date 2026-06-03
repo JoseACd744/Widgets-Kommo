@@ -1,9 +1,8 @@
 {
   "widget": {
     "name": "Duplicar Lead",
-    "short_description": "Duplica un lead en un pipeline y status específico.",
-    "description": "Permite duplicar el lead actual con todos sus datos (contactos, empresas, campos personalizados) en un pipeline y status seleccionado.",
-    "tour_description": "Tour del Widget de Duplicar Lead"
+    "short_description": "Duplica el lead actual en cualquier pipeline y status.",
+    "description": "Permite duplicar el lead actual (nombre, contactos) a cualquier pipeline y status con un clic."
   },
   "settings": {
     "api_key": "Clave API"

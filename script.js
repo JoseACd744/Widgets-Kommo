@@ -187,6 +187,22 @@ define(['jquery'], function ($) {
         .km-google-calendar-widget button[type="submit"]:hover {
           background-color: #218838;
         }
+        .km-google-calendar-widget button[type="submit"]:disabled {
+          cursor: not-allowed;
+          opacity: 0.85;
+        }
+        .km-google-calendar-widget button[type="submit"].procesando {
+          background-color: #6c757d;
+        }
+        .km-google-calendar-widget button[type="submit"].procesando:hover {
+          background-color: #6c757d;
+        }
+        .km-google-calendar-widget button[type="submit"].evento-creado {
+          background-color: #17a2b8;
+        }
+        .km-google-calendar-widget button[type="submit"].evento-creado:hover {
+          background-color: #17a2b8;
+        }
 
         /* Estilos para Snackbar */
         .snackbar {
@@ -321,6 +337,17 @@ define(['jquery'], function ($) {
     this.createEvent = async function(e) {
       e.preventDefault();
 
+      const TEXTO_BOTON_DEFAULT = 'Crear evento';
+      const submitButton = document.getElementById('crear_evento_button');
+      const reunionForm = document.getElementById('reunionForm');
+
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Procesando...';
+        submitButton.classList.remove('evento-creado');
+        submitButton.classList.add('procesando');
+      }
+
       const email = document.getElementById("email").value;
       const fecha = document.getElementById("fecha").value;
       const horaInicio = document.getElementById("hora_inicio").value;
@@ -453,9 +480,32 @@ define(['jquery'], function ($) {
           launchSalesbot(ID_BOT, leadId);
           self.showSnackbar("Ejecutando Salesbot automáticamente", 'info');
         }
+
+        if (submitButton) {
+          submitButton.classList.remove('procesando');
+          submitButton.classList.add('evento-creado');
+          submitButton.textContent = 'Evento creado';
+        }
+
+        setTimeout(() => {
+          if (reunionForm) {
+            reunionForm.reset();
+          }
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('evento-creado', 'procesando');
+            submitButton.textContent = TEXTO_BOTON_DEFAULT;
+          }
+        }, 3000);
       } catch (error) {
         console.error("Error creando el evento:", error);
         self.showSnackbar("Error creando la reunión", 'error');
+
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.classList.remove('procesando', 'evento-creado');
+          submitButton.textContent = TEXTO_BOTON_DEFAULT;
+        }
       }
     };
 
@@ -520,7 +570,7 @@ define(['jquery'], function ($) {
                 '<option value="" disabled selected>Seleccione un calendario</option>' +
               '</select><br><br>' +
               '<label><input type="checkbox" id="cita_agendada_checkbox"> Mover a etapa "Cita agendada"</label><br><br>' +
-              '<button type="submit">Crear evento</button>' +
+              '<button type="submit" id="crear_evento_button">Crear evento</button>' +
             '</form>' +
           '</div>' +
         '</div>';

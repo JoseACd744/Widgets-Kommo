@@ -8,5 +8,22 @@
   "settings": {
     "nombre": "Name",
     "correo": "Email"
+  },
+  "labels": {
+    "loading": "Loading...",
+    "no_contacts": "This lead has no contacts.",
+    "no_other_leads": "No other leads for this contact.",
+    "no_name": "No name",
+    "error_leads": "Error loading leads.",
+    "error_lead": "Error loading the lead.",
+    "subdomain": "Subdomain",
+    "name": "Name",
+    "email": "Email",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "name_placeholder": "Your full name",
+    "email_placeholder": "you@email.com",
+    "form_error": "Please fill in your name and email."
   }
 }

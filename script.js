@@ -10,6 +10,11 @@ define(['jquery'], function ($) {
     var registeredData = null;
     var isEditMode = false;
 
+    this.t = function (key) {
+      var labels = self.i18n('labels') || {};
+      return labels[key] || key;
+    };
+
     this.callbacks = {
       settings:     function () { return true; },
       init:         function () {
@@ -135,7 +140,7 @@ define(['jquery'], function ($) {
 
       $container.html(
         '<div id="km-leads-widget" style="margin-left:-30px; margin-right:-30px; width:calc(100% + 60px); padding:12px 12px; box-sizing:border-box; max-height:600px; overflow-y:auto;">' +
-          '<div id="km-form-container" style="padding:10px 0;text-align:center;color:#b2b2b2;font-size:13px;">Cargando...</div>' +
+          '<div id="km-form-container" style="padding:10px 0;text-align:center;color:var(--km-color-text-faint);font-size:13px;">' + self.t('loading') + '</div>' +
           '<div id="km-leads-list" style="margin-top:20px;"></div>' +
         '</div>'
       );
@@ -166,7 +171,7 @@ define(['jquery'], function ($) {
           method: 'GET', dataType: 'json',
           success: function (lead) {
             if (!lead._embedded || !lead._embedded.contacts || !lead._embedded.contacts.length) {
-              self.showEmpty('Este lead no tiene contactos.');
+              self.showEmpty(self.t('no_contacts'));
               return;
             }
 
@@ -176,48 +181,46 @@ define(['jquery'], function ($) {
               url: '/api/v4/contacts/' + contactId + '?with=leads&limit=50',
               method: 'GET', dataType: 'json',
               success: function (contact) {
-                var leads = (contact._embedded && contact._embedded.leads) || [];
-                leads = leads.filter(function (l) { return l.id !== Number(leadId); });
+                var basics = (contact._embedded && contact._embedded.leads) || [];
+                var leadIds = basics
+                  .map(function (l) { return l.id; })
+                  .filter(function (id) { return id !== Number(leadId); });
 
-                if (!leads.length) {
-                  self.showEmpty('No hay otros leads para este contacto.');
+                if (!leadIds.length) {
+                  self.showEmpty(self.t('no_other_leads'));
                   return;
                 }
 
-                var results = [];
-                var pending = leads.length;
+                var filterQuery = leadIds.map(function (id) { return 'filter[id][]=' + id; }).join('&');
 
-                leads.forEach(function (basic) {
-                  $.ajax({
-                    url: '/api/v4/leads/' + basic.id,
-                    method: 'GET', dataType: 'json',
-                    success: function (full) {
+                $.ajax({
+                  url: '/api/v4/leads?' + filterQuery + '&limit=250',
+                  method: 'GET', dataType: 'json',
+                  success: function (data) {
+                    var fulls = (data._embedded && data._embedded.leads) || [];
+                    var results = fulls.map(function (full) {
                       var pipe   = pipelines[full.pipeline_id] || {};
                       var status = (pipe.statuses || {})[full.status_id] || {};
-                      results.push({
+                      return {
                         id:           full.id,
-                        name:         full.name || 'Sin nombre',
+                        name:         full.name || self.t('no_name'),
                         price:        full.price || 0,
                         pipeline:     pipe.name || '',
                         status:       status.name || '',
                         statusColor:  status.color || '#e8e8e8',
                         created_at:   full.created_at || 0
-                      });
-                      if (--pending === 0) {
-                        results.sort(function (a, b) { return b.created_at - a.created_at; });
-                        self.renderLeads(results);
-                      }
-                    },
-                    error: function () {
-                      if (--pending === 0 && results.length) self.renderLeads(results);
-                    }
-                  });
+                      };
+                    });
+                    results.sort(function (a, b) { return b.created_at - a.created_at; });
+                    self.renderLeads(results);
+                  },
+                  error: function () { self.showEmpty(self.t('error_leads')); }
                 });
               },
-              error: function () { self.showEmpty('Error al cargar leads.'); }
+              error: function () { self.showEmpty(self.t('error_leads')); }
             });
           },
-          error: function () { self.showEmpty('Error al cargar el lead.'); }
+          error: function () { self.showEmpty(self.t('error_lead')); }
         });
       });
     };
@@ -314,47 +317,47 @@ define(['jquery'], function ($) {
 
       if (registeredData && !isEditMode) {
         html =
-          '<div style="padding:15px; background:#f8f9fc; border-radius:6px;">' +
+          '<div style="padding:15px; background:var(--km-color-bg-soft); border-radius:6px;">' +
             '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Subdominio</label>' +
-              '<div style="font-size:13px; color:#2e3f52; font-weight:500;">' + $('<s>').text(registeredData.subdominio).html() + '</div>' +
+              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('subdomain') + '</label>' +
+              '<div style="font-size:13px; color:var(--km-color-text-primary); font-weight:500;">' + $('<s>').text(registeredData.subdominio).html() + '</div>' +
             '</div>' +
             '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Nombre</label>' +
-              '<div style="font-size:13px; color:#2e3f52; font-weight:500;">' + $('<s>').text(registeredData.nombre).html() + '</div>' +
+              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('name') + '</label>' +
+              '<div style="font-size:13px; color:var(--km-color-text-primary); font-weight:500;">' + $('<s>').text(registeredData.nombre).html() + '</div>' +
             '</div>' +
             '<div style="margin-bottom:15px;">' +
-              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Correo</label>' +
-              '<div style="font-size:13px; color:#2e3f52; font-weight:500;">' + $('<s>').text(registeredData.correo).html() + '</div>' +
+              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('email') + '</label>' +
+              '<div style="font-size:13px; color:var(--km-color-text-primary); font-weight:500;">' + $('<s>').text(registeredData.correo).html() + '</div>' +
             '</div>' +
-            '<button id="km-edit-btn" style="padding:8px 16px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Editar</button>' +
+            '<button id="km-edit-btn" style="padding:8px 16px; background:var(--km-color-accent); color:var(--km-color-white); border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">' + self.t('edit') + '</button>' +
           '</div>';
       } else {
         html =
-          '<div style="padding:15px; background:#f8f9fc; border-radius:6px;">' +
+          '<div style="padding:15px; background:var(--km-color-bg-soft); border-radius:6px;">' +
             '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Subdominio</label>' +
+              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('subdomain') + '</label>' +
               '<input id="km-subdominio-input" type="text" value="' + self.getSubdomain() + '" readonly ' +
-                'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; background:#f0f0f0; color:#888;">' +
+                'style="width:100%; padding:8px; border:1px solid var(--km-color-border); border-radius:3px; font-size:12px; background:var(--km-color-disabled-bg); color:var(--km-color-text-muted);">' +
             '</div>' +
             '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Nombre</label>' +
-              '<input id="km-nombre-input" type="text" placeholder="Tu nombre completo" ' +
+              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('name') + '</label>' +
+              '<input id="km-nombre-input" type="text" placeholder="' + self.t('name_placeholder') + '" ' +
                 'value="' + (registeredData ? registeredData.nombre : '') + '" ' +
-                'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; box-sizing:border-box;">' +
+                'style="width:100%; padding:8px; border:1px solid var(--km-color-border); border-radius:3px; font-size:12px; box-sizing:border-box; background:var(--km-color-white); color:var(--km-color-text-primary);">' +
             '</div>' +
             '<div style="margin-bottom:15px;">' +
-              '<label style="font-size:11px; color:#888; text-transform:uppercase; font-weight:600;">Correo</label>' +
-              '<input id="km-correo-input" type="email" placeholder="tu@email.com" ' +
+              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('email') + '</label>' +
+              '<input id="km-correo-input" type="email" placeholder="' + self.t('email_placeholder') + '" ' +
                 'value="' + (registeredData ? registeredData.correo : '') + '" ' +
-                'style="width:100%; padding:8px; border:1px solid #d3d9e3; border-radius:3px; font-size:12px; box-sizing:border-box;">' +
+                'style="width:100%; padding:8px; border:1px solid var(--km-color-border); border-radius:3px; font-size:12px; box-sizing:border-box; background:var(--km-color-white); color:var(--km-color-text-primary);">' +
             '</div>' +
             '<div>' +
               '<div style="display:flex; gap:8px;">' +
-                '<button id="km-save-btn" style="flex:1; padding:8px; background:#1b66ad; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Guardar</button>' +
-                (registeredData && isEditMode ? '<button id="km-cancel-btn" style="flex:1; padding:8px; background:#d3d9e3; color:#2e3f52; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">Cancelar</button>' : '') +
+                '<button id="km-save-btn" style="flex:1; padding:8px; background:var(--km-color-accent); color:var(--km-color-white); border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">' + self.t('save') + '</button>' +
+                (registeredData && isEditMode ? '<button id="km-cancel-btn" style="flex:1; padding:8px; background:var(--km-color-border); color:var(--km-color-text-primary); border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">' + self.t('cancel') + '</button>' : '') +
               '</div>' +
-              '<div id="km-form-error" style="color:#d9534f; font-size:12px; margin-top:8px; text-align:center; display:none;"></div>' +
+              '<div id="km-form-error" style="color:var(--km-color-error); font-size:12px; margin-top:8px; text-align:center; display:none;"></div>' +
             '</div>' +
           '</div>';
       }
@@ -376,7 +379,7 @@ define(['jquery'], function ($) {
         var correo = $('#km-correo-input').val().trim();
 
         if (!nombre || !correo) {
-          $('#km-form-error').text('Por favor completa nombre y correo.').show();
+          $('#km-form-error').text(self.t('form_error')).show();
           return;
         }
 
@@ -402,7 +405,7 @@ define(['jquery'], function ($) {
         var pipeline = $('<s>').text(lead.pipeline).html();
         var status   = $('<s>').text(lead.status).html();
         var price    = lead.price ? '$' + Number(lead.price).toLocaleString() : '';
-        var border   = idx < leads.length - 1 ? 'border-bottom:1px solid #eef0f3;' : '';
+        var border   = idx < leads.length - 1 ? 'border-bottom:1px solid var(--km-color-divider);' : '';
         var isLight  = self.isLightColor(lead.statusColor);
         var textCol  = isLight ? '#2e3f52' : '#fff';
 
@@ -410,12 +413,12 @@ define(['jquery'], function ($) {
           '<a href="/leads/detail/' + lead.id + '" target="_blank" ' +
              'style="display:flex;align-items:flex-start;justify-content:space-between;' +
                'padding:10px 10px;' + border + 'text-decoration:none;color:inherit;' +
-               'background:#fff;cursor:pointer;" ' +
-             'onmouseover="this.style.background=\'#f8f9fc\'" ' +
-             'onmouseout="this.style.background=\'#fff\'">' +
+               'background:var(--km-color-white);cursor:pointer;" ' +
+             'onmouseover="this.style.background=\'var(--km-color-bg-soft)\'" ' +
+             'onmouseout="this.style.background=\'var(--km-color-white)\'">' +
 
            '<div style="flex:1;min-width:0;">' +
-             '<div style="font-weight:600;font-size:13px;color:#2e3f52;margin-bottom:6px;' +
+             '<div style="font-weight:600;font-size:13px;color:var(--km-color-text-primary);margin-bottom:6px;' +
                          'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
                name +
              '</div>' +
@@ -423,7 +426,7 @@ define(['jquery'], function ($) {
 
         if (pipeline) {
           html += '<span style="display:inline-block;font-size:11px;font-weight:500;' +
-                    'background:#f0f2f5;color:#666;padding:2px 8px;border-radius:3px;">' +
+                    'background:var(--km-color-bg-tag);color:var(--km-color-text-tag);padding:2px 8px;border-radius:3px;">' +
                   pipeline + '</span>';
         }
         if (status) {
@@ -437,7 +440,7 @@ define(['jquery'], function ($) {
                 '</div>';
 
         if (price) {
-          html += '<span style="font-size:13px;color:#888;white-space:nowrap;' +
+          html += '<span style="font-size:13px;color:var(--km-color-text-muted);white-space:nowrap;' +
                      'margin-left:12px;padding-top:1px;flex-shrink:0;">' +
                   price + '</span>';
         }
@@ -450,7 +453,7 @@ define(['jquery'], function ($) {
 
     this.showEmpty = function (msg) {
       $('#km-leads-loading').html(
-        '<span style="color:#b2b2b2;font-size:13px;">' + msg + '</span>'
+        '<span style="color:var(--km-color-text-faint);font-size:13px;">' + msg + '</span>'
       );
     };
 

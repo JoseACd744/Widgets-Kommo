@@ -12,13 +12,29 @@
     ],
     "installation": true,
     "company": "Holos",
-    "privacy_policy": "https://holos.com/privacy",
-    "support_url": "https://holos.com/support",
-    "support_email": "soporte@holos.com"
+    "privacy_policy": "https://www.holos.ec/holos-privacy.html",
+    "support_url": "https://www.holos.ec/holos-support.html",
+    "support_email": "soporte@holos.ec"
   },
   "locations": [
     "lcard-1"
   ],
+  "tour": {
+    "is_tour": true,
+    "tour_images": {
+      "en": [
+        "/images/slideshow_1_en.jpg",
+        "/images/slideshow_2_en.jpg",
+        "/images/slideshow_3_en.jpg"
+      ],
+      "es": [
+        "/images/slideshow_1_es.jpg",
+        "/images/slideshow_2_es.jpg",
+        "/images/slideshow_3_es.jpg"
+      ]
+    },
+    "tour_description": "widget.tour_description"
+  },
   "settings": {
     "nombre": {
       "name": "settings.nombre",

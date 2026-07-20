@@ -1,7 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:developers.kommo.com)"
+      "WebFetch(domain:developers.kommo.com)",
+      "WebSearch",
+      "Bash(python3 *)",
+      "Bash(rm -f templates/widget.twig images/logo_dp.png)",
+      "Bash(rmdir templates *)",
+      "WebFetch(domain:www.holos.ec)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\f4805742-3b0f-4545-8940-4739d93101f8\\\\scratchpad\")",
+      "Bash(curl -sL -o logo-holos.png \"https://www.holos.ec/images/logo-holos.png\")",
+      "Bash(curl -sL -o logo-holos-white.png \"https://www.holos.ec/images/logo-holos-white.png\")",
+      "Bash(file logo-holos*.png)",
+      "Bash(potrace --version)",
+      "Bash(pkill -f \"http.server 8934\")",
+      "Bash(rm -f _svg_preview.html _icon_clean.png _text_clean.png)",
+      "Bash(sort -k2)",
+      "Bash(zip -r widget.zip manifest.json script.js style.css i18n images -x \"images/icon.svg\")",
+      "Bash(unzip -l widget.zip)"
     ]
   }
 }

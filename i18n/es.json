@@ -1,12 +1,8 @@
 {
   "widget": {
-    "name": "Leads de Contacto y Hora Local via Holos",
-    "short_description": "Otros leads del mismo contacto + hora local por teléfono.",
-    "description": "Muestra todos los leads vinculados al mismo contacto dentro de la tarjeta del lead, y muestra la hora local y la bandera del país junto a cada número de teléfono.",
-    "tour_description": "Este widget ofrece dos funcionalidades:\n\n1. Pestaña Leads de Contacto — muestra todos los leads vinculados al mismo contacto, ordenados por fecha, directamente en la tarjeta del lead.\n\n2. Hora por Teléfono — muestra la bandera del país y la hora local del contacto junto a cada número de teléfono, tanto en la tarjeta del lead como en la tarjeta del contacto. Pasa el cursor sobre el indicador para ver el nombre del país.\n\nPara comenzar:\n1. Instala el widget desde el Marketplace.\n2. Ingresa tu nombre y correo en la pestaña Leads de Contacto.\n3. Los leads del contacto aparecerán ordenados por fecha y los indicadores de hora aparecerán automáticamente.\n\n¿Necesitas ayuda? Escríbenos a soporte@holos.com"
-  },
-  "settings": {
-    "nombre": "Nombre",
-    "correo": "Correo Electrónico"
+    "name": "Hora por Teléfono via Holos",
+    "short_description": "Hora local y bandera del país junto al teléfono.",
+    "description": "Muestra la hora local y la bandera del país junto a cada número de teléfono, en la tarjeta del lead y del contacto.",
+    "tour_description": "Hora por Teléfono muestra la bandera del país y la hora local del contacto junto a cada número de teléfono, tanto en la tarjeta del lead como en la del contacto. Pasa el cursor sobre el indicador para ver el nombre del país.\n\nPara comenzar:\n1. Instala el widget desde el Marketplace.\n2. Abre cualquier lead o contacto con número de teléfono.\n3. La bandera y la hora local aparecerán automáticamente junto al campo de teléfono.\n\n¿Necesitas ayuda? Escríbenos a soporte@holos.ec"
   }
 }

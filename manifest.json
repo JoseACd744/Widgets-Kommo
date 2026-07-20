@@ -3,33 +3,33 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "interface_version": 2,
     "init_once": false,
     "locale": [
       "en",
       "es"
     ],
-    "installation": true,
+    "installation": false,
     "company": "Holos",
-    "privacy_policy": "https://holos.com/privacy",
-    "support_url": "https://holos.com/support",
-    "support_email": "soporte@holos.com"
+    "privacy_policy": "https://www.holos.ec/holos-privacy.html",
+    "support_url": "https://www.holos.ec/holos-support.html",
+    "support_email": "soporte@holos.ec"
   },
   "locations": [
     "lcard-1",
     "ccard-1"
   ],
-  "settings": {
-    "nombre": {
-      "name": "settings.nombre",
-      "type": "text",
-      "required": true
+  "tour": {
+    "is_tour": true,
+    "tour_images": {
+      "en": [
+        "/images/tour/tour_1_en.jpg"
+      ],
+      "es": [
+        "/images/tour/tour_1_es.jpg"
+      ]
     },
-    "correo": {
-      "name": "settings.correo",
-      "type": "text",
-      "required": true
-    }
+    "tour_description": "widget.tour_description"
   }
 }

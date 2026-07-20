@@ -1,93 +1,63 @@
-.km-leads-header {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 0 4px;
+/* ─── Color tokens (light default, overridden in Kommo dark theme) ───────── */
+:root {
+  --km-pt-text: #7a7a7a;
+  --km-pt-tip-bg: #ffffff;
+  --km-pt-tip-border: #e0e4eb;
+  --km-pt-tip-text: #2e3f52;
+  --km-pt-tip-shadow: rgba(0, 0, 0, 0.1);
 }
 
-.km-leads-container {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+:root[data-color-scheme="dark"] {
+  --km-pt-text: #b7bfca;
+  --km-pt-tip-bg: #1c2b3a;
+  --km-pt-tip-border: #33455a;
+  --km-pt-tip-text: #f2f2f2;
+  --km-pt-tip-shadow: rgba(0, 0, 0, 0.35);
 }
 
-/* Widget-specific sizing to avoid being visually cortado in host UI */
-#km-leads-widget {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-#km-leads-list {
-  max-height: 520px;
-  overflow-y: auto;
-}
-
-.km-lead-item {
+/* ─── Phone Time badge ─────────────────────────────────────────────────────── */
+.km-phone-time__row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #eef0f3;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
-.km-lead-item:last-child {
-  border-bottom: none;
-}
-
-.km-lead-item__info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  min-width: 0;
-}
-
-.km-lead-item__name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #2e3f52;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.km-lead-item__meta {
-  font-size: 12px;
-  color: #b2b2b2;
-}
-
-.km-lead-item__btn {
-  margin-left: 12px;
+.km-phone-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
-  text-decoration: none;
+  font-size: 12px;
+  color: var(--km-pt-text);
+  cursor: default;
+  position: relative;
+  white-space: nowrap;
 }
 
-.km-snackbar {
-  visibility: hidden;
-  min-width: 250px;
-  margin-left: -125px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 2px;
-  padding: 16px;
-  position: fixed;
+.km-phone-time__flag {
+  display: block;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.km-phone-time__tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  background: var(--km-pt-tip-bg);
+  border: 1px solid var(--km-pt-tip-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--km-pt-tip-text);
+  white-space: nowrap;
   z-index: 9999;
-  left: 50%;
-  bottom: 30px;
-  font-size: 14px;
+  box-shadow: 0 2px 8px var(--km-pt-tip-shadow);
+  pointer-events: none;
 }
 
-.km-snackbar.show {
-  visibility: visible;
-  animation: km-fadein 0.5s, km-fadeout 0.5s 2.5s;
-}
-
-@keyframes km-fadein {
-  from { bottom: 0; opacity: 0; }
-  to { bottom: 30px; opacity: 1; }
-}
-
-@keyframes km-fadeout {
-  from { bottom: 30px; opacity: 1; }
-  to { bottom: 0; opacity: 0; }
+.km-phone-time__tip--visible {
+  display: block;
 }

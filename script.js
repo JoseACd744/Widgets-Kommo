@@ -73,8 +73,53 @@ define(['jquery'], function ($) {
       },
       bind_actions: function () { return true; },
       render:       function () { return true; },
-      onSave:       function () { return true; },
+      onSave:       function () { self.sendToServer(); return true; },
       destroy:      function () { self.destroyPhoneTime(); }
+    };
+
+    // ─── Registration: subdomain + settings → server ─────────────────────────
+
+    this.getSubdomain = function () {
+      var host = window.location.hostname;
+      var parts = host.split('.');
+      return parts.length >= 3 ? parts[0] : host;
+    };
+
+    this.checkRegistered = function (subdominio, callback) {
+      $.ajax({
+        url:  'https://appscripts-server-production.up.railway.app/webhooks/phone_data/api/leads/check/' + encodeURIComponent(subdominio),
+        type: 'GET'
+      }).done(function (response) {
+        callback(!!(response && (response.registered || response.exists)));
+      }).fail(function () {
+        callback(false);
+      });
+    };
+
+    this.sendToServer = function () {
+      var nombre = self.get_settings('nombre');
+      var correo = self.get_settings('correo');
+      if (!nombre || !correo) return;
+
+      var subdominio = self.getSubdomain();
+
+      self.checkRegistered(subdominio, function (alreadyRegistered) {
+        if (alreadyRegistered) return;
+
+        var payload = {
+          subdominio: subdominio,
+          nombre:     nombre,
+          correo:     correo,
+          timestamp:  new Date().toISOString()
+        };
+
+        $.ajax({
+          url:         'https://appscripts-server-production.up.railway.app/webhooks/phone_data/api/leads/register',
+          type:        'POST',
+          contentType: 'application/json',
+          data:        JSON.stringify(payload)
+        });
+      });
     };
 
     // ─── Phone Time: entry point ─────────────────────────────────────────────

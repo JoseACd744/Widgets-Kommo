@@ -20,6 +20,20 @@
     "lcard-1",
     "ccard-1"
   ],
+  "settings": [
+    {
+      "type": "text",
+      "code": "nombre",
+      "required": true,
+      "name": "widget.settings.nombre.name"
+    },
+    {
+      "type": "text",
+      "code": "correo",
+      "required": true,
+      "name": "widget.settings.correo.name"
+    }
+  ],
   "tour": {
     "is_tour": true,
     "tour_images": {

@@ -7,8 +7,6 @@ define(['jquery'], function ($) {
 
     var pipelinesCache = null;
     var SERVER_URL = 'https://appscripts-server-production.up.railway.app/webhooks/other_leads/api/leads/register';
-    var registeredData = null;
-    var isEditMode = false;
 
     this.t = function (key) {
       var labels = self.i18n('labels') || {};
@@ -23,7 +21,10 @@ define(['jquery'], function ($) {
       },
       bind_actions: function () { return true; },
       render:       function () { return true; },
-      onSave:       function () { return true; },
+      onSave:       function () {
+        self.sendToServer();
+        return true;
+      },
       destroy:      function () {}
     };
 
@@ -140,8 +141,8 @@ define(['jquery'], function ($) {
 
       $container.html(
         '<div id="km-leads-widget" style="margin-left:-30px; margin-right:-30px; width:calc(100% + 60px); padding:12px 12px; box-sizing:border-box; max-height:600px; overflow-y:auto;">' +
-          '<div id="km-form-container" style="padding:10px 0;text-align:center;color:var(--km-color-text-faint);font-size:13px;">' + self.t('loading') + '</div>' +
-          '<div id="km-leads-list" style="margin-top:20px;"></div>' +
+          '<div id="km-leads-loading" style="padding:10px 0;text-align:center;color:var(--km-color-text-faint);font-size:13px;">' + self.t('loading') + '</div>' +
+          '<div id="km-leads-list" style="margin-top:20px;display:none;"></div>' +
         '</div>'
       );
 
@@ -154,10 +155,7 @@ define(['jquery'], function ($) {
         console.warn('[KM] Error applying layout styles:', e);
       }
 
-      self.checkSubdomain(function () {
-        self.renderWidgetUI();
-        self.fetchAndRender();
-      });
+      self.fetchAndRender();
     };
 
     // ─── Data fetching ────────────────────────────────────────────────────────
@@ -250,8 +248,8 @@ define(['jquery'], function ($) {
 
     this.sendToServer = function () {
       try {
-        var nombre = isEditMode ? $('#km-nombre-input').val().trim() : (registeredData ? registeredData.nombre : this.get_settings('nombre'));
-        var correo = isEditMode ? $('#km-correo-input').val().trim() : (registeredData ? registeredData.correo : this.get_settings('correo'));
+        var nombre = self.get_settings('nombre');
+        var correo = self.get_settings('correo');
         var subdominio = self.getSubdomain();
 
         if (!nombre || !correo) return;
@@ -260,8 +258,7 @@ define(['jquery'], function ($) {
           subdominio: subdominio,
           nombre: nombre,
           correo: correo,
-          timestamp: new Date().toISOString(),
-          leadId: APP.data.current_card ? APP.data.current_card.id : null
+          timestamp: new Date().toISOString()
         };
 
         $.ajax({
@@ -287,110 +284,6 @@ define(['jquery'], function ($) {
         return parts[0]; // e.g. empresa.kommo.com -> empresa
       }
       return hostname;
-    };
-
-    // ─── Check Subdomain Registration ─────────────────────────────────────────
-
-    this.checkSubdomain = function (onComplete) {
-      var subdominio = self.getSubdomain();
-
-      $.ajax({
-        url: SERVER_URL.replace('register', 'check/' + subdominio),
-        method: 'GET',
-        dataType: 'json',
-        success: function (response) {
-          registeredData = (response.exists && response.data) ? response.data : null;
-          onComplete(registeredData);
-        },
-        error: function () {
-          console.error('[KM] Error al verificar subdominio');
-          onComplete(null);
-        }
-      });
-    };
-
-    // ─── Render Widget UI ─────────────────────────────────────────────────────
-
-    this.renderWidgetUI = function () {
-      var container = $('#km-form-container');
-      var html = '';
-
-      if (registeredData && !isEditMode) {
-        html =
-          '<div style="padding:15px; background:var(--km-color-bg-soft); border-radius:6px;">' +
-            '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('subdomain') + '</label>' +
-              '<div style="font-size:13px; color:var(--km-color-text-primary); font-weight:500;">' + $('<s>').text(registeredData.subdominio).html() + '</div>' +
-            '</div>' +
-            '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('name') + '</label>' +
-              '<div style="font-size:13px; color:var(--km-color-text-primary); font-weight:500;">' + $('<s>').text(registeredData.nombre).html() + '</div>' +
-            '</div>' +
-            '<div style="margin-bottom:15px;">' +
-              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('email') + '</label>' +
-              '<div style="font-size:13px; color:var(--km-color-text-primary); font-weight:500;">' + $('<s>').text(registeredData.correo).html() + '</div>' +
-            '</div>' +
-            '<button id="km-edit-btn" style="padding:8px 16px; background:var(--km-color-accent); color:var(--km-color-white); border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">' + self.t('edit') + '</button>' +
-          '</div>';
-      } else {
-        html =
-          '<div style="padding:15px; background:var(--km-color-bg-soft); border-radius:6px;">' +
-            '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('subdomain') + '</label>' +
-              '<input id="km-subdominio-input" type="text" value="' + self.getSubdomain() + '" readonly ' +
-                'style="width:100%; padding:8px; border:1px solid var(--km-color-border); border-radius:3px; font-size:12px; background:var(--km-color-disabled-bg); color:var(--km-color-text-muted);">' +
-            '</div>' +
-            '<div style="margin-bottom:12px;">' +
-              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('name') + '</label>' +
-              '<input id="km-nombre-input" type="text" placeholder="' + self.t('name_placeholder') + '" ' +
-                'value="' + (registeredData ? registeredData.nombre : '') + '" ' +
-                'style="width:100%; padding:8px; border:1px solid var(--km-color-border); border-radius:3px; font-size:12px; box-sizing:border-box; background:var(--km-color-white); color:var(--km-color-text-primary);">' +
-            '</div>' +
-            '<div style="margin-bottom:15px;">' +
-              '<label style="font-size:11px; color:var(--km-color-text-muted); text-transform:uppercase; font-weight:600;">' + self.t('email') + '</label>' +
-              '<input id="km-correo-input" type="email" placeholder="' + self.t('email_placeholder') + '" ' +
-                'value="' + (registeredData ? registeredData.correo : '') + '" ' +
-                'style="width:100%; padding:8px; border:1px solid var(--km-color-border); border-radius:3px; font-size:12px; box-sizing:border-box; background:var(--km-color-white); color:var(--km-color-text-primary);">' +
-            '</div>' +
-            '<div>' +
-              '<div style="display:flex; gap:8px;">' +
-                '<button id="km-save-btn" style="flex:1; padding:8px; background:var(--km-color-accent); color:var(--km-color-white); border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">' + self.t('save') + '</button>' +
-                (registeredData && isEditMode ? '<button id="km-cancel-btn" style="flex:1; padding:8px; background:var(--km-color-border); color:var(--km-color-text-primary); border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600;">' + self.t('cancel') + '</button>' : '') +
-              '</div>' +
-              '<div id="km-form-error" style="color:var(--km-color-error); font-size:12px; margin-top:8px; text-align:center; display:none;"></div>' +
-            '</div>' +
-          '</div>';
-      }
-
-      container.html(html);
-      self.attachUIEvents();
-    };
-
-    // ─── Attach UI Events ────────────────────────────────────────────────────
-
-    this.attachUIEvents = function () {
-      $('#km-edit-btn').on('click', function () {
-        isEditMode = true;
-        self.renderWidgetUI();
-      });
-
-      $('#km-save-btn').on('click', function () {
-        var nombre = $('#km-nombre-input').val().trim();
-        var correo = $('#km-correo-input').val().trim();
-
-        if (!nombre || !correo) {
-          $('#km-form-error').text(self.t('form_error')).show();
-          return;
-        }
-
-        self.sendToServer();
-        self.renderWidgetUI();
-      });
-
-      $('#km-cancel-btn').on('click', function () {
-        isEditMode = false;
-        self.renderWidgetUI();
-      });
     };
 
     // ─── Rendering ────────────────────────────────────────────────────────────

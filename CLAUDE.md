@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A **Kommo (amoCRM) widget** that displays other leads linked to the same contact as the current lead. It also lets the user register their subdomain + contact info with an external server. The widget is injected into the lead card (`lcard-1`) inside a custom tab.
+A **Kommo (amoCRM) widget** that displays other leads linked to the same contact as the current lead. It also registers the installer's subdomain + contact info (name/email, entered in the widget's Kommo settings panel) with an external server. The widget is injected into the lead card (`lcard-1`) inside a custom tab.
 
 ## No build step
 
@@ -31,18 +31,14 @@ There is no bundler, transpiler, or package manager. All files are deployed dire
 
 1. **First install flow**: `setup()` looks for a custom field named `km_contact_leads_tab` in `APP.constant('account').cf`. If missing, it creates a custom field group + a marker text field via `POST /api/v4/leads/custom_fields/groups` then reloads.
 2. **Tab injection**: Once the marker field exists, `findTabAndInject()` locates the tab that contains the field's ID, then waits for the tab's DOM container (`.linked-forms__group-wrapper[data-id="<tabId>"]`) using a `MutationObserver` (15 s timeout) before calling `injectContent()`.
-3. **Subdomain check**: Before rendering the UI, `checkSubdomain()` hits the external server to see if this Kommo subdomain is already registered (`GET .../check/<subdomain>`). The result sets `registeredData`.
-4. **Lead fetch chain**: `fetchAndRender()` → pipelines cache → current lead → contact → all other leads for that contact (parallel individual fetches) → sorted by `created_at` desc → `renderLeads()`.
-5. **Registration form**: `renderWidgetUI()` renders read-only view (if registered) or editable form. `sendToServer()` POSTs `{ subdominio, nombre, correo, timestamp, leadId }` to the Railway server.
+3. **Lead fetch chain**: `injectContent()` calls `fetchAndRender()` directly → pipelines cache → current lead → contact → all other leads for that contact (parallel individual fetches) → sorted by `created_at` desc → `renderLeads()`. No registration UI is rendered inside the tab.
+4. **Registration**: `nombre`/`correo` are collected via the widget's Kommo settings panel (`manifest.json` → `settings.nombre`/`settings.correo`), not via any UI in the lead card tab. The `onSave` lifecycle callback (fired when the settings panel is saved, i.e. on install/reconfiguration) calls `sendToServer()`, which reads the values with `self.get_settings(key)` and POSTs `{ subdominio, nombre, correo, timestamp }` to the Railway server.
 
 ## External dependencies
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `SERVER_URL` | `https://appscripts-server-production.up.railway.app/webhooks/other_leads/api/leads/register` | Registration + check endpoint |
-| `CSV_URL` | Google Sheets export URL | Declared but not currently used in active code |
-
-The check endpoint is derived by replacing `register` with `check/<subdomain>` in `SERVER_URL`.
+| `SERVER_URL` | `https://appscripts-server-production.up.railway.app/webhooks/other_leads/api/leads/register` | Registration endpoint (POST on settings save) |
 
 ## XSS safety
 

@@ -3,7 +3,7 @@
     "name": "Contact Leads via Holos",
     "short_description": "Other leads of the same contact.",
     "description": "Shows all leads linked to the same contact directly inside the lead card.",
-    "tour_description": "This widget displays all leads linked to the same contact directly inside the lead card.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Enter your name and email in the Contact Leads tab.\n3. The contact's leads will appear sorted by date.\n\nNeed help? Contact us at support@holos.com"
+    "tour_description": "This widget displays all leads linked to the same contact directly inside the lead card.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Enter your name and email when configuring the widget.\n3. The contact's leads will appear sorted by date.\n\nNeed help? Contact us at support@holos.com"
   },
   "settings": {
     "nombre": "Name",
@@ -15,15 +15,6 @@
     "no_other_leads": "No other leads for this contact.",
     "no_name": "No name",
     "error_leads": "Error loading leads.",
-    "error_lead": "Error loading the lead.",
-    "subdomain": "Subdomain",
-    "name": "Name",
-    "email": "Email",
-    "edit": "Edit",
-    "save": "Save",
-    "cancel": "Cancel",
-    "name_placeholder": "Your full name",
-    "email_placeholder": "you@email.com",
-    "form_error": "Please fill in your name and email."
+    "error_lead": "Error loading the lead."
   }
 }

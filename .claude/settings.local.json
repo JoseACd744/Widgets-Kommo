@@ -42,7 +42,29 @@
       "Bash(cp /c/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/0abf84a3-d12d-454b-a07f-26edb6e92e21/scratchpad/shot3_es.png marketplace-assets/screenshots/03-registro-es.png)",
       "Bash(cp /c/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/0abf84a3-d12d-454b-a07f-26edb6e92e21/scratchpad/shot1_en.png marketplace-assets/screenshots/01-leads-en.png)",
       "Bash(unzip -l pruebva.zip)",
-      "Bash(sed -i 's/\\\\r$//' i18n/es.json i18n/en.json script.js)"
+      "Bash(sed -i 's/\\\\r$//' i18n/es.json i18n/en.json script.js)",
+      "Bash(unzip -l \"zxzxxzzxzzxzxzx.zip\")",
+      "Bash(mkdir -p /tmp_extract)",
+      "Bash(unzip -p \"zxzxxzzxzzxzxzx.zip\" style.css)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m http.server 8791)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8791/slide_mock.html)",
+      "Bash(\"/c/Program Files/Google/Chrome/Application/chrome.exe\" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1188,616 --screenshot=\"test_es_1_light.png\" \"http://127.0.0.1:8791/slide_mock.html?locale=es&slide=1&theme=light\")",
+      "Bash(python3 -c \"from PIL import Image; im=Image.open\\('test_es_1_light.png'\\); print\\(im.size\\)\")",
+      "Bash('/c/Program Files/Google/Chrome/Application/chrome.exe' --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size=1188,616 --screenshot=C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/bd705fb1-35aa-40dc-b3b2-0ce5afd78847/scratchpad/test_es_1_light.png 'http://127.0.0.1:8791/slide_mock.html?locale=es&slide=1&theme=light')",
+      "Bash(python3 *)",
+      "Bash(pkill -f \"http.server 8791\")",
+      "Bash(curl *)",
+      "Bash(unzip -p \"zxzxxzzxzzxzxzx.zip\" templates/widget.twig)",
+      "Bash('/c/Program Files/Google/Chrome/Application/chrome.exe' --headless --disable-gpu --force-device-scale-factor=1 --window-size=200,200 --screenshot=C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/bd705fb1-35aa-40dc-b3b2-0ce5afd78847/scratchpad/svg_preview.png file:///C:/Users/JOSE/Documents/GitHub/Widgets-Kommo/images/integration_logo.svg)",
+      "Bash('/c/Program Files/Google/Chrome/Application/chrome.exe' --headless --disable-gpu --force-device-scale-factor=1 --window-size=512,256 --screenshot=C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/bd705fb1-35aa-40dc-b3b2-0ce5afd78847/scratchpad/svg_contrast_check.png file:///C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/bd705fb1-35aa-40dc-b3b2-0ce5afd78847/scratchpad/svg_test.html)",
+      "Bash(node -c src/domains/other_leads/oauthService.js)",
+      "Bash(node -c src/domains/other_leads/routes.js)",
+      "Bash(unzip -l \"Contact Leads via Holos.zip\")",
+      "Bash(rm -f \"Contact Leads via Holos.zip\")",
+      "Bash(zip -r \"Contact Leads via Holos.zip\" manifest.json script.js style.css i18n images templates -x \"*.DS_Store\")",
+      "Bash(rm -f templates/widget.twig)",
+      "Bash(rmdir templates *)"
     ]
   }
 }

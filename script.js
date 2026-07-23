@@ -7,6 +7,7 @@ define(['jquery'], function ($) {
 
     var pipelinesCache = null;
     var SERVER_URL = 'https://appscripts-server-production.up.railway.app/webhooks/other_leads/api/leads/register';
+    var CHECK_URL  = 'https://appscripts-server-production.up.railway.app/webhooks/other_leads/api/leads/check/';
 
     this.t = function (key) {
       var labels = self.i18n('labels') || {};
@@ -66,7 +67,6 @@ define(['jquery'], function ($) {
         success: function (response) {
           var groups = response._embedded && response._embedded.custom_field_groups;
           if (!groups || !groups[0]) {
-            console.error('[KM] No group returned');
             return;
           }
           var groupId = groups[0].id;
@@ -83,14 +83,10 @@ define(['jquery'], function ($) {
             success: function () {
               location.reload();
             },
-            error: function (xhr) {
-              console.error('[KM] Error creating field:', xhr.responseText);
-            }
+            error: function () {}
           });
         },
-        error: function (xhr) {
-          console.error('[KM] Error creating group:', xhr.responseText);
-        }
+        error: function () {}
       });
     };
 
@@ -110,7 +106,6 @@ define(['jquery'], function ($) {
       }
 
       if (!tab) {
-        console.warn('[KM] Tab not found for field ID:', field.ID);
         return;
       }
 
@@ -134,10 +129,41 @@ define(['jquery'], function ($) {
       }
     };
 
+    // ─── Inline styles ────────────────────────────────────────────────────────
+    // Kommo does not reliably serve style.css for this widget (confirmed: the
+    // file is uploaded and reachable on their CDN, but no <link> ever gets
+    // added to the page). Inject the same rules ourselves so the widget never
+    // depends on that pipeline.
+
+    this.injectStyles = function () {
+      if (document.getElementById('km-leads-widget-styles')) return;
+
+      var css =
+        '#km-leads-widget {' +
+          '--km-color-white:#ffffff;--km-color-bg-soft:#f8f9fc;--km-color-bg-tag:#f0f2f5;' +
+          '--km-color-border:#d3d9e3;--km-color-divider:#c3cad6;--km-color-disabled-bg:#f0f0f0;' +
+          '--km-color-text-primary:#2e3f52;--km-color-text-muted:#888888;--km-color-text-faint:#b2b2b2;' +
+          '--km-color-text-tag:#666666;--km-color-accent:#1b66ad;--km-color-error:#d9534f;' +
+        '}' +
+        ':root[data-color-scheme="dark"] #km-leads-widget {' +
+          '--km-color-white:#1c2530;--km-color-bg-soft:#232e3c;--km-color-bg-tag:#2b3846;' +
+          '--km-color-border:#3a4553;--km-color-divider:#4d5a6b;--km-color-disabled-bg:#2a3542;' +
+          '--km-color-text-primary:#eef1f5;--km-color-text-muted:#9aa7b5;--km-color-text-faint:#7c8a99;' +
+          '--km-color-text-tag:#c3ccd6;--km-color-accent:#4b8fd6;--km-color-error:#e2665d;' +
+        '}';
+
+      var style = document.createElement('style');
+      style.id = 'km-leads-widget-styles';
+      style.textContent = css;
+      document.head.appendChild(style);
+    };
+
     // ─── Inject the widget HTML into the tab container ────────────────────────
 
     this.injectContent = function ($container) {
       if ($container.find('#km-leads-widget').length) return;
+
+      self.injectStyles();
 
       $container.html(
         '<div id="km-leads-widget" style="margin-left:-30px; margin-right:-30px; width:calc(100% + 60px); padding:12px 12px; box-sizing:border-box; max-height:600px; overflow-y:auto;">' +
@@ -151,9 +177,7 @@ define(['jquery'], function ($) {
         $container.css({ 'min-height': '200px', 'box-sizing': 'border-box' });
         $container.find('#km-leads-widget').css({ 'max-height': '600px', 'overflow-y': 'auto' });
         $container.find('#km-leads-list').css({ 'box-sizing': 'border-box' });
-      } catch (e) {
-        console.warn('[KM] Error applying layout styles:', e);
-      }
+      } catch {}
 
       self.fetchAndRender();
     };
@@ -244,6 +268,23 @@ define(['jquery'], function ($) {
       });
     };
 
+    // ─── Check Registered ─────────────────────────────────────────────────────
+
+    this.checkRegistered = function (subdominio, callback) {
+      $.ajax({
+        url: CHECK_URL + encodeURIComponent(subdominio),
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+          callback(!!(response && (response.registered || response.exists)));
+        },
+        error: function () {
+          // Fail-open: un problema del endpoint de chequeo no debe bloquear el registro.
+          callback(false);
+        }
+      });
+    };
+
     // ─── Send to Server ───────────────────────────────────────────────────────
 
     this.sendToServer = function () {
@@ -254,25 +295,25 @@ define(['jquery'], function ($) {
 
         if (!nombre || !correo) return;
 
-        var payload = {
-          subdominio: subdominio,
-          nombre: nombre,
-          correo: correo,
-          timestamp: new Date().toISOString()
-        };
+        self.checkRegistered(subdominio, function (alreadyRegistered) {
+          if (alreadyRegistered) return;
 
-        $.ajax({
-          url: SERVER_URL,
-          method: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify(payload),
-          error: function (xhr) {
-            console.error('[KM] Error al enviar al servidor:', xhr.status, xhr.statusText);
-          }
+          var payload = {
+            subdominio: subdominio,
+            nombre: nombre,
+            correo: correo,
+            timestamp: new Date().toISOString()
+          };
+
+          $.ajax({
+            url: SERVER_URL,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            error: function () {}
+          });
         });
-      } catch (e) {
-        console.error('[KM] Error en sendToServer:', e);
-      }
+      } catch {}
     };
 
     // ─── Get Subdomain ────────────────────────────────────────────────────────
@@ -298,14 +339,14 @@ define(['jquery'], function ($) {
         var pipeline = $('<s>').text(lead.pipeline).html();
         var status   = $('<s>').text(lead.status).html();
         var price    = lead.price ? '$' + Number(lead.price).toLocaleString() : '';
-        var border   = idx < leads.length - 1 ? 'border-bottom:1px solid var(--km-color-divider);' : '';
+        var margin   = idx < leads.length - 1 ? 'margin-bottom:8px;' : '';
         var isLight  = self.isLightColor(lead.statusColor);
         var textCol  = isLight ? '#2e3f52' : '#fff';
 
         html +=
           '<a href="/leads/detail/' + lead.id + '" target="_blank" ' +
              'style="display:flex;align-items:flex-start;justify-content:space-between;' +
-               'padding:10px 10px;' + border + 'text-decoration:none;color:inherit;' +
+               'padding:10px 10px;border:1px solid var(--km-color-divider);border-radius:6px;' + margin + 'text-decoration:none;color:inherit;' +
                'background:var(--km-color-white);cursor:pointer;" ' +
              'onmouseover="this.style.background=\'var(--km-color-bg-soft)\'" ' +
              'onmouseout="this.style.background=\'var(--km-color-white)\'">' +

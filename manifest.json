@@ -3,7 +3,7 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "interface_version": 2,
     "init_once": false,
     "locale": [
@@ -17,7 +17,8 @@
     "support_email": "soporte@holos.ec"
   },
   "locations": [
-    "lcard-1"
+    "lcard-1",
+    "settings"
   ],
   "tour": {
     "is_tour": true,

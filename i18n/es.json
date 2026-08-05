@@ -3,11 +3,30 @@
     "name": "Leads de Contacto via Holos",
     "short_description": "Otros leads del mismo contacto.",
     "description": "Muestra todos los leads vinculados al mismo contacto dentro de la tarjeta del lead.",
-    "tour_description": "Este widget muestra todos los leads vinculados al mismo contacto directamente en la tarjeta del lead.\n\nPara comenzar:\n1. Instala el widget desde el Marketplace.\n2. Ingresa tu nombre y correo al configurar el widget.\n3. Los leads del contacto aparecerán ordenados por fecha.\n\nEste widget es gratuito y no requiere un plan específico de Kommo.\n\n¿Necesitas ayuda? Escríbenos a soporte@holos.ec"
+    "tour_description": "Este widget muestra todos los leads vinculados al mismo contacto directamente en la tarjeta del lead.\n\nPara comenzar:\n1. Instala el widget desde el Marketplace.\n2. Ingresa tu nombre, correo y teléfono al configurar el widget.\n3. Los leads del contacto aparecerán ordenados por fecha.\n\nEste widget es gratuito y no requiere un plan específico de Kommo.\n\n¿Necesitas ayuda? Escríbenos a soporte@holos.ec"
   },
   "settings": {
     "nombre": "Nombre",
-    "correo": "Correo Electrónico"
+    "correo": "Correo Electrónico",
+    "telefono": "Teléfono (incluye código de país, ej: +593...)"
+  },
+  "advanced": {
+    "title": "Leads de Contacto via Holos",
+    "holos_data_title": "Datos registrados en Holos",
+    "name_label": "Nombre",
+    "email_label": "Correo",
+    "phone_label": "Teléfono",
+    "subdomain_label": "Subdominio",
+    "card_fields_title": "Datos visibles en las tarjetas de otros leads",
+    "show_pipeline": "Mostrar embudo",
+    "show_stage": "Mostrar etapa",
+    "show_price": "Mostrar precio",
+    "custom_fields_title": "Campos personalizados a mostrar",
+    "no_custom_fields": "No hay campos personalizados de leads en tu cuenta.",
+    "search_placeholder": "Buscar campo...",
+    "no_matches": "No hay campos que coincidan con la búsqueda.",
+    "save": "Guardar",
+    "saved": "Cambios guardados"
   },
   "labels": {
     "loading": "Cargando...",

@@ -70,7 +70,10 @@
       "Bash(cp __TRACKED_VAR__/slideshow_1_en.jpg images/slideshow_1_en.jpg)",
       "Bash(cp __TRACKED_VAR__/slideshow_2_es.jpg images/slideshow_2_es.jpg)",
       "Bash(cp __TRACKED_VAR__/slideshow_2_en.jpg images/slideshow_2_en.jpg)",
-      "Bash(cp __TRACKED_VAR__/slideshow_3_es.jpg images/slideshow_3_es.jpg)"
+      "Bash(cp __TRACKED_VAR__/slideshow_3_es.jpg images/slideshow_3_es.jpg)",
+      "Bash(node -c src/domains/other_leads/appScriptService.js)",
+      "Bash(node -c script.js)",
+      "Bash(node -c src/domains/other_leads/csvService.js)"
     ]
   }
 }

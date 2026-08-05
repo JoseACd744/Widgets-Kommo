@@ -14,6 +14,11 @@ define(['jquery'], function ($) {
       return labels[key] || key;
     };
 
+    this.tAdv = function (key) {
+      var adv = self.i18n('advanced') || {};
+      return adv[key] || key;
+    };
+
     this.callbacks = {
       settings:     function () { return true; },
       init:         function () {
@@ -24,6 +29,10 @@ define(['jquery'], function ($) {
       render:       function () { return true; },
       onSave:       function () {
         self.sendToServer();
+        return true;
+      },
+      advancedSettings: function () {
+        self.renderAdvancedSettings();
         return true;
       },
       destroy:      function () {}
@@ -224,13 +233,14 @@ define(['jquery'], function ($) {
                       var pipe   = pipelines[full.pipeline_id] || {};
                       var status = (pipe.statuses || {})[full.status_id] || {};
                       return {
-                        id:           full.id,
-                        name:         full.name || self.t('no_name'),
-                        price:        full.price || 0,
-                        pipeline:     pipe.name || '',
-                        status:       status.name || '',
-                        statusColor:  status.color || '#e8e8e8',
-                        created_at:   full.created_at || 0
+                        id:            full.id,
+                        name:          full.name || self.t('no_name'),
+                        price:         full.price || 0,
+                        pipeline:      pipe.name || '',
+                        status:        status.name || '',
+                        statusColor:   status.color || '#e8e8e8',
+                        created_at:    full.created_at || 0,
+                        customFields:  full.custom_fields_values || []
                       };
                     });
                     results.sort(function (a, b) { return b.created_at - a.created_at; });
@@ -291,9 +301,10 @@ define(['jquery'], function ($) {
       try {
         var nombre = self.get_settings('nombre');
         var correo = self.get_settings('correo');
+        var telefono = self.get_settings('telefono');
         var subdominio = self.getSubdomain();
 
-        if (!nombre || !correo) return;
+        if (!nombre || !correo || !telefono) return;
 
         self.checkRegistered(subdominio, function (alreadyRegistered) {
           if (alreadyRegistered) return;
@@ -302,6 +313,7 @@ define(['jquery'], function ($) {
             subdominio: subdominio,
             nombre: nombre,
             correo: correo,
+            telefono: telefono,
             timestamp: new Date().toISOString()
           };
 
@@ -327,12 +339,177 @@ define(['jquery'], function ($) {
       return hostname;
     };
 
+    // ─── Advanced settings: which fields show on other-leads cards ───────────
+    // Stored via self.set_settings() outside the manifest's "settings" schema,
+    // so absence of the key (never saved yet) must default to shown (true).
+
+    this.getCardFieldPrefs = function () {
+      var settings = self.get_settings() || {};
+      var customFieldIds = (settings.visible_custom_fields || '')
+        .split(',')
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean);
+      return {
+        pipeline:       settings.show_pipeline !== '0',
+        status:         settings.show_stage   !== '0',
+        price:          settings.show_price   !== '0',
+        customFieldIds: customFieldIds
+      };
+    };
+
+    this.getAdvancedSettingsContainer = function () {
+      // #list_page_holder is Kommo's real content container for this page
+      // (confirmed via live DOM inspection — it sits right below the page's
+      // own "Ajustes avanzados" header, empty until the widget fills it in).
+      // The others are defensive fallbacks in case Kommo changes this ID.
+      var candidates = [
+        '#list_page_holder',
+        '.js-advanced-settings',
+        '.advanced-settings__body',
+        '.widget-advanced-settings',
+        '.settings-advanced-page__content'
+      ];
+      for (var i = 0; i < candidates.length; i++) {
+        var $c = $(candidates[i]);
+        if ($c.length) return $c;
+      }
+      return null;
+    };
+
+    this.fetchLeadCustomFields = function (onSuccess) {
+      $.ajax({
+        url: '/api/v4/leads/custom_fields?limit=250',
+        method: 'GET', dataType: 'json',
+        success: function (data) {
+          onSuccess((data._embedded && data._embedded.custom_fields) || []);
+        },
+        error: function () { onSuccess([]); }
+      });
+    };
+
+    this.renderAdvancedSettings = function () {
+      self.injectStyles();
+      self.fetchLeadCustomFields(function (customFields) {
+        self.renderAdvancedSettingsContent(customFields);
+      });
+    };
+
+    this.renderAdvancedSettingsContent = function (customFields) {
+      var settings = self.get_settings() || {};
+      var prefs = self.getCardFieldPrefs();
+      var esc = function (v) { return $('<s>').text(v || '').html(); };
+
+      var customFieldsHtml = customFields.length
+        ? customFields.map(function (f) {
+            var checked = prefs.customFieldIds.indexOf(String(f.id)) !== -1;
+            return '<label class="km-adv-cf-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;' +
+                     'color:var(--km-color-text-primary);cursor:pointer;">' +
+                     '<input type="checkbox" class="km-adv-custom-field" value="' + f.id + '"' + (checked ? ' checked' : '') + '> ' +
+                     esc(f.name) +
+                   '</label>';
+          }).join('')
+        : '<div style="font-size:13px;color:var(--km-color-text-faint);">' + self.tAdv('no_custom_fields') + '</div>';
+
+      var html =
+        '<div id="km-leads-widget" style="max-width:560px;padding:24px 30px;box-sizing:border-box;">' +
+
+          '<div style="margin-bottom:28px;">' +
+            '<h3 style="font-size:15px;font-weight:600;color:var(--km-color-text-primary);margin:0 0 12px;">' +
+              self.tAdv('holos_data_title') +
+            '</h3>' +
+            '<div style="display:grid;grid-template-columns:130px 1fr;row-gap:8px;font-size:13px;color:var(--km-color-text-primary);">' +
+              '<div style="color:var(--km-color-text-muted);">' + self.tAdv('name_label')      + '</div><div>' + esc(settings.nombre)     + '</div>' +
+              '<div style="color:var(--km-color-text-muted);">' + self.tAdv('email_label')     + '</div><div>' + esc(settings.correo)     + '</div>' +
+              '<div style="color:var(--km-color-text-muted);">' + self.tAdv('phone_label')     + '</div><div>' + esc(settings.telefono) + '</div>' +
+              '<div style="color:var(--km-color-text-muted);">' + self.tAdv('subdomain_label') + '</div><div>' + esc(self.getSubdomain()) + '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div style="margin-bottom:28px;">' +
+            '<h3 style="font-size:15px;font-weight:600;color:var(--km-color-text-primary);margin:0 0 12px;">' +
+              self.tAdv('card_fields_title') +
+            '</h3>' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--km-color-text-primary);cursor:pointer;">' +
+              '<input type="checkbox" id="km-adv-show-pipeline"' + (prefs.pipeline ? ' checked' : '') + '> ' + self.tAdv('show_pipeline') +
+            '</label>' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:var(--km-color-text-primary);cursor:pointer;">' +
+              '<input type="checkbox" id="km-adv-show-stage"' + (prefs.status ? ' checked' : '') + '> ' + self.tAdv('show_stage') +
+            '</label>' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-bottom:0;font-size:13px;color:var(--km-color-text-primary);cursor:pointer;">' +
+              '<input type="checkbox" id="km-adv-show-price"' + (prefs.price ? ' checked' : '') + '> ' + self.tAdv('show_price') +
+            '</label>' +
+          '</div>' +
+
+          '<div style="margin-bottom:24px;">' +
+            '<h3 style="font-size:15px;font-weight:600;color:var(--km-color-text-primary);margin:0 0 12px;">' +
+              self.tAdv('custom_fields_title') +
+            '</h3>' +
+            (customFields.length > 6
+              ? '<input type="text" id="km-adv-cf-search" placeholder="' + esc(self.tAdv('search_placeholder')) + '" ' +
+                  'style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 10px;font-size:13px;' +
+                  'border:1px solid var(--km-color-divider);border-radius:6px;background:var(--km-color-white);' +
+                  'color:var(--km-color-text-primary);">'
+              : '') +
+            '<div style="max-height:240px;overflow-y:auto;border:1px solid var(--km-color-divider);border-radius:6px;padding:12px;">' +
+              customFieldsHtml +
+              '<div id="km-adv-cf-empty" style="display:none;font-size:13px;color:var(--km-color-text-faint);">' +
+                self.tAdv('no_matches') +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div>' +
+            '<button id="km-adv-save" style="background:var(--km-color-accent);color:#fff;border:none;border-radius:6px;' +
+                    'padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;">' +
+              self.tAdv('save') +
+            '</button>' +
+            '<span id="km-adv-saved" style="margin-left:12px;font-size:13px;color:var(--km-color-accent);display:none;">' +
+              self.tAdv('saved') +
+            '</span>' +
+          '</div>' +
+        '</div>';
+
+      var $container = self.getAdvancedSettingsContainer();
+      if ($container) {
+        $container.html(html);
+      } else {
+        $('#km-advanced-settings-fallback').remove();
+        $('body').append('<div id="km-advanced-settings-fallback">' + html + '</div>');
+      }
+
+      $(document).off('click.kmAdvSave').on('click.kmAdvSave', '#km-adv-save', function () {
+        var selectedFieldIds = [];
+        $('.km-adv-custom-field:checked').each(function () { selectedFieldIds.push($(this).val()); });
+
+        self.set_settings($.extend({}, self.get_settings(), {
+          show_pipeline:         $('#km-adv-show-pipeline').is(':checked') ? '1' : '0',
+          show_stage:            $('#km-adv-show-stage').is(':checked')    ? '1' : '0',
+          show_price:            $('#km-adv-show-price').is(':checked')    ? '1' : '0',
+          visible_custom_fields: selectedFieldIds.join(',')
+        }));
+        var $saved = $('#km-adv-saved').stop(true, true).show();
+        setTimeout(function () { $saved.fadeOut(); }, 2000);
+      });
+
+      $(document).off('input.kmAdvCfFilter').on('input.kmAdvCfFilter', '#km-adv-cf-search', function () {
+        var query = $(this).val().toLowerCase();
+        var visibleCount = 0;
+        $('.km-adv-cf-row').each(function () {
+          var matches = $(this).text().toLowerCase().indexOf(query) !== -1;
+          $(this).toggle(matches);
+          if (matches) visibleCount++;
+        });
+        $('#km-adv-cf-empty').toggle(visibleCount === 0);
+      });
+    };
+
     // ─── Rendering ────────────────────────────────────────────────────────────
 
     this.renderLeads = function (leads) {
       $('#km-leads-list').show();
       $('#km-leads-loading').remove();
 
+      var prefs = self.getCardFieldPrefs();
       var html = '';
       leads.forEach(function (lead, idx) {
         var name     = $('<s>').text(lead.name).html();
@@ -358,22 +535,42 @@ define(['jquery'], function ($) {
              '</div>' +
              '<div style="display:flex;gap:5px;flex-wrap:wrap;">';
 
-        if (pipeline) {
+        if (pipeline && prefs.pipeline) {
           html += '<span style="display:inline-block;font-size:11px;font-weight:500;' +
                     'background:var(--km-color-bg-tag);color:var(--km-color-text-tag);padding:2px 8px;border-radius:3px;">' +
                   pipeline + '</span>';
         }
-        if (status) {
+        if (status && prefs.status) {
           html += '<span style="display:inline-block;font-size:11px;font-weight:500;' +
                     'background:' + lead.statusColor + ';color:' + textCol + ';' +
                     'padding:2px 8px;border-radius:3px;">' +
                   status + '</span>';
         }
 
+        prefs.customFieldIds.forEach(function (fieldId) {
+          var field = (lead.customFields || []).filter(function (cf) {
+            return String(cf.field_id) === fieldId;
+          })[0];
+          if (!field) return;
+
+          var value = (field.values || [])
+            .map(function (v) { return v.value; })
+            .filter(function (v) { return v !== null && v !== undefined && v !== ''; })
+            .join(', ');
+          if (!value) return;
+
+          var fieldLabel = $('<s>').text(field.field_name || '').html();
+          var fieldValue = $('<s>').text(value).html();
+
+          html += '<span style="display:inline-block;font-size:11px;font-weight:500;' +
+                    'background:var(--km-color-bg-tag);color:var(--km-color-text-tag);padding:2px 8px;border-radius:3px;">' +
+                  fieldLabel + ': ' + fieldValue + '</span>';
+        });
+
         html +=   '</div>' +
                 '</div>';
 
-        if (price) {
+        if (price && prefs.price) {
           html += '<span style="font-size:13px;color:var(--km-color-text-muted);white-space:nowrap;' +
                      'margin-left:12px;padding-top:1px;flex-shrink:0;">' +
                   price + '</span>';

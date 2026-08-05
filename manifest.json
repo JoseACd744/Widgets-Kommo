@@ -3,7 +3,7 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.14",
+    "version": "1.2.1",
     "interface_version": 2,
     "init_once": false,
     "locale": [
@@ -18,8 +18,12 @@
   },
   "locations": [
     "lcard-1",
-    "settings"
+    "settings",
+    "advanced_settings"
   ],
+  "advanced": {
+    "title": "advanced.title"
+  },
   "tour": {
     "is_tour": true,
     "tour_images": {
@@ -42,6 +46,11 @@
     },
     "correo": {
       "name": "settings.correo",
+      "type": "text",
+      "required": true
+    },
+    "telefono": {
+      "name": "settings.telefono",
       "type": "text",
       "required": true
     }

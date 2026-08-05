@@ -3,7 +3,7 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "interface_version": 2,
     "init_once": false,
     "locale": [
@@ -42,6 +42,11 @@
     },
     "correo": {
       "name": "settings.correo",
+      "type": "text",
+      "required": true
+    },
+    "telefono": {
+      "name": "settings.telefono",
       "type": "text",
       "required": true
     }

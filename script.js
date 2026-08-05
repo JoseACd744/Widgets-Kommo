@@ -291,9 +291,10 @@ define(['jquery'], function ($) {
       try {
         var nombre = self.get_settings('nombre');
         var correo = self.get_settings('correo');
+        var telefono = self.get_settings('telefono');
         var subdominio = self.getSubdomain();
 
-        if (!nombre || !correo) return;
+        if (!nombre || !correo || !telefono) return;
 
         self.checkRegistered(subdominio, function (alreadyRegistered) {
           if (alreadyRegistered) return;
@@ -302,6 +303,7 @@ define(['jquery'], function ($) {
             subdominio: subdominio,
             nombre: nombre,
             correo: correo,
+            telefono: telefono,
             timestamp: new Date().toISOString()
           };
 

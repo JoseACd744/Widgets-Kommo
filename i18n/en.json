@@ -3,11 +3,12 @@
     "name": "Contact Leads via Holos",
     "short_description": "Other leads of the same contact.",
     "description": "Shows all leads linked to the same contact directly inside the lead card.",
-    "tour_description": "This widget displays all leads linked to the same contact directly inside the lead card.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Enter your name and email when configuring the widget.\n3. The contact's leads will appear sorted by date.\n\nThis widget is free and does not require any specific Kommo plan.\n\nNeed help? Contact us at soporte@holos.ec"
+    "tour_description": "This widget displays all leads linked to the same contact directly inside the lead card.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Enter your name, email and phone number when configuring the widget.\n3. The contact's leads will appear sorted by date.\n\nThis widget is free and does not require any specific Kommo plan.\n\nNeed help? Contact us at soporte@holos.ec"
   },
   "settings": {
     "nombre": "Name",
-    "correo": "Email"
+    "correo": "Email",
+    "telefono": "Phone (include country code, e.g. +593...)"
   },
   "labels": {
     "loading": "Loading...",

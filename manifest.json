@@ -3,7 +3,7 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.10",
+    "version": "1.0.14",
     "interface_version": 2,
     "init_once": false,
     "locale": [
@@ -25,13 +25,11 @@
     "tour_images": {
       "en": [
         "/images/slideshow_1_en.jpg",
-        "/images/slideshow_2_en.jpg",
-        "/images/slideshow_3_en.jpg"
+        "/images/slideshow_2_en.jpg"
       ],
       "es": [
         "/images/slideshow_1_es.jpg",
-        "/images/slideshow_2_es.jpg",
-        "/images/slideshow_3_es.jpg"
+        "/images/slideshow_2_es.jpg"
       ]
     },
     "tour_description": "widget.tour_description"

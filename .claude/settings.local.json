@@ -64,7 +64,13 @@
       "Bash(rm -f \"Contact Leads via Holos.zip\")",
       "Bash(zip -r \"Contact Leads via Holos.zip\" manifest.json script.js style.css i18n images templates -x \"*.DS_Store\")",
       "Bash(rm -f templates/widget.twig)",
-      "Bash(rmdir templates *)"
+      "Bash(rmdir templates *)",
+      "Bash(python build_slides3.py)",
+      "Bash(cp __TRACKED_VAR__/slideshow_1_es.jpg images/slideshow_1_es.jpg)",
+      "Bash(cp __TRACKED_VAR__/slideshow_1_en.jpg images/slideshow_1_en.jpg)",
+      "Bash(cp __TRACKED_VAR__/slideshow_2_es.jpg images/slideshow_2_es.jpg)",
+      "Bash(cp __TRACKED_VAR__/slideshow_2_en.jpg images/slideshow_2_en.jpg)",
+      "Bash(cp __TRACKED_VAR__/slideshow_3_es.jpg images/slideshow_3_es.jpg)"
     ]
   }
 }

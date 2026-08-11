@@ -1,26 +1,22 @@
 /* ─── Color tokens (light default, overridden in Kommo dark theme) ───────── */
 :root {
   --km-pt-text: #7a7a7a;
-  --km-pt-tip-bg: #ffffff;
-  --km-pt-tip-border: #e0e4eb;
-  --km-pt-tip-text: #2e3f52;
-  --km-pt-tip-shadow: rgba(0, 0, 0, 0.1);
+  --km-pt-flag-border: rgba(0, 0, 0, 0.15);
 }
 
 :root[data-color-scheme="dark"] {
   --km-pt-text: #b7bfca;
-  --km-pt-tip-bg: #1c2b3a;
-  --km-pt-tip-border: #33455a;
-  --km-pt-tip-text: #f2f2f2;
-  --km-pt-tip-shadow: rgba(0, 0, 0, 0.35);
+  --km-pt-flag-border: rgba(255, 255, 255, 0.25);
 }
 
 /* ─── Phone Time badge ─────────────────────────────────────────────────────── */
 .km-phone-time__row {
-  display: flex;
-  align-items: center;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  vertical-align: middle;
   gap: 6px;
-  flex-wrap: nowrap;
 }
 
 .km-phone-time {
@@ -38,26 +34,6 @@
 .km-phone-time__flag {
   display: block;
   border-radius: 1px;
+  border: 1px solid var(--km-pt-flag-border);
   flex-shrink: 0;
-}
-
-.km-phone-time__tip {
-  display: none;
-  position: absolute;
-  top: calc(100% + 3px);
-  left: 0;
-  background: var(--km-pt-tip-bg);
-  border: 1px solid var(--km-pt-tip-border);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--km-pt-tip-text);
-  white-space: nowrap;
-  z-index: 9999;
-  box-shadow: 0 2px 8px var(--km-pt-tip-shadow);
-  pointer-events: none;
-}
-
-.km-phone-time__tip--visible {
-  display: block;
 }

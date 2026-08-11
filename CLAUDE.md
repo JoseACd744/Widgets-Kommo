@@ -41,9 +41,13 @@ reload the widget in a live account.
 ## Architecture — how `script.js` works
 
 1. **Phone Time badges**: `PT_MAP` maps calling codes (`+1`, `+593`, ...) to `[ISO2, country
-   name, UTC offset minutes]`. `renderPhoneBadges()` scans `.control-phone__formatted` inputs,
-   parses each value with `parsePhoneData()`, and injects a `.km-phone-time` badge (flag +
-   local clock + hover tooltip) right after the input via `injectPhoneBadge()`.
+   name, UTC offset minutes]` (the country name is kept in the map for reference/debugging but
+   is not rendered — it varies by language and isn't localized). `renderPhoneBadges()` scans
+   `.control-phone__formatted` inputs, parses each value with `parsePhoneData()`, wraps just the
+   input (not its siblings, e.g. an "add phone" button) in its own `.km-phone-time__row`
+   inline-flex span so the badge always sits beside it rather than depending on the original
+   parent's layout, and injects a `.km-phone-time` badge (flag + local clock, no label) right
+   after the input via `injectPhoneBadge()`.
 2. **Per-card scan**: `scanPhoneBadges()` retries the scan at 500 ms and 1.5 s (phone fields
    can be lazy-loaded). It runs from `init` (first load) and from `render` (every subsequent
    card open). `setupPhoneTime()` (called only from `init`) additionally starts a
@@ -68,9 +72,9 @@ reload the widget in a live account.
 
 ## XSS safety
 
-User-facing strings that come from data (currently just the `PT_MAP` country name) are
-escaped with `$('<span>').text(value).html()` before being injected into HTML. Keep this
-pattern for any new dynamic content inserted via `.html()`.
+No `PT_MAP` data is currently rendered as text (only the flag image `src` and the computed
+clock string are injected). If any new dynamic content from data is added to the badge HTML,
+escape it first with `$('<span>').text(value).html()` before injecting via `.html()`.
 
 ## Localization
 

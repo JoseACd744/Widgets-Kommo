@@ -162,6 +162,7 @@ define(['jquery'], function ($) {
     this.destroyPhoneTime = function () {
       if (ptInterval) { clearInterval(ptInterval); ptInterval = null; }
       $('.km-phone-time').remove();
+      $('.km-phone-time__row').contents().unwrap();
     };
 
     // ─── Phone Time: scan and inject ─────────────────────────────────────────
@@ -169,8 +170,8 @@ define(['jquery'], function ($) {
     this.renderPhoneBadges = function () {
       $('.control-phone__formatted').each(function () {
         var $input = $(this);
-        // Guard: skip if badge already exists as a sibling
-        if ($input.parent().find('.km-phone-time').length) return;
+        // Guard: skip if already wrapped/badged
+        if ($input.parent().hasClass('km-phone-time__row')) return;
 
         var phone = $input.val();
         if (!phone) return;
@@ -178,8 +179,9 @@ define(['jquery'], function ($) {
         var data = self.parsePhoneData(phone);
         if (!data) return;
 
-        // Make the immediate parent flex so the badge sits inline with the input
-        $input.parent().addClass('km-phone-time__row');
+        // Wrap just the input (not its siblings, e.g. an "add phone" button)
+        // in our own inline-flex row so the badge always sits right beside it.
+        $input.wrap('<span class="km-phone-time__row"></span>');
 
         self.injectPhoneBadge($input, data);
       });
@@ -228,22 +230,13 @@ define(['jquery'], function ($) {
       // Flag from flagcdn.com — works on all OSes (no emoji rendering issues)
       var flagSrc = 'https://flagcdn.com/w20/' + data.country.toLowerCase() + '.png';
       var time    = self.calcLocalTime(data.offset);
-      var name    = $('<span>').text(data.name).html(); // XSS-safe
 
       var $badge = $(
         '<span class="km-phone-time" data-km-offset="' + data.offset + '">' +
           '<img class="km-phone-time__flag" src="' + flagSrc + '" width="16" height="12" alt="">' +
           '<span class="km-phone-time__clock">' + time + '</span>' +
-          '<span class="km-phone-time__tip">' + name + '</span>' +
         '</span>'
       );
-
-      $badge.on('mouseenter', function () {
-        $(this).find('.km-phone-time__tip').addClass('km-phone-time__tip--visible');
-      }).on('mouseleave', function () {
-        $(this).find('.km-phone-time__tip').removeClass('km-phone-time__tip--visible');
-
-      });
 
       // Insert right after the input so it sits inline in the same flex row
       $input.after($badge);

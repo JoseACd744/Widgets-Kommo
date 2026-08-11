@@ -22,7 +22,23 @@
       "Bash(cp images/_gen/logo_medium.png images/logo_medium.png)",
       "Bash(cp images/_gen/logo_min.png images/logo_min.png)",
       "Bash(cp images/_gen/logo_small.png images/logo_small.png)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(unzip -l \"zxcxzcxzcxzcxzcc.zip\")",
+      "Bash(unzip -l \"cxvcxvcxvcxvcxv.zip\")",
+      "Bash(mkdir -p /tmp/zipcheck)",
+      "Bash(unzip -o -q \"cxvcxvcxvcxvcxv.zip\" -d /tmp/zipcheck)",
+      "Read(//tmp/zipcheck/**)",
+      "Bash(echo \"=== style diff exit $? ===\")",
+      "Bash(echo \"=== script diff exit $? ===\")",
+      "Bash(pkill -f \"http.server 8791\")",
+      "Bash(cp \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude-chrome-screenshots-jdrSDV\\\\screenshot-1786463321672-8.png\" \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\61a5e2a5-ec43-4d05-85b3-fbe671b96d54\\\\scratchpad\\\\tour-candidates\\\\colombia-claro.png\")",
+      "Bash(cp \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude-chrome-screenshots-jdrSDV\\\\screenshot-1786463372792-9.png\" \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\61a5e2a5-ec43-4d05-85b3-fbe671b96d54\\\\scratchpad\\\\tour-candidates\\\\ecuador-claro.png\")",
+      "Bash(cp \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude-chrome-screenshots-jdrSDV\\\\screenshot-1786463428295-10.png\" \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\61a5e2a5-ec43-4d05-85b3-fbe671b96d54\\\\scratchpad\\\\tour-candidates\\\\japon-claro.png\")",
+      "Bash(cp \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude-chrome-screenshots-jdrSDV\\\\screenshot-1786463488227-11.png\" \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\61a5e2a5-ec43-4d05-85b3-fbe671b96d54\\\\scratchpad\\\\tour-candidates\\\\japon-oscuro.png\")",
+      "Bash(cp \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude-chrome-screenshots-jdrSDV\\\\screenshot-1786463515419-12.png\" \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\61a5e2a5-ec43-4d05-85b3-fbe671b96d54\\\\scratchpad\\\\tour-candidates\\\\ecuador-oscuro.png\")",
+      "Bash(python -c \"from PIL import Image; print\\('PIL ok'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python *)"
     ]
   }
 }

@@ -1,0 +1,30 @@
+{
+  "widget": {
+    "name": "widget.name",
+    "description": "widget.description",
+    "short_description": "widget.short_description",
+    "version": "1.0.0",
+    "interface_version": 2,
+    "init_once": false,
+    "locale": [
+      "en",
+      "es"
+    ],
+    "installation": true
+  },
+  "locations": [
+    "lcard-1"
+  ],
+  "settings": {
+    "proxy_url": {
+      "name": "settings.proxy_url",
+      "type": "text",
+      "required": true
+    },
+    "widget_key": {
+      "name": "settings.widget_key",
+      "type": "pass",
+      "required": true
+    }
+  }
+}

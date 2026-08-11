@@ -1,7 +1,41 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:developers.kommo.com)"
+      "WebFetch(domain:developers.kommo.com)",
+      "WebSearch",
+      "WebFetch(domain:www.skool.com)",
+      "WebFetch(domain:www.kommo.com)",
+      "Bash(node --check worker-kommo-chat/src/index.js)",
+      "Bash(node --check widget-export-chat/script.js)",
+      "Bash(node -e \"['widget-export-chat/manifest.json','widget-export-chat/i18n/es.json','widget-export-chat/i18n/en.json','worker-kommo-chat/package.json'].forEach\\(f=>{JSON.parse\\(require\\('fs'\\).readFileSync\\(f,'utf8'\\)\\);console.log\\('json OK',f\\)}\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node \"C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/9a0df08c-1634-467d-ad2e-d9c981332f12/scratchpad/gen-logos.js\" \"C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/9a0df08c-1634-467d-ad2e-d9c981332f12/scratchpad/preview\")",
+      "Bash(node \"C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/9a0df08c-1634-467d-ad2e-d9c981332f12/scratchpad/gen-logos.js\" \"widget-export-chat/images\")",
+      "Bash(node --check widget-export-chat/tools/gen-logos.js)",
+      "Bash(node \"C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/9a0df08c-1634-467d-ad2e-d9c981332f12/scratchpad/inspect.js\" images/logo_min.png images/logo_small.png images/logo.png images/logo_dp.png images/logo_medium.png images/logo_main.png)",
+      "Bash(node tools/extract-brand.js ../images)",
+      "Bash(node tools/gen-logos.js \"C:/Users/JOSE/AppData/Local/Temp/claude/C--Users-JOSE-Documents-GitHub-Widgets-Kommo/9a0df08c-1634-467d-ad2e-d9c981332f12/scratchpad/preview2\")",
+      "Bash(node tools/gen-logos.js images)",
+      "Bash(node --check src/index.js)",
+      "Bash(node --check src/kommo.js)",
+      "Bash(node --check src/store.js)",
+      "Bash(node -e \"console.log\\('node', process.version\\)\")",
+      "Bash(KOMMO_SUBDOMAIN=h0l0s KOMMO_CLIENT_ID=x KOMMO_CLIENT_SECRET=y KOMMO_REDIRECT_URI=http://localhost:3999/oauth/callback WIDGET_KEY=clave-de-prueba-123 ALLOWED_ORIGINS=https://h0l0s.kommo.com DATA_DIR=/tmp/kommo-test-data PORT=3999 node src/index.js)",
+      "Bash(curl -s http://localhost:3999/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3999/export?lead_id=5)",
+      "Bash(curl -s -H \"X-Widget-Key: mala\" \"http://localhost:3999/export?lead_id=5\")",
+      "Bash(curl -s -H \"X-Widget-Key: clave-de-prueba-123\" \"http://localhost:3999/export\")",
+      "Bash(curl -s -i -H \"Origin: https://malicioso.com\" http://localhost:3999/health)",
+      "Bash(kill %1)",
+      "Bash(rm -rf __TRACKED_VAR__/diag)",
+      "Bash(KOMMO_SUBDOMAIN=h0l0s KOMMO_CLIENT_ID='abc123def456  ' KOMMO_CLIENT_SECRET='secreto-con-newline *)",
+      "Bash(curl -s http://localhost:3998/health)",
+      "Bash(curl -s -H \"X-Widget-Key: clave-prueba\" http://localhost:3998/health)",
+      "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>console.log\\(JSON.stringify\\(JSON.parse\\(s\\).config,null,2\\)\\)\\)\")",
+      "Bash(rm -rf __TRACKED_VAR__/diag2)",
+      "Bash(KOMMO_SUBDOMAIN=h0l0s KOMMO_CLIENT_ID=00000000-0000-0000-0000-000000000000 KOMMO_CLIENT_SECRET=x KOMMO_REDIRECT_URI=https://server-widget-chats-production.up.railway.app/oauth/callback WIDGET_KEY=k ALLOWED_ORIGINS=https://h0l0s.kommo.com DATA_DIR=__TRACKED_VAR__/diag2 PORT=3997 node src/index.js)",
+      "Bash(curl -s \"http://localhost:3997/oauth/callback?code=codigo-falso-de-prueba\")",
+      "Bash(curl -s \"http://localhost:3997/oauth/callback\")"
     ]
   }
 }

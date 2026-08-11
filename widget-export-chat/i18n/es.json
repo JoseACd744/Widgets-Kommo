@@ -1,0 +1,12 @@
+{
+  "widget": {
+    "name": "Exportar Conversación",
+    "short_description": "Exporta el historial de chat de un lead.",
+    "description": "Descarga la conversación completa de un lead en TXT, CSV, PDF o JSON.",
+    "tour_description": "Tour del Widget de Exportar Conversación"
+  },
+  "settings": {
+    "proxy_url": "URL del proxy",
+    "widget_key": "Clave del widget"
+  }
+}

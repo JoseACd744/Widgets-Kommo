@@ -1,0 +1,13 @@
+{# Shell del panel. script.js verifica que quede montado y, si Kommo no lo
+   renderiza por esta vía, lo inyecta con el mismo markup desde shellHtml(). #}
+<div id="kec-root" class="kec">
+  <button type="button" id="kec-load" class="kec-btn kec-btn--primary">Cargar conversación</button>
+  <div id="kec-status" class="kec-status"></div>
+  <div id="kec-summary" class="kec-summary" style="display:none;"></div>
+  <div id="kec-actions" class="kec-actions" style="display:none;">
+    <button type="button" id="kec-txt" class="kec-btn">TXT</button>
+    <button type="button" id="kec-csv" class="kec-btn">CSV</button>
+    <button type="button" id="kec-pdf" class="kec-btn">PDF</button>
+    <button type="button" id="kec-json" class="kec-btn">JSON</button>
+  </div>
+</div>

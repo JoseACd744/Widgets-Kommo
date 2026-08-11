@@ -1,0 +1,15 @@
+{
+  "name": "kommo-chat-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Proxy OAuth para leer el historial de conversaciones (Talks API) de Kommo desde un widget.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

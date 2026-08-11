@@ -1,0 +1,87 @@
+.kec {
+  padding: 4px 0 8px;
+}
+
+.kec-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2e3f52;
+  background: #fff;
+  border: 1px solid #d5dbe1;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.kec-btn:hover:not(:disabled) {
+  background: #f5f7fa;
+  border-color: #b9c3cd;
+}
+
+.kec-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Paleta holos: violeta #302663, lavanda #a9a5bc, acento #f52655. */
+.kec-btn--primary {
+  width: 100%;
+  color: #fcfcfb;
+  background: #302663;
+  border-color: #302663;
+}
+
+.kec-btn--primary:hover:not(:disabled) {
+  background: #3d3179;
+  border-color: #3d3179;
+}
+
+.kec-status {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8a94a0;
+  line-height: 1.4;
+}
+
+.kec-status:empty {
+  margin-top: 0;
+}
+
+.kec-status--error {
+  color: #f52655;
+}
+
+.kec-status--warn {
+  color: #c99a3e;
+}
+
+.kec-summary {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.kec-summary__line {
+  font-size: 12px;
+  color: #2e3f52;
+  line-height: 1.6;
+}
+
+.kec-summary__muted {
+  color: #8a94a0;
+}
+
+.kec-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.kec-actions .kec-btn {
+  flex: 1;
+  padding: 6px 4px;
+  text-align: center;
+}

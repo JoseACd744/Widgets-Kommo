@@ -3,14 +3,14 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "interface_version": 2,
     "init_once": false,
     "locale": [
       "en",
       "es"
     ],
-    "installation": false,
+    "installation": true,
     "company": "Holos",
     "privacy_policy": "https://www.holos.ec/holos-privacy.html",
     "support_url": "https://www.holos.ec/holos-support.html",
@@ -20,20 +20,23 @@
     "lcard-1",
     "ccard-1"
   ],
-  "settings": [
-    {
+  "settings": {
+    "nombre": {
+      "name": "settings.nombre",
       "type": "text",
-      "code": "nombre",
-      "required": true,
-      "name": "widget.settings.nombre.name"
+      "required": true
     },
-    {
+    "correo": {
+      "name": "settings.correo",
       "type": "text",
-      "code": "correo",
-      "required": true,
-      "name": "widget.settings.correo.name"
+      "required": true
+    },
+    "telefono": {
+      "name": "settings.telefono",
+      "type": "text",
+      "required": true
     }
-  ],
+  },
   "tour": {
     "is_tour": true,
     "tour_images": {

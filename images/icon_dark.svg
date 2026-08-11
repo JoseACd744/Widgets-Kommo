@@ -12,5 +12,5 @@
       </g>
     </mask>
   </defs>
-  <rect x="0" y="0" width="100" height="150" fill="#2F2864" mask="url(#phoneTimeMask)"/>
+  <rect x="0" y="0" width="100" height="150" fill="#FFFFFF" mask="url(#phoneTimeMask)"/>
 </svg>

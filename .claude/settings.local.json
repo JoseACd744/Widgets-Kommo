@@ -16,7 +16,13 @@
       "Bash(rm -f _svg_preview.html _icon_clean.png _text_clean.png)",
       "Bash(sort -k2)",
       "Bash(zip -r widget.zip manifest.json script.js style.css i18n images -x \"images/icon.svg\")",
-      "Bash(unzip -l widget.zip)"
+      "Bash(unzip -l widget.zip)",
+      "Bash(cp images/_gen/logo.png images/logo.png)",
+      "Bash(cp images/_gen/logo_main.png images/logo_main.png)",
+      "Bash(cp images/_gen/logo_medium.png images/logo_medium.png)",
+      "Bash(cp images/_gen/logo_min.png images/logo_min.png)",
+      "Bash(cp images/_gen/logo_small.png images/logo_small.png)",
+      "Bash(pip install *)"
     ]
   }
 }

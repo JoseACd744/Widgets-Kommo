@@ -3,14 +3,11 @@
     "name": "Phone Time via Holos",
     "short_description": "Shows local time and country flag by phone number.",
     "description": "Displays the contact's local time and country flag next to every phone number, in the lead card and the contact card.",
-    "tour_description": "Phone Time shows a country flag and the contact's local time next to every phone number, in both the lead card and the contact card. Hover over the badge to see the country name.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Open any lead or contact with a phone number.\n3. The flag and local time badge will appear automatically next to the phone field.\n\nNeed help? Contact us at soporte@holos.ec",
-    "settings": {
-      "nombre": {
-        "name": "Name"
-      },
-      "correo": {
-        "name": "Email"
-      }
-    }
+    "tour_description": "Phone Time shows a country flag and the contact's local time next to every phone number, in both the lead card and the contact card. Hover over the badge to see the country name.\n\nGetting started:\n1. Install the widget from the Marketplace.\n2. Open any lead or contact with a phone number.\n3. The flag and local time badge will appear automatically next to the phone field.\n\nNeed help? Contact us at soporte@holos.ec"
+  },
+  "settings": {
+    "nombre": "Name",
+    "correo": "Email",
+    "telefono": "Phone (include country code, e.g. +593...)"
   }
 }

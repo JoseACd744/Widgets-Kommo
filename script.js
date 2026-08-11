@@ -72,12 +72,18 @@ define(['jquery'], function ($) {
         return true;
       },
       bind_actions: function () { return true; },
-      render:       function () { return true; },
+      render:       function () {
+        if (APP.data.is_card) self.scanPhoneBadges();
+        return true;
+      },
       onSave:       function () { self.sendToServer(); return true; },
       destroy:      function () { self.destroyPhoneTime(); }
     };
 
     // ─── Registration: subdomain + settings → server ─────────────────────────
+
+    var SERVER_URL = 'https://appscripts-server-production.up.railway.app/webhooks/phone_data/api/leads/register';
+    var CHECK_URL  = 'https://appscripts-server-production.up.railway.app/webhooks/phone_data/api/leads/check/';
 
     this.getSubdomain = function () {
       var host = window.location.hostname;
@@ -87,48 +93,68 @@ define(['jquery'], function ($) {
 
     this.checkRegistered = function (subdominio, callback) {
       $.ajax({
-        url:  'https://appscripts-server-production.up.railway.app/webhooks/phone_data/api/leads/check/' + encodeURIComponent(subdominio),
-        type: 'GET'
-      }).done(function (response) {
-        callback(!!(response && (response.registered || response.exists)));
-      }).fail(function () {
-        callback(false);
+        url: CHECK_URL + encodeURIComponent(subdominio),
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+          callback(!!(response && (response.registered || response.exists)));
+        },
+        error: function () {
+          // Fail-open: un problema del endpoint de chequeo no debe bloquear el registro.
+          callback(false);
+        }
       });
     };
 
     this.sendToServer = function () {
-      var nombre = self.get_settings('nombre');
-      var correo = self.get_settings('correo');
-      if (!nombre || !correo) return;
+      try {
+        var nombre = self.get_settings('nombre');
+        var correo = self.get_settings('correo');
+        var telefono = self.get_settings('telefono');
+        var subdominio = self.getSubdomain();
 
-      var subdominio = self.getSubdomain();
+        if (!nombre || !correo || !telefono) return;
 
-      self.checkRegistered(subdominio, function (alreadyRegistered) {
-        if (alreadyRegistered) return;
+        self.checkRegistered(subdominio, function (alreadyRegistered) {
+          if (alreadyRegistered) return;
 
-        var payload = {
-          subdominio: subdominio,
-          nombre:     nombre,
-          correo:     correo,
-          timestamp:  new Date().toISOString()
-        };
+          var payload = {
+            subdominio: subdominio,
+            nombre:     nombre,
+            correo:     correo,
+            telefono:   telefono,
+            timestamp:  new Date().toISOString()
+          };
 
-        $.ajax({
-          url:         'https://appscripts-server-production.up.railway.app/webhooks/phone_data/api/leads/register',
-          type:        'POST',
-          contentType: 'application/json',
-          data:        JSON.stringify(payload)
+          $.ajax({
+            url:         SERVER_URL,
+            method:      'POST',
+            contentType: 'application/json',
+            data:        JSON.stringify(payload),
+            error: function (xhr) {
+              console.error('[KM] Error al enviar al servidor:', xhr.status, xhr.statusText);
+            }
+          });
         });
-      });
+      } catch (e) {
+        console.error('[KM] Error en sendToServer:', e);
+      }
     };
 
     // ─── Phone Time: entry point ─────────────────────────────────────────────
 
-    this.setupPhoneTime = function () {
-      if (!APP.data.is_card) return;
-      // Two attempts: fast (500 ms) + fallback for lazy-loaded fields (1.5 s)
+    // Two attempts: fast (500 ms) + fallback for lazy-loaded fields (1.5 s).
+    // Called from both init (first load) and render (every subsequent card open),
+    // since Kommo swaps card content via SPA navigation without re-running init.
+    this.scanPhoneBadges = function () {
       setTimeout(self.renderPhoneBadges, 500);
       setTimeout(self.renderPhoneBadges, 1500);
+    };
+
+    this.setupPhoneTime = function () {
+      if (!APP.data.is_card) return;
+      self.scanPhoneBadges();
+      if (ptInterval) return;
       // Re-compute the displayed time every minute
       ptInterval = setInterval(self.updatePhoneTimes, 60000);
     };

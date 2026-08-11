@@ -41,10 +41,12 @@
     "is_tour": true,
     "tour_images": {
       "en": [
-        "/images/tour/tour_1_en.jpg"
+        "/images/slideshow_1_en.jpg",
+        "/images/slideshow_2_en.jpg"
       ],
       "es": [
-        "/images/tour/tour_1_es.jpg"
+        "/images/slideshow_1_es.jpg",
+        "/images/slideshow_2_es.jpg"
       ]
     },
     "tour_description": "widget.tour_description"

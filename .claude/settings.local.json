@@ -38,7 +38,8 @@
       "Bash(cp \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude-chrome-screenshots-jdrSDV\\\\screenshot-1786463515419-12.png\" \"C:\\\\Users\\\\JOSE\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-JOSE-Documents-GitHub-Widgets-Kommo\\\\61a5e2a5-ec43-4d05-85b3-fbe671b96d54\\\\scratchpad\\\\tour-candidates\\\\ecuador-oscuro.png\")",
       "Bash(python -c \"from PIL import Image; print\\('PIL ok'\\)\")",
       "Bash(python -c ' *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

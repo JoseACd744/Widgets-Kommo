@@ -6,9 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A **Kommo (amoCRM) widget** that shows the local time and country flag next to every phone
 number field, based on the number's calling code. It also registers the installer's
-subdomain + contact info (name/email, entered in the widget's Kommo settings panel) with an
-external server. The widget runs inside both the lead card (`lcard-1`) and the contact card
-(`ccard-1`).
+subdomain + contact info (name/email/phone, entered in the widget's Kommo settings panel)
+with an external server. The widget runs inside both the lead card (`lcard-1`) and the
+contact card (`ccard-1`).
+
+This widget is published as a full **public integration** (OAuth), not a plain manifest-only
+widget — Kommo requires a Redirect URL and an access-revoked webhook for that install flow.
+Both live server-side in the `Appscripts-server` repo (`src/domains/phone_data/oauthService.js`
++ the `/oauth/callback` and `/oauth/revoked` routes), tied to their own Kommo integration
+(`PHONE_DATA_KOMMO_CLIENT_ID`/`_SECRET`/`_REDIRECT_URI` env vars — do not reuse `other_leads`'
+credentials, each public integration has its own). Nothing OAuth-related lives in this repo;
+`script.js` never sees a token.
 
 ## No build step
 
@@ -24,6 +32,9 @@ reload the widget in a live account.
 | `script.js` | All widget logic (single AMD module) |
 | `style.css` | CSS — all classes prefixed `km-`, dark theme via `:root[data-color-scheme="dark"]` |
 | `i18n/es.json`, `i18n/en.json` | Localization strings for widget name, description, and settings labels |
+| `images/logo*.png`, `images/icon*.svg` | Marketplace branding assets (Holos purple `#2F2864`, see below) |
+| `images/slideshow_*_{en,es}.jpg` | Marketplace gallery/tour images (1188×616), referenced from `manifest.json` → `tour.tour_images` |
+| `images/tour/*.jpg` | Raw/source screenshots used to build the `slideshow_*` images — not referenced by the manifest directly |
 
 ## Kommo widget API conventions
 
@@ -53,14 +64,14 @@ reload the widget in a live account.
    card open). `setupPhoneTime()` (called only from `init`) additionally starts a
    once-only `setInterval` that recomputes the displayed clock every 60 s via
    `updatePhoneTimes()`; `destroyPhoneTime()` tears both down.
-3. **Registration**: `nombre`/`correo` are collected via the widget's Kommo settings panel
-   (`manifest.json` → `settings.nombre`/`settings.correo`), never via UI in the lead/contact
-   card. The `onSave` lifecycle callback (fired when the settings panel is saved, i.e. on
-   install/reconfiguration) calls `sendToServer()`, which reads the values with
-   `self.get_settings(key)`, resolves the subdomain with `getSubdomain()`, calls
-   `checkRegistered()` first, and — only if not already registered — POSTs
-   `{ subdominio, nombre, correo, timestamp }` to `SERVER_URL`. No lead/contact data is ever
-   included in that payload.
+3. **Registration**: `nombre`/`correo`/`telefono` are collected via the widget's Kommo
+   settings panel (`manifest.json` → `settings.nombre`/`settings.correo`/`settings.telefono`,
+   all `required: true`), never via UI in the lead/contact card. The `onSave` lifecycle
+   callback (fired when the settings panel is saved, i.e. on install/reconfiguration) calls
+   `sendToServer()`, which reads the values with `self.get_settings(key)`, resolves the
+   subdomain with `getSubdomain()`, calls `checkRegistered()` first, and — only if not already
+   registered — POSTs `{ subdominio, nombre, correo, telefono, timestamp }` to `SERVER_URL`.
+   No lead/contact data is ever included in that payload.
 
 ## External dependencies
 
@@ -79,4 +90,21 @@ escape it first with `$('<span>').text(value).html()` before injecting via `.htm
 ## Localization
 
 Add new user-visible strings to both `i18n/es.json` and `i18n/en.json`. The keys map to
-entries in `manifest.json` (`settings.*`, `widget.*`).
+entries in `manifest.json` (`settings.*`, `widget.*`), including `settings.telefono`.
+
+## Marketplace assets
+
+- **Branding**: Holos purple `#2F2864` background, white phone+clock pictogram, `holos.`
+  wordmark (pink dot). Required PNG sizes: `logo_main.png` 400×272, `logo_medium.png` 240×84,
+  `logo.png` 130×100, `logo_small.png` 108×108, `logo_min.png` 84×84. `icon.svg` (purple) is
+  the left-menu icon for the light theme; `icon_dark.svg` (white) is the dark-theme variant —
+  Kommo's dark theme is `:root[data-color-scheme="dark"]` (see `developers.kommo.com/docs/dark-theme`),
+  not a made-up convention.
+- **Gallery/tour images** (`images/slideshow_*_{en,es}.jpg`, 1188×616): built from real
+  screenshots of the widget running inside Kommo (in `images/tour/`), not illustrated mockups —
+  keep it that way if these get regenerated.
+- **PII in screenshots**: any real Kommo screenshot used for marketing (in `images/tour/` or
+  baked into `slideshow_*`) must have the contact name blurred and the phone number blurred
+  except for the leading country code (e.g. `+593` stays, the rest is Gaussian-blurred). Do
+  this before cropping into the final gallery image, not after — check `images/tour/*.jpg`
+  directly if new screenshots are added.

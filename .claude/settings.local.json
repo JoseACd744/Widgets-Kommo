@@ -39,7 +39,11 @@
       "Bash(python -c \"from PIL import Image; print\\('PIL ok'\\)\")",
       "Bash(python -c ' *)",
       "Bash(python *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Skill(fewer-permission-prompts)",
+      "Bash(xargs -I{} ls -la --time-style=full-iso \"{}\")",
+      "Bash(sort -k6,7 -r)",
+      "Bash(zip -X widget.zip manifest.json script.js style.css i18n/en.json i18n/es.json images/logo.png images/logo_main.png images/logo_medium.png images/logo_min.png images/logo_small.png)"
     ]
   }
 }

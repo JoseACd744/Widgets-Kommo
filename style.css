@@ -1,64 +1,60 @@
-.km-leads-header {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 0 4px;
-}
-
-.km-leads-container {
+.km-user-widget {
   display: flex;
   flex-direction: column;
+  padding: 8px 0;
+}
+
+.km-user-loading {
+  padding: 20px 0;
+  text-align: center;
+  color: #b2b2b2;
+  font-size: 13px;
+}
+
+.km-user-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
   overflow-y: auto;
 }
 
-/* Widget-specific sizing to avoid being visually cortado in host UI */
-#km-leads-widget {
-  width: 100%;
-  box-sizing: border-box;
+.km-user-empty {
+  color: #b2b2b2;
+  font-size: 13px;
+  padding: 12px 0;
 }
 
-#km-leads-list {
-  max-height: 520px;
-  overflow-y: auto;
-}
-
-.km-lead-item {
+.km-user-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 10px 12px;
   border-bottom: 1px solid #eef0f3;
+  cursor: pointer;
+  font-size: 13px;
+  color: #2e3f52;
 }
 
-.km-lead-item:last-child {
+.km-user-row:last-child {
   border-bottom: none;
 }
 
-.km-lead-item__info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  min-width: 0;
+.km-user-row:hover {
+  background: #f8f9fc;
 }
 
-.km-lead-item__name {
-  font-size: 14px;
+.km-user-row--active {
+  background: #eef7fb;
+  font-weight: 600;
+}
+
+.km-user-row__badge {
+  font-size: 11px;
   font-weight: 500;
-  color: #2e3f52;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.km-lead-item__meta {
-  font-size: 12px;
-  color: #b2b2b2;
-}
-
-.km-lead-item__btn {
-  margin-left: 12px;
-  flex-shrink: 0;
-  text-decoration: none;
+  color: #29b0d9;
+  background: #e3f6fc;
+  padding: 2px 8px;
+  border-radius: 3px;
 }
 
 .km-snackbar {

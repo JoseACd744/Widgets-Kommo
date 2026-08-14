@@ -1,9 +1,9 @@
 {
   "widget": {
-    "name": "Leads de Contacto",
-    "short_description": "Muestra los leads asociados con un contacto.",
-    "description": "Muestra los leads asociados con un contacto.",
-    "tour_description": "Tour del Widget de Leads de Contacto"
+    "name": "Asignar Responsable",
+    "short_description": "Lista los usuarios de la cuenta y asigna el elegido como responsable.",
+    "description": "Muestra la lista de usuarios de la cuenta (excepto Holos) y, al seleccionar uno, lo guarda en un campo select, y lo asigna como responsable del lead y de su contacto asociado.",
+    "tour_description": "Tour del Widget Asignar Responsable"
   },
   "settings": {
     "api_key": "Clave API"

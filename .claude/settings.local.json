@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:developers.kommo.com)"
+      "WebFetch(domain:developers.kommo.com)",
+      "Bash(python3 -c ' *)",
+      "WebSearch",
+      "Bash(python3 *)"
     ]
   }
 }

@@ -4,7 +4,8 @@
       "WebFetch(domain:developers.kommo.com)",
       "Bash(python3 -c ' *)",
       "WebSearch",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "WebFetch(domain:es-developers.kommo.com)"
     ]
   }
 }

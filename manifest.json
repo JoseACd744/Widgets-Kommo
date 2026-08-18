@@ -3,7 +3,7 @@
     "name": "widget.name",
     "description": "widget.description",
     "short_description": "widget.short_description",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "interface_version": 2,
     "init_once": false,
     "locale": [
@@ -13,8 +13,7 @@
     "installation": true
   },
   "locations": [
-    "lcard-1",
-    "lcard-0"
+    "lcard-1"
   ],
   "settings": {
     "api_key": {

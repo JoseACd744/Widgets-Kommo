@@ -12,20 +12,18 @@ define(['jquery'], function ($) {
     this.callbacks = {
       settings:     function () { return true; },
       init:         function () {
-        console.log('[KM] init v1.1.0');
-        self.setup();
+        console.log('[KM] init v1.2.0');
+        self.loadCSS();
         return true;
       },
       bind_actions: function () {
-        $(document).off('click.kmUserRow').on('click.kmUserRow', '.km-user-row', function () {
-          var userId = $(this).data('user-id');
-          var user = self.usersById[userId];
-          if (user) self.handleSelectUser(user);
+        $(document).off('click.kmUserSave').on('click.kmUserSave', '#km-user-save-btn', function () {
+          self.handleSave();
         });
         return true;
       },
       render:       function () {
-        // lcard-1 dispara render — no usamos el panel derecho, la UI se inyecta en un tab.
+        self.renderPanel();
         return true;
       },
       onSave:       function () { return true; },
@@ -34,48 +32,123 @@ define(['jquery'], function ($) {
 
     this.usersById = {};
 
+    // ─── Cargar style.css con versión (evita choques y problemas de caché) ────
+
+    this.loadCSS = function () {
+      var settings = self.get_settings();
+      var href = settings.path + '/style.css?v=' + settings.version;
+      if ($('link[href="' + href + '"]').length < 1) {
+        $('head').append('<link href="' + href + '" type="text/css" rel="stylesheet">');
+      }
+    };
+
+    // ─── Render en el panel izquierdo del lead ────────────────────────────────
+
+    this.renderPanel = function () {
+      console.log('[KM] renderPanel', { is_card: APP.data.is_card, entity: APP.data.current_entity });
+
+      if (!APP.data.is_card || APP.data.current_entity !== 'leads') {
+        console.log('[KM] renderPanel: no es tarjeta de lead, no se renderiza.');
+        return;
+      }
+      if ($('#km-user-widget').length) {
+        console.log('[KM] renderPanel: ya estaba renderizado, se omite.');
+        return;
+      }
+
+      self.render_template({
+        caption: {
+          class_name: 'js-km-caption',
+          html: 'Responsable'
+        },
+        body:
+          '<div id="km-user-widget" class="km-user-widget-root" style="background:#ffffff;border-radius:6px;padding:10px;box-sizing:border-box;">' +
+            '<div id="km-user-loading" class="km-user-widget__loading" style="color:#8f97a3;font-size:13px;">Cargando usuarios...</div>' +
+            '<div id="km-user-content" class="km-user-widget__content" style="display:none;">' +
+              '<label for="km-user-select" class="km-user-widget__label" style="display:block;color:#2e3f52;font-weight:600;font-size:12px;margin-bottom:6px;">Responsable</label>' +
+              '<select id="km-user-select" class="km-user-widget__select" style="width:100%;padding:6px 8px;font-size:13px;color:#2e3f52;background:#ffffff;border:1px solid #d6dae0;border-radius:4px;box-sizing:border-box;"></select>' +
+              '<button id="km-user-save-btn" type="button" class="km-user-widget__save-btn" style="margin-top:8px;padding:6px 16px;font-size:13px;font-weight:500;color:#ffffff;background-color:#29b0d9;border:none;border-radius:4px;cursor:pointer;">Guardar</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="km-user-snackbar" class="km-user-widget-snackbar"></div>',
+        render: ''
+      });
+
+      console.log('[KM] render_template llamado. ¿DOM insertado?', $('#km-user-widget').length > 0);
+
+      self.setup();
+    };
+
+    // ─── Mostrar error dentro del propio widget (no dejar el spinner colgado) ──
+
+    this.showLoadError = function (msg) {
+      console.error('[KM]', msg);
+      $('#km-user-loading').text(msg).css('color', '#e25151');
+    };
+
     // ─── Punto de entrada ──────────────────────────────────────────────────────
 
     this.setup = function () {
-      if (!APP.data.is_card || APP.data.current_entity !== 'leads') return;
-
+      console.log('[KM] setup: buscando campo lead', FIELD_LEAD_SELECT);
       var leadField = self.findField(FIELD_LEAD_SELECT);
+      console.log('[KM] setup: leadField encontrado ->', leadField);
 
       if (!leadField) {
-        console.warn('[KM] No se encontró el campo select del lead (FIELD_LEAD_SELECT):', FIELD_LEAD_SELECT);
+        self.showLoadError('No se encontró el campo select del lead (ID ' + FIELD_LEAD_SELECT + '). Revisa FIELD_LEAD_SELECT.');
         return;
       }
 
       if (leadField.type !== 'select') {
-        console.warn('[KM] FIELD_LEAD_SELECT debe ser de tipo select.', leadField);
+        self.showLoadError('El campo ' + FIELD_LEAD_SELECT + ' no es de tipo select (es "' + leadField.type + '").');
         return;
       }
 
+      console.log('[KM] setup: pidiendo campo de contacto', FIELD_CONTACT_SELECT);
       self.fetchContactFieldDef(FIELD_CONTACT_SELECT, function (contactField) {
+        console.log('[KM] setup: contactField recibido ->', contactField);
+
         if (!contactField) {
-          console.warn('[KM] No se encontró el campo select del contacto (FIELD_CONTACT_SELECT):', FIELD_CONTACT_SELECT);
+          self.showLoadError('No se pudo obtener el campo select del contacto (ID ' + FIELD_CONTACT_SELECT + '). Revisa la consola para el error de red.');
           return;
         }
 
         if (contactField.type !== 'select') {
-          console.warn('[KM] FIELD_CONTACT_SELECT debe ser de tipo select.', contactField);
+          self.showLoadError('El campo de contacto ' + FIELD_CONTACT_SELECT + ' no es de tipo select (es "' + contactField.type + '").');
           return;
         }
 
         self.leadSelectField = leadField;
         self.contactSelectField = contactField;
-        self.findTabAndInject(leadField);
+
+        console.log('[KM] setup: pidiendo lista de usuarios...');
+        self.fetchAllUsers(function (users) {
+          console.log('[KM] setup: usuarios recibidos (tras filtrar "holos") ->', users.length, users);
+          var currentResponsibleId = self.getCurrentResponsibleId();
+          console.log('[KM] setup: responsable actual del lead ->', currentResponsibleId);
+          self.renderUserSelect(users, currentResponsibleId);
+        });
       });
     };
 
     // ─── Buscar campo de LEAD por nombre o ID (definiciones locales) ──────────
+    // El objeto interno de Kommo usa claves en mayúsculas (TYPE_CODE, ENUMS como
+    // mapa {id: enum}), así que se normaliza a la misma forma que fetchContactFieldDef.
 
     this.findField = function (identifier) {
       var cf = APP.constant('account').cf || {};
       var values = Object.values(cf);
       for (var i = 0; i < values.length; i++) {
         var f = values[i];
-        if (f.NAME === identifier || String(f.ID) === String(identifier)) return f;
+        if (f.NAME === identifier || String(f.ID) === String(identifier)) {
+          return {
+            ID: f.ID,
+            NAME: f.NAME,
+            type: (f.TYPE_CODE || '').toLowerCase(),
+            enums: Object.values(f.ENUMS || {}).map(function (e) {
+              return { ID: e.ID, VALUE: e.VALUE };
+            })
+          };
+        }
       }
       return null;
     };
@@ -83,10 +156,13 @@ define(['jquery'], function ($) {
     // ─── Obtener la definición de un campo de CONTACTO vía API ────────────────
 
     this.fetchContactFieldDef = function (id, onDone) {
+      var url = '/api/v4/contacts/custom_fields/' + id;
+      console.log('[KM] fetchContactFieldDef: GET', url);
       $.ajax({
-        url: '/api/v4/contacts/custom_fields/' + id,
+        url: url,
         method: 'GET', dataType: 'json',
         success: function (field) {
+          console.log('[KM] fetchContactFieldDef: respuesta OK ->', field);
           onDone({
             ID: field.id,
             NAME: field.name,
@@ -97,68 +173,13 @@ define(['jquery'], function ($) {
           });
         },
         error: function (xhr) {
-          console.error('[KM] Error al obtener el campo de contacto:', xhr.responseText);
+          console.error('[KM] fetchContactFieldDef: error', {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText
+          });
           onDone(null);
         }
-      });
-    };
-
-    // ─── Encontrar el tab del campo e inyectar el HTML ─────────────────────────
-
-    this.findTabAndInject = function (selectField) {
-      var card = APP.data.current_card;
-      if (!card || !card.tabs || !card.tabs._tabs) return;
-
-      var tab = null;
-      var tabs = card.tabs._tabs;
-      for (var i = 0; i < tabs.length; i++) {
-        if (tabs[i].fields && tabs[i].fields.indexOf(selectField.ID) !== -1) {
-          tab = tabs[i];
-          break;
-        }
-      }
-
-      if (!tab) {
-        console.warn('[KM] No se encontró el tab para el campo select ID:', selectField.ID);
-        return;
-      }
-
-      var tabId = tab.id;
-      var $container = $('.linked-forms__group-wrapper[data-id="' + tabId + '"]');
-
-      if ($container.length) {
-        self.injectContainer($container);
-      } else {
-        // El contenido del tab puede cargar de forma diferida
-        var observer = new MutationObserver(function (_, obs) {
-          var $c = $('.linked-forms__group-wrapper[data-id="' + tabId + '"]');
-          if ($c.length) {
-            obs.disconnect();
-            self.injectContainer($c);
-          }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-        setTimeout(function () { observer.disconnect(); }, 15000);
-      }
-    };
-
-    // ─── Preparar el contenedor y cargar usuarios ──────────────────────────────
-
-    this.injectContainer = function ($container) {
-      if ($container.find('#km-user-widget').length) return;
-
-      $container.html(
-        '<div id="km-user-widget" class="km-user-widget">' +
-          '<div id="km-user-loading" class="km-user-loading">Cargando usuarios...</div>' +
-          '<div id="km-user-list" class="km-user-list"></div>' +
-        '</div>'
-      );
-
-      $('body').append('<div id="km-user-snackbar" class="km-snackbar"></div>');
-
-      self.fetchAllUsers(function (users) {
-        var currentResponsibleId = self.getCurrentResponsibleId();
-        self.renderUserList(users, currentResponsibleId);
       });
     };
 
@@ -168,11 +189,14 @@ define(['jquery'], function ($) {
       var collected = [];
 
       function fetchPage(page) {
+        var url = '/api/v4/users?limit=250&page=' + page;
+        console.log('[KM] fetchAllUsers: GET', url);
         $.ajax({
-          url: '/api/v4/users?limit=250&page=' + page,
+          url: url,
           method: 'GET', dataType: 'json',
           success: function (data) {
             var users = (data._embedded && data._embedded.users) || [];
+            console.log('[KM] fetchAllUsers: página', page, '->', users.length, 'usuarios');
             collected = collected.concat(users);
 
             var hasNext = data._links && data._links.next;
@@ -182,12 +206,18 @@ define(['jquery'], function ($) {
               var filtered = collected.filter(function (u) {
                 return (u.name || '').toLowerCase().indexOf(EXCLUDE_NAME_SUBSTRING) === -1;
               });
+              console.log('[KM] fetchAllUsers: total', collected.length, '-> filtrados', filtered.length);
               filtered.forEach(function (u) { self.usersById[u.id] = u; });
               onDone(filtered);
             }
           },
           error: function (xhr) {
-            console.error('[KM] Error al cargar usuarios:', xhr.responseText);
+            console.error('[KM] fetchAllUsers: error', {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              responseText: xhr.responseText
+            });
+            self.showLoadError('Error al cargar usuarios (HTTP ' + xhr.status + '). Revisa la consola.');
             onDone(collected);
           }
         });
@@ -208,33 +238,45 @@ define(['jquery'], function ($) {
       }
     };
 
-    // ─── Render de la lista clicable ────────────────────────────────────────────
+    // ─── Render del dropdown de usuarios ────────────────────────────────────────
 
-    this.renderUserList = function (users, currentResponsibleId) {
-      $('#km-user-loading').remove();
+    this.renderUserSelect = function (users, currentResponsibleId) {
+      console.log('[KM] renderUserSelect:', users.length, 'usuarios. #km-user-select existe?', $('#km-user-select').length > 0);
+      $('#km-user-loading').hide();
 
       if (!users.length) {
-        $('#km-user-list').html('<span class="km-user-empty">No hay usuarios disponibles.</span>');
+        $('#km-user-loading').show().text('No hay usuarios disponibles.');
         return;
       }
 
-      var html = '';
+      var html = '<option value="">— Selecciona un usuario —</option>';
       users.forEach(function (user) {
         var isActive = String(user.id) === String(currentResponsibleId);
         var name = $('<s>').text(user.name).html();
-        html +=
-          '<div class="km-user-row' + (isActive ? ' km-user-row--active' : '') + '" data-user-id="' + user.id + '">' +
-            '<span class="km-user-row__name">' + name + '</span>' +
-            (isActive ? '<span class="km-user-row__badge">Actual</span>' : '') +
-          '</div>';
+        html += '<option value="' + user.id + '"' + (isActive ? ' selected' : '') + '>' + name + '</option>';
       });
 
-      $('#km-user-list').html(html);
+      $('#km-user-select').html(html);
+      $('#km-user-content').show();
     };
 
-    // ─── Al elegir un usuario: guardar en el campo select, lead y contacto ─────
+    // ─── Guardar: campo select del lead + campo select del contacto + responsabless ──
 
-    this.handleSelectUser = function (user) {
+    this.handleSave = function () {
+      var userId = $('#km-user-select').val();
+
+      if (!userId) {
+        self.showSnackbar('Selecciona un usuario antes de guardar.');
+        return;
+      }
+
+      var user = self.usersById[userId];
+      if (!user) {
+        console.error('[KM] handleSave: usuario no encontrado en caché, id:', userId);
+        self.showSnackbar('Error interno: usuario no encontrado. Recarga la tarjeta.');
+        return;
+      }
+
       var leadEnum = self.findMatchingEnum(self.leadSelectField, user.name);
       var contactEnum = self.findMatchingEnum(self.contactSelectField, user.name);
 
@@ -289,7 +331,6 @@ define(['jquery'], function ($) {
           if (!contacts.length) {
             console.warn('[KM] El lead no tiene contacto asociado; solo se actualizó el lead.');
             self.showSnackbar('Guardado (el lead no tiene contacto asociado).');
-            self.markActiveRow(user.id);
             return;
           }
 
@@ -307,7 +348,6 @@ define(['jquery'], function ($) {
             }),
             success: function () {
               self.showSnackbar('Guardado correctamente.');
-              self.markActiveRow(user.id);
             },
             error: function (xhr) {
               console.error('[KM] Error al actualizar el contacto:', xhr.responseText);
@@ -322,20 +362,13 @@ define(['jquery'], function ($) {
       });
     };
 
-    this.markActiveRow = function (userId) {
-      $('.km-user-row').removeClass('km-user-row--active').find('.km-user-row__badge').remove();
-      var $row = $('.km-user-row[data-user-id="' + userId + '"]');
-      $row.addClass('km-user-row--active');
-      $row.append('<span class="km-user-row__badge">Actual</span>');
-    };
-
     // ─── Snackbar ──────────────────────────────────────────────────────────────
 
     this.showSnackbar = function (msg) {
       var $bar = $('#km-user-snackbar');
       $bar.text(msg);
-      $bar.addClass('show');
-      setTimeout(function () { $bar.removeClass('show'); }, 3000);
+      $bar.addClass('km-user-widget-snackbar--show');
+      setTimeout(function () { $bar.removeClass('km-user-widget-snackbar--show'); }, 3000);
     };
 
     return this;

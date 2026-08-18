@@ -1,63 +1,60 @@
-.km-user-widget {
+.km-user-widget-root {
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
-.km-user-loading {
-  padding: 20px 0;
-  text-align: center;
-  color: #b2b2b2;
+.km-user-widget-root .km-user-widget__loading {
+  padding: 4px 0;
+  color: #8f97a3;
   font-size: 13px;
 }
 
-.km-user-list {
+.km-user-widget-root .km-user-widget__content {
   display: flex;
   flex-direction: column;
-  max-height: 400px;
-  overflow-y: auto;
 }
 
-.km-user-empty {
-  color: #b2b2b2;
-  font-size: 13px;
-  padding: 12px 0;
+.km-user-widget-root .km-user-widget__label {
+  display: block;
+  color: #2e3f52;
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 6px;
 }
 
-.km-user-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid #eef0f3;
-  cursor: pointer;
+.km-user-widget-root .km-user-widget__select {
+  width: 100%;
+  padding: 6px 8px;
   font-size: 13px;
   color: #2e3f52;
+  background: #ffffff;
+  border: 1px solid #d6dae0;
+  border-radius: 4px;
+  box-sizing: border-box;
 }
 
-.km-user-row:last-child {
-  border-bottom: none;
-}
-
-.km-user-row:hover {
-  background: #f8f9fc;
-}
-
-.km-user-row--active {
-  background: #eef7fb;
-  font-weight: 600;
-}
-
-.km-user-row__badge {
-  font-size: 11px;
+.km-user-widget-root .km-user-widget__save-btn {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
   font-weight: 500;
-  color: #29b0d9;
-  background: #e3f6fc;
-  padding: 2px 8px;
-  border-radius: 3px;
+  color: #ffffff;
+  background-color: #29b0d9;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-.km-snackbar {
+.km-user-widget-root .km-user-widget__save-btn:hover {
+  background-color: #1f96ba;
+}
+
+.km-user-widget-snackbar {
   visibility: hidden;
   min-width: 250px;
   margin-left: -125px;
@@ -73,17 +70,17 @@
   font-size: 14px;
 }
 
-.km-snackbar.show {
+.km-user-widget-snackbar.km-user-widget-snackbar--show {
   visibility: visible;
-  animation: km-fadein 0.5s, km-fadeout 0.5s 2.5s;
+  animation: km-user-widget-fadein 0.5s, km-user-widget-fadeout 0.5s 2.5s;
 }
 
-@keyframes km-fadein {
+@keyframes km-user-widget-fadein {
   from { bottom: 0; opacity: 0; }
   to { bottom: 30px; opacity: 1; }
 }
 
-@keyframes km-fadeout {
+@keyframes km-user-widget-fadeout {
   from { bottom: 30px; opacity: 1; }
   to { bottom: 0; opacity: 0; }
 }

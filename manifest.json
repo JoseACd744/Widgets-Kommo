@@ -18,7 +18,8 @@
   },
   "locations": [
     "lcard-1",
-    "ccard-1"
+    "ccard-1",
+    "settings"
   ],
   "settings": {
     "nombre": {

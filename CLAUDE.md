@@ -52,8 +52,13 @@ reload the widget in a live account.
 ## Architecture — how `script.js` works
 
 1. **Phone Time badges**: `PT_MAP` maps calling codes (`+1`, `+593`, ...) to `[ISO2, country
-   name, UTC offset minutes]` (the country name is kept in the map for reference/debugging but
-   is not rendered — it varies by language and isn't localized). `renderPhoneBadges()` scans
+   name, UTC offset minutes]`. The country name is rendered as the badge's native `title`
+   attribute (hover tooltip) and the flag `<img>`'s `alt` text, localized to the current Kommo
+   interface language via `getLocalizedCountryName()` (browser `Intl.DisplayNames`, keyed off
+   `document.documentElement.lang`) — `PT_MAP`'s English name is only a fallback if that API
+   throws or is unsupported. Kommo marketplace review is strict about a feature description
+   matching what's actually shipped, which is why this isn't a hardcoded English-only tooltip.
+   `renderPhoneBadges()` scans
    `.control-phone__formatted` inputs, parses each value with `parsePhoneData()`, wraps just the
    input (not its siblings, e.g. an "add phone" button) in its own `.km-phone-time__row`
    inline-flex span so the badge always sits beside it rather than depending on the original
@@ -83,9 +88,10 @@ reload the widget in a live account.
 
 ## XSS safety
 
-No `PT_MAP` data is currently rendered as text (only the flag image `src` and the computed
-clock string are injected). If any new dynamic content from data is added to the badge HTML,
-escape it first with `$('<span>').text(value).html()` before injecting via `.html()`.
+The localized country name (from `getLocalizedCountryName()`) is escaped with
+`$('<span>').text(value).html()` before being injected into the badge's `title`/`alt`
+attributes, same as the flag image `src` and the computed clock string. Follow the same
+escaping for any new dynamic content added to the badge HTML.
 
 ## Localization
 

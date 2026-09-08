@@ -226,14 +226,28 @@ define(['jquery'], function ($) {
 
     // ─── Phone Time: DOM injection ────────────────────────────────────────────
 
+    // Localized country name for the current Kommo interface language (es/en),
+    // via the browser's own Intl.DisplayNames — no translation table to maintain.
+    // Falls back to PT_MAP's English name if the API is unsupported or throws.
+    this.getLocalizedCountryName = function (iso2, fallbackName) {
+      try {
+        var lang = ((document.documentElement.lang || 'es') + '').split('-')[0];
+        var displayNames = new Intl.DisplayNames([lang, 'es', 'en'], { type: 'region' });
+        return displayNames.of(iso2) || fallbackName;
+      } catch (e) {
+        return fallbackName;
+      }
+    };
+
     this.injectPhoneBadge = function ($input, data) {
       // Flag from flagcdn.com — works on all OSes (no emoji rendering issues)
       var flagSrc = 'https://flagcdn.com/w20/' + data.country.toLowerCase() + '.png';
       var time    = self.calcLocalTime(data.offset);
+      var name    = $('<s>').text(self.getLocalizedCountryName(data.country, data.name)).html();
 
       var $badge = $(
-        '<span class="km-phone-time" data-km-offset="' + data.offset + '">' +
-          '<img class="km-phone-time__flag" src="' + flagSrc + '" width="16" height="12" alt="">' +
+        '<span class="km-phone-time" data-km-offset="' + data.offset + '" title="' + name + '">' +
+          '<img class="km-phone-time__flag" src="' + flagSrc + '" width="16" height="12" alt="' + name + '">' +
           '<span class="km-phone-time__clock">' + time + '</span>' +
         '</span>'
       );

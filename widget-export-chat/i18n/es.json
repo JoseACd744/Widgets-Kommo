@@ -1,8 +1,8 @@
 {
   "widget": {
     "name": "Exportar Conversación",
-    "short_description": "Exporta el historial de chat de un lead.",
-    "description": "Descarga la conversación completa de un lead en TXT, CSV, PDF o JSON.",
+    "short_description": "Exporta chat, campos de lead y contacto, por fecha.",
+    "description": "Descarga conversación, campos del lead y del contacto (con buscador para elegir cuáles) en CSV/Excel, filtrando por fecha. Funciona desde la tarjeta de un lead o de forma masiva desde la lista.",
     "tour_description": "Tour del Widget de Exportar Conversación"
   },
   "settings": {

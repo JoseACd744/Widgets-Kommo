@@ -1,8 +1,8 @@
 {
   "widget": {
     "name": "Export Conversation",
-    "short_description": "Exports a lead's chat history.",
-    "description": "Download a lead's full conversation as TXT, CSV, PDF or JSON.",
+    "short_description": "Exports chat, lead and contact fields, by date.",
+    "description": "Download conversation history, lead fields and contact fields (searchable picker) as CSV/Excel, filtered by date. Works from a single lead's card or in bulk from the leads list.",
     "tour_description": "Tour of the Export Conversation Widget"
   },
   "settings": {

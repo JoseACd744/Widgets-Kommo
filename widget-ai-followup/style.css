@@ -1,0 +1,99 @@
+/* Paleta holos: violeta #302663, lavanda #a9a5bc, acento #f52655. */
+
+.kai {
+  padding: 12px;
+  background: #fff;
+  border-radius: 6px;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.kai-hint {
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8a94a0;
+}
+
+.kai-btn {
+  display: inline-block;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2e3f52;
+  background: #fff;
+  border: 1px solid #d5dbe1;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.kai-btn:hover:not(:disabled) {
+  background: #f5f7fa;
+  border-color: #b9c3cd;
+}
+
+.kai-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.kai-btn--primary {
+  width: 100%;
+  color: #fcfcfb;
+  background: #302663;
+  border-color: #302663;
+}
+
+.kai-btn--primary:hover:not(:disabled) {
+  background: #3d3179;
+  border-color: #3d3179;
+}
+
+.kai-status {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8a94a0;
+  line-height: 1.4;
+}
+
+.kai-status:empty {
+  margin-top: 0;
+}
+
+.kai-status--error {
+  color: #f52655;
+}
+
+.kai-result {
+  margin-top: 12px;
+}
+
+.kai-message {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #2e3f52 !important;
+  background: #fff !important;
+  border: 1px solid #d5dbe1;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 110px;
+}
+
+.kai-message:focus {
+  outline: none;
+  border-color: #302663;
+}
+
+.kai-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.kai-actions .kai-btn {
+  flex: 1;
+}

@@ -1,0 +1,12 @@
+{
+  "widget": {
+    "name": "Seguimiento con IA",
+    "short_description": "Genera un mensaje de seguimiento con IA según la conversación del lead.",
+    "description": "Lee todo el historial de chat del lead y genera, con IA, un mensaje de seguimiento final listo para copiar y editar.",
+    "tour_description": "Tour del Widget de Seguimiento con IA"
+  },
+  "settings": {
+    "proxy_url": "URL del proxy",
+    "widget_key": "Clave del widget"
+  }
+}

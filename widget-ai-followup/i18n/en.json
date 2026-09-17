@@ -1,0 +1,12 @@
+{
+  "widget": {
+    "name": "AI Follow-up",
+    "short_description": "Generates an AI follow-up message from the lead's conversation.",
+    "description": "Reads the lead's full chat history and uses AI to draft a final follow-up message, ready to copy and edit.",
+    "tour_description": "Tour of the AI Follow-up Widget"
+  },
+  "settings": {
+    "proxy_url": "Proxy URL",
+    "widget_key": "Widget key"
+  }
+}

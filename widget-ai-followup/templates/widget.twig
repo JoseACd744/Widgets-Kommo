@@ -1,0 +1,14 @@
+{# Shell del panel. script.js verifica que quede montado y, si Kommo no lo
+   renderiza por esta vía, lo inyecta con el mismo markup desde shellHtml(). #}
+<div id="kai-root" class="kai">
+  <div class="kai-hint">Genera, con IA, un mensaje de seguimiento final a partir de todo el historial de chat de este lead.</div>
+  <button type="button" id="kai-generate" class="kai-btn kai-btn--primary">Generar mensaje de seguimiento</button>
+  <div id="kai-status" class="kai-status"></div>
+  <div id="kai-result" class="kai-result" style="display:none;">
+    <textarea id="kai-message" class="kai-message" rows="6"></textarea>
+    <div class="kai-actions">
+      <button type="button" id="kai-copy" class="kai-btn">Copiar</button>
+      <button type="button" id="kai-regenerate" class="kai-btn">Regenerar</button>
+    </div>
+  </div>
+</div>

@@ -30,7 +30,7 @@ reload the widget in a live account.
 |------|------|
 | `manifest.json` | Kommo widget metadata: locations (`lcard-1`, `ccard-1`), settings schema, locale list, tour |
 | `script.js` | All widget logic (single AMD module) |
-| `style.css` | CSS — all classes prefixed `km-`, dark theme via `:root[data-color-scheme="dark"]` |
+| `style.css` | CSS — all classes prefixed `km-`, dark theme via `:root[data-color-scheme="dark"]`. Kommo does **not** auto-attach this file — `script.js`'s `init` callback loads it explicitly via `loadCSS()` (`<link href="{path}/style.css?v={version}">`), confirmed missing/broken in production across two separate accounts before this was added |
 | `i18n/es.json`, `i18n/en.json` | Localization strings for widget name, description, and settings labels |
 | `images/logo*.png`, `images/icon*.svg` | Marketplace branding assets (Holos purple `#2F2864`, see below) |
 | `images/slideshow_*_{en,es}.jpg` | Marketplace gallery/tour images (1188×616), referenced from `manifest.json` → `tour.tour_images` |
@@ -53,12 +53,14 @@ reload the widget in a live account.
 
 1. **Phone Time badges**: `PT_MAP` maps calling codes (`+1`, `+593`, ...) to `[ISO2, country
    name, UTC offset minutes]`. The country name is rendered as the badge's native `title`
-   attribute (hover tooltip) and the flag `<img>`'s `alt` text, localized to the current Kommo
-   interface language via `getLocalizedCountryName()` (browser `Intl.DisplayNames`, keyed off
-   `document.documentElement.lang`) — `PT_MAP`'s English name is only a fallback if that API
-   throws or is unsupported. Kommo marketplace review is strict about a feature description
-   matching what's actually shipped, which is why this isn't a hardcoded English-only tooltip.
-   `renderPhoneBadges()` scans
+   attribute (hover tooltip) and the flag `<img>`'s `alt` text, localized to the account's
+   actual Kommo interface language via `getLocalizedCountryName()` (browser `Intl.DisplayNames`,
+   keyed off `self.i18n('widget').lang` — **not** `document.documentElement.lang`, which does
+   not reliably reflect the account's language and caused the tooltip to show a Spanish country
+   name on an English-language account during marketplace review) — `PT_MAP`'s English name is
+   only a fallback if that API throws or is unsupported. Kommo marketplace review is strict
+   about a feature description matching what's actually shipped, which is why this isn't a
+   hardcoded English-only tooltip. `renderPhoneBadges()` scans
    `.control-phone__formatted` inputs, parses each value with `parsePhoneData()`, wraps just the
    input (not its siblings, e.g. an "add phone" button) in its own `.km-phone-time__row`
    inline-flex span so the badge always sits beside it rather than depending on the original
@@ -97,6 +99,12 @@ escaping for any new dynamic content added to the badge HTML.
 
 Add new user-visible strings to both `i18n/es.json` and `i18n/en.json`. The keys map to
 entries in `manifest.json` (`settings.*`, `widget.*`), including `settings.telefono`.
+
+Each file also has a `widget.lang` key (`"es"` / `"en"`) that isn't referenced from
+`manifest.json` — it exists purely so `script.js` can call `self.i18n('widget').lang` to learn
+the account's actual interface language (per Kommo's official i18n SDK method,
+`developers.kommo.com/docs/i18n`) instead of guessing from `document.documentElement.lang`.
+Add the matching `lang` value to any new locale file.
 
 ## Marketplace assets
 

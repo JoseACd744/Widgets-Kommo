@@ -1,5 +1,6 @@
 {
   "widget": {
+    "lang": "en",
     "name": "Phone Time via Holos",
     "short_description": "Shows local time and country flag by phone number.",
     "description": "Displays the contact's local time and country flag next to every phone number, in the lead card and the contact card.",

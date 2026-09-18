@@ -1,5 +1,6 @@
 {
   "widget": {
+    "lang": "es",
     "name": "Hora por Teléfono via Holos",
     "short_description": "Hora local y bandera del país junto al teléfono.",
     "description": "Muestra la hora local y la bandera del país junto a cada número de teléfono, en la tarjeta del lead y del contacto.",

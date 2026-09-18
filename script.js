@@ -68,6 +68,7 @@ define(['jquery'], function ($) {
     this.callbacks = {
       settings:     function () { return true; },
       init:         function () {
+        self.loadCSS();
         self.setupPhoneTime();
         return true;
       },
@@ -78,6 +79,18 @@ define(['jquery'], function ($) {
       },
       onSave:       function () { self.sendToServer(); return true; },
       destroy:      function () { self.destroyPhoneTime(); }
+    };
+
+    // ─── Load style.css with a version query string (per Kommo docs: prevents
+    // caching issues and keeps class names cascaded/scoped) — Kommo does NOT
+    // auto-attach a widget's style.css, script.js must load it explicitly. ────
+
+    this.loadCSS = function () {
+      var settings = self.get_settings();
+      var href = settings.path + '/style.css?v=' + settings.version;
+      if ($('link[href="' + href + '"]').length < 1) {
+        $('head').append('<link href="' + href + '" type="text/css" rel="stylesheet">');
+      }
     };
 
     // ─── Registration: subdomain + settings → server ─────────────────────────
@@ -130,15 +143,10 @@ define(['jquery'], function ($) {
             url:         SERVER_URL,
             method:      'POST',
             contentType: 'application/json',
-            data:        JSON.stringify(payload),
-            error: function (xhr) {
-              console.error('[KM] Error al enviar al servidor:', xhr.status, xhr.statusText);
-            }
+            data:        JSON.stringify(payload)
           });
         });
-      } catch (e) {
-        console.error('[KM] Error en sendToServer:', e);
-      }
+      } catch (e) {}
     };
 
     // ─── Phone Time: entry point ─────────────────────────────────────────────
@@ -226,13 +234,16 @@ define(['jquery'], function ($) {
 
     // ─── Phone Time: DOM injection ────────────────────────────────────────────
 
-    // Localized country name for the current Kommo interface language (es/en),
+    // Localized country name for the account's actual Kommo interface language,
     // via the browser's own Intl.DisplayNames — no translation table to maintain.
-    // Falls back to PT_MAP's English name if the API is unsupported or throws.
+    // The language comes from self.i18n('widget').lang (a key we control in
+    // i18n/es.json and i18n/en.json), which Kommo resolves server-side based on
+    // the account's language — this is reliable where document.documentElement.lang
+    // is not. Falls back to PT_MAP's English name if anything here fails.
     this.getLocalizedCountryName = function (iso2, fallbackName) {
       try {
-        var lang = ((document.documentElement.lang || 'es') + '').split('-')[0];
-        var displayNames = new Intl.DisplayNames([lang, 'es', 'en'], { type: 'region' });
+        var lang = (self.i18n('widget').lang || 'en') + '';
+        var displayNames = new Intl.DisplayNames([lang, 'en'], { type: 'region' });
         return displayNames.of(iso2) || fallbackName;
       } catch (e) {
         return fallbackName;

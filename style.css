@@ -1,5 +1,11 @@
 /* ─── Color tokens (light default, overridden in Kommo dark theme) ───────── */
 :root {
+  /* Build marker — must match PT_BUILD in script.js. This account has many
+     Holos widgets installed at once, several sharing similar class names, so
+     this is the only reliable way to confirm THIS style.css (not a stale copy,
+     not a different widget's file) is the one actually applied. Check via
+     DevTools: getComputedStyle(document.documentElement).getPropertyValue('--km-pt-build') */
+  --km-pt-build: "1.0.9";
   --km-pt-text: #7a7a7a;
   --km-pt-flag-border: rgba(0, 0, 0, 0.15);
 }
@@ -22,13 +28,20 @@
 .km-phone-time {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
   font-size: 12px;
   color: var(--km-pt-text);
   cursor: default;
   position: relative;
   white-space: nowrap;
+}
+
+/* Shrink the phone input itself (only where our badge is actually attached,
+   via the .km-phone-time__row wrapper) so the flag+clock badge has room
+   instead of being pushed to the far edge of the field. */
+.km-phone-time__row .control-phone__formatted {
+  max-width: 140px;
 }
 
 .km-phone-time__flag {

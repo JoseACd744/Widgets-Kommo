@@ -3,6 +3,15 @@ define(['jquery'], function ($) {
     var self = this;
 
     var ROOT_ID = 'kai-root';
+    var RANGE_KEY = 'kai_range_days_v1';
+    var DEFAULT_RANGE_DAYS = 14;
+    var RANGE_OPTIONS = [
+      { days: 7,  label: 'Última semana' },
+      { days: 14, label: 'Últimas 2 semanas' },
+      { days: 21, label: 'Últimas 3 semanas' },
+      { days: 28, label: 'Últimas 4 semanas' },
+      { days: 30, label: 'Últimos 30 días' }
+    ];
 
     this.callbacks = {
       settings: function () { return true; },
@@ -76,13 +85,17 @@ define(['jquery'], function ($) {
         .on('click.kai', '#kai-generate',   function () { self.generate(); })
         .on('click.kai', '#kai-regenerate', function () { self.generate(); })
         .on('click.kai', '#kai-copy',       function () { self.copy(); })
+        .on('change.kai', '#kai-range', function () { self.saveRangePref(parseInt($(this).val(), 10)); })
         .on('mousedown.kai click.kai', function (e) { e.stopPropagation(); });
     };
 
     this.shellHtml = function () {
       return '' +
         '<div id="' + ROOT_ID + '" class="kai">' +
-          '<div class="kai-hint">Genera, con IA, un mensaje de seguimiento final a partir de todo el historial de chat de este lead.</div>' +
+          '<div class="kai-hint">Genera, con IA, un mensaje de seguimiento final a partir del chat de este lead.</div>' +
+          '<label class="kai-range">Rango de historial a analizar' +
+            '<select id="kai-range" class="kai-select">' + self.rangeOptionsHtml() + '</select>' +
+          '</label>' +
           '<button type="button" id="kai-generate" class="kai-btn kai-btn--primary">Generar mensaje de seguimiento</button>' +
           '<div id="kai-status" class="kai-status"></div>' +
           '<div id="kai-result" class="kai-result" style="display:none;">' +
@@ -93,6 +106,26 @@ define(['jquery'], function ($) {
             '</div>' +
           '</div>' +
         '</div>';
+    };
+
+    this.rangeOptionsHtml = function () {
+      var pref = self.loadRangePref();
+      return RANGE_OPTIONS.map(function (opt) {
+        var selected = opt.days === pref ? ' selected' : '';
+        return '<option value="' + opt.days + '"' + selected + '>' + opt.label + '</option>';
+      }).join('');
+    };
+
+    this.loadRangePref = function () {
+      try {
+        var v = parseInt(localStorage.getItem(RANGE_KEY), 10);
+        if (RANGE_OPTIONS.some(function (o) { return o.days === v; })) return v;
+      } catch (e) {}
+      return DEFAULT_RANGE_DAYS;
+    };
+
+    this.saveRangePref = function (days) {
+      try { localStorage.setItem(RANGE_KEY, String(days)); } catch (e) {}
     };
 
     this.status = function (msg, kind) {
@@ -110,19 +143,24 @@ define(['jquery'], function ($) {
 
       var leadId = APP.data.current_card.id;
       var proxyUrl = (settings.proxy_url || '').replace(/\/+$/, '');
+      var days = parseInt($('#kai-range').val(), 10) || DEFAULT_RANGE_DAYS;
 
       $('#kai-generate, #kai-regenerate, #kai-copy').prop('disabled', true);
       $('#kai-result').hide();
       self.status('Generando mensaje…');
 
       $.ajax({
-        url: proxyUrl + '/followup?lead_id=' + leadId,
+        url: proxyUrl + '/followup?lead_id=' + leadId + '&days=' + days,
         type: 'POST',
         dataType: 'json',
         headers: { 'X-Widget-Key': settings.widget_key }
       })
         .done(function (payload) {
-          self.status('');
+          if (payload.used_full_history) {
+            self.status('Sin mensajes en el rango elegido; se usó el historial completo.', 'warn');
+          } else {
+            self.status('');
+          }
           $('#kai-message').val(payload.message || '');
           $('#kai-result').show();
         })

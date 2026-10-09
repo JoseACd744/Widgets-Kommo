@@ -1,7 +1,16 @@
 {# Shell del panel. script.js verifica que quede montado y, si Kommo no lo
    renderiza por esta vía, lo inyecta con el mismo markup desde shellHtml(). #}
 <div id="kai-root" class="kai">
-  <div class="kai-hint">Genera, con IA, un mensaje de seguimiento final a partir de todo el historial de chat de este lead.</div>
+  <div class="kai-hint">Genera, con IA, un mensaje de seguimiento final a partir del chat de este lead.</div>
+  <label class="kai-range">Rango de historial a analizar
+    <select id="kai-range" class="kai-select">
+      <option value="7">Última semana</option>
+      <option value="14" selected>Últimas 2 semanas</option>
+      <option value="21">Últimas 3 semanas</option>
+      <option value="28">Últimas 4 semanas</option>
+      <option value="30">Últimos 30 días</option>
+    </select>
+  </label>
   <button type="button" id="kai-generate" class="kai-btn kai-btn--primary">Generar mensaje de seguimiento</button>
   <div id="kai-status" class="kai-status"></div>
   <div id="kai-result" class="kai-result" style="display:none;">

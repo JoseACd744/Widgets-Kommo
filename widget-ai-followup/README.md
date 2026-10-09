@@ -37,11 +37,15 @@ cargar el zip. Pide dos valores:
 
 ## Uso
 
-Abrir un lead → panel → **Generar mensaje de seguimiento**. El widget envía
-el id del lead al proxy, que trae el historial completo y genera el mensaje
-con IA. El resultado aparece en un campo editable con botones **Copiar** y
-**Regenerar**. Nada se envía ni se guarda automáticamente — el usuario decide
-qué hacer con el texto.
+Abrir un lead → panel → elegir el **rango de historial a analizar** (última
+semana, 2/3/4 semanas o últimos 30 días — se recuerda la última elección en
+`localStorage`) → **Generar mensaje de seguimiento**. El widget envía el id
+del lead y el rango al proxy, que trae la conversación de esa ventana y
+genera el mensaje con IA. Si el lead no tuvo mensajes en el rango elegido,
+el proxy reintenta con el historial completo en vez de fallar, y el widget
+avisa que hizo eso. El resultado aparece en un campo editable con botones
+**Copiar** y **Regenerar**. Nada se envía ni se guarda automáticamente — el
+usuario decide qué hacer con el texto.
 
 ## Detalle de implementación
 

@@ -156,11 +156,14 @@ define(['jquery'], function ($) {
         headers: { 'X-Widget-Key': settings.widget_key }
       })
         .done(function (payload) {
+          var notes = [];
           if (payload.used_full_history) {
-            self.status('Sin mensajes en el rango elegido; se usó el historial completo.', 'warn');
-          } else {
-            self.status('');
+            notes.push('Sin mensajes en el rango elegido; se usó el historial completo.');
           }
+          if (payload.usage && payload.usage.limit !== null) {
+            notes.push('Usos de IA este mes: ' + payload.usage.used + '/' + payload.usage.limit + '.');
+          }
+          self.status(notes.join(' '), payload.used_full_history ? 'warn' : null);
           $('#kai-message').val(payload.message || '');
           $('#kai-result').show();
         })
@@ -199,6 +202,7 @@ define(['jquery'], function ($) {
       var body = xhr.responseJSON || {};
       if (xhr.status === 0)   return 'No se pudo contactar el proxy (revisá la URL y el CORS).';
       if (xhr.status === 401) return 'Clave del widget inválida.';
+      if (xhr.status === 429) return 'Se alcanzó el límite mensual de mensajes con IA de esta cuenta. Se renueva el mes próximo.';
       if (xhr.status === 404 && body.error === 'empty_conversation') {
         return 'Este lead no tiene mensajes de chat todavía.';
       }

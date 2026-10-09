@@ -44,7 +44,10 @@ del lead y el rango al proxy, que trae la conversación de esa ventana y
 genera el mensaje con IA. Si el lead no tuvo mensajes en el rango elegido,
 el proxy reintenta con el historial completo en vez de fallar, y el widget
 avisa que hizo eso. El resultado aparece en un campo editable con botones
-**Copiar** y **Regenerar**. Nada se envía ni se guarda automáticamente — el
+**Copiar** y **Regenerar**. Cada generación (incluida "Regenerar") cuenta como un
+uso del mes de la cuenta; el widget muestra "Usos de IA este mes: X/Y" y, al llegar
+al tope, avisa que se renueva el mes próximo. El tope se configura por cuenta en el
+panel `/admin` del proxy (por defecto 5 por mes). Nada se envía ni se guarda automáticamente — el
 usuario decide qué hacer con el texto.
 
 ## Detalle de implementación
